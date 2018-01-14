@@ -326,7 +326,7 @@ static bool load_module(char *modname) {
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
-	fprintf(stderr, "Usage: %s [-v] [-D] [-l loopcount] [-t time] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
+	fprintf(stderr, "Usage: %s [-v] [-D] [-l loopcount] [-t time] [-d data] [-h] [-f datafile] [-p module] [module options] [hostname]\n",progname);
 	fprintf(stderr, " -d data\tadd this data as a string to the end of the packet\n");
 	fprintf(stderr, " -f datafile\tread packet data from file\n");
 	fprintf(stderr, " -h\t\thelp (this message)\n");
@@ -623,10 +623,15 @@ int main(int argc, char *const argv[]) {
 		/* gnuoptind is the first thing that is not an option - should have exactly
 			one hostname...
 		*/
-		if(argc != gnuoptind+1) {
+		if(argc-gnuoptind < 1) {
+			fprintf(stderr,"No hostname specified, assuming -D (dump to stdout)\n");
+			dump = TRUE;
+			if(first && first->set_addr) {
+				first->set_addr((char*)"localhost",first->pack);
+			}
+		} else if(argc > gnuoptind+1) {
 			usage=TRUE;
-			if(argc-gnuoptind < 1) fprintf(stderr,"No hostname specified\n");
-			else fprintf(stderr,"More than one hostname specified\n");
+			fprintf(stderr,"More than one hostname specified\n");
 		} else {
 			if(first && first->set_addr) {
 				first->set_addr(argv[gnuoptind],first->pack);
