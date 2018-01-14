@@ -326,7 +326,7 @@ static bool load_module(char *modname) {
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
-	fprintf(stderr, "Usage: %s [-v] [-l loopcount] [-T time] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
+	fprintf(stderr, "Usage: %s [-v] [-D] [-l loopcount] [-t time] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
 	fprintf(stderr, " -d data\tadd this data as a string to the end of the packet\n");
 	fprintf(stderr, " -f datafile\tread packet data from file\n");
 	fprintf(stderr, " -h\t\thelp (this message)\n");
@@ -334,6 +334,7 @@ static void print_usage(void) {
 	fprintf(stderr, " -p module\tload the specified module (see below)\n");
 	fprintf(stderr, " -T time\twait time seconds between each loop run (0 means as fast as possible)\n");
 	fprintf(stderr, " -v\t\tbe verbose\n");
+	fprintf(stderr, " -D\t\tdump packet(s) to stdout but don't send\n");
 
 	fprintf(stderr, "\n\nPacket data, and argument values for many header fields, may\n");
 	fprintf(stderr, "specified as\n");
@@ -411,7 +412,7 @@ int main(int argc, char *const argv[]) {
 	int longindex=0;
 	char rbuff[31];
 
-	bool usage=FALSE, verbosity=FALSE;
+	bool usage=FALSE, verbosity=FALSE, dump=FALSE;
 
 	char *data=NULL;
 	int datafile=-1;
@@ -443,8 +444,11 @@ int main(int argc, char *const argv[]) {
 	/* First, get all the builtin options, and load the modules */
 	gnuopterr=0;
 	gnuoptind=0;
-	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:l:T:vd:hf:")))) {
+	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:l:T:vd:hf:D")))) {
 		switch(optc) {
+		case 'D':
+			dump=TRUE;
+			break;
 		case 'p':
 			if(load_module(gnuoptarg))
 				num_modules++;
@@ -559,7 +563,7 @@ int main(int argc, char *const argv[]) {
 		 * packets.
 		 */
 		currentmod = NULL;
-		while(EOF != (optc=getopt_long_only(argc,argv,"p:l:T:vd:hf:",opts,&longindex))) {
+		while(EOF != (optc=getopt_long_only(argc,argv,"p:l:T:vd:hf:D",opts,&longindex))) {
 
 			switch(optc) {
 			case 'p':
@@ -569,6 +573,7 @@ int main(int argc, char *const argv[]) {
 				else
 					currentmod = currentmod->next;
 				break;
+			case 'D':
 			case 'v':
 			case 'd':
 			case 'f':
@@ -744,7 +749,10 @@ int main(int argc, char *const argv[]) {
 				free(packet.data);
 				return 1;
 			}
-			i = sendpacket(&packet,argv[gnuoptind],af_type,verbosity);
+			if (dump)
+				i = fwrite(packet.data, packet.alloc_len, 1, stdout);
+			else
+				i = sendpacket(&packet,argv[gnuoptind],af_type,verbosity);
 			free(packet.data);
 		}
 		/* @@ Regenerate data on subsequent loop calls */

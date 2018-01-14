@@ -4,7 +4,7 @@
 sendip \- Send arbitrary IP packets
 .SH SYNOPSIS
 .B sendip
-[\fI-v\fR] [\fI-l loopcount\fR] [\fI-t time\fR] [\fI-d data\fR] [\fI-h\fR] [\fI-f datafile\fR] [\fI-p module\fR] [\fImodule options\fR] \fIhostname\fR
+[\fI-v\fR] [\fI-D\fR] [\fI-l loopcount\fR] [\fI-t time\fR] [\fI-d data\fR] [\fI-h\fR] [\fI-f datafile\fR] [\fI-p module\fR] [\fImodule options\fR] \fIhostname\fR
 .SH OPTIONS
 .TP
 \fB\-d\fR data
@@ -27,6 +27,9 @@ wait time seconds between each loop run (0 means as fast as possible)
 .TP
 \fB\-v\fR
 be verbose
+.TP
+\fB\-D\fR
+dump packet(s) to stdout but don't send
 .PP
 Packet data, and argument values for many header fields, may
 specified as
