@@ -69,8 +69,8 @@ cryptomod.o:	mec/cryptomod.c
 crc32.o: mec/crc32table.h mec/crc32.c
 	$(CC) -o $@ -c -I. $(CFLAGS) mec/crc32.c
 
-mec/crc32table.h: mec/gen_crc32table
-	mec/gen_crc32table > mec/crc32table.h
+#mec/crc32table.h: mec/gen_crc32table
+#	mec/gen_crc32table > mec/crc32table.h
 
 # This requires help2man; a customized local copy is included
 sendip.1:	$(PROGS) $(PROTOS) subdirs VERSION
