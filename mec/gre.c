@@ -224,8 +224,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= GRE_MOD_VERSION;
 		break;
 	case 'p':
-		gre->gre_protocol =
-			htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		gre->gre_protocol = integerargument(arg, 2);
 		pack->modified |= GRE_MOD_PROTOCOL;
 		break;
 	case 'o':

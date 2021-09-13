@@ -49,6 +49,11 @@ extern int compact_string(char *data_out);
 u_int8_t * randombytes(int length);
 int stringargument(char *input, char **output);
 u_int32_t integerargument(char *input, int length);
+u_int32_t hostintegerargument(char *input, int length);
+in_addr_t ipv4argument(char *input, int length);
+char *fileargument(char *input);
+int fa_init(void);
+void fa_close(void);
 
 const char * proto_to_name(u_int8_t proto, int nolookup);
 u_int8_t name_to_proto(char *s);

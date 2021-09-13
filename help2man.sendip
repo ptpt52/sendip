@@ -37,7 +37,7 @@ use Text::Tabs qw(expand);
 use POSIX qw(strftime setlocale LC_TIME);
 
 my $this_program = 'help2man';
-my $this_version = '1.23-sendip';
+my $this_version = '2.5-mec-3-sendip';
 my $version_info = <<EOT;
 GNU $this_program $this_version
 

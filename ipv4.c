@@ -68,7 +68,8 @@ static u_int8_t buildroute(char *data) {
 		if(next) {
 			*(next++)=0;
 		}
-		ip=inet_addr(data_in);
+		/*@@ip=inet_addr(data_in);*/
+		ip=ipv4argument(data_in, strlen(data_in));
 		memcpy(data_out,&ip,4);
 		data_out+=4;
 		data_in = next;
@@ -123,11 +124,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	ip_header *iph = (ip_header *)pack->data;
 	switch(opt[1]) {
 	case 's':
-		iph->saddr = inet_addr(arg);
+		/*@@iph->saddr = inet_addr(arg);*/
+		iph->saddr = ipv4argument(arg, strlen(arg));
 		pack->modified |= IP_MOD_SADDR;
 		break;
 	case 'd':
-		iph->daddr = inet_addr(arg);
+		/*@@iph->daddr = inet_addr(arg);*/
+		iph->daddr = ipv4argument(arg, strlen(arg));
 		pack->modified |= IP_MOD_DADDR;
 		break;
 	case 'h':
@@ -143,16 +146,30 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified |= IP_MOD_TOS;
 		break;
 	case 'l':
-		iph->tot_len = (u_int16_t)strtoul(arg, (char **)NULL, 0);
-#ifndef __FreeBSD__
-#ifndef __FreeBSD
-		iph->tot_len = htons(iph->tot_len);
+		/*@@ For reasons unbeknownst to science, the tot_len and
+		 * frag_off fields in FreeBSD have to be passed in
+		 * host, rather than network byte order. They are flipped
+		 * (if need be) in the kernel before transmission.
+		 */
+/*@@		
+ * 		iph->tot_len = (u_int16_t)strtoul(arg, (char **)NULL, 0);
+ * #ifndef __FreeBSD__
+ * #ifndef __FreeBSD
+ * 		iph->tot_len = htons(iph->tot_len);
+ * #endif
+ * #endif
+ */
+#if defined(__FreeBSD__) || defined(__FreeBSD)
+		iph->tot_len = hostintegerargument(arg, 2);
+#else
+		iph->tot_len = integerargument(arg, 2);
 #endif
-#endif
+
 		pack->modified |= IP_MOD_TOTLEN;
 		break;
 	case 'i':
-		iph->id = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		/*@@iph->id = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
+		iph->id = integerargument(arg, 2);
 		pack->modified |= IP_MOD_ID;
 		break;
 
@@ -178,6 +195,9 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				break;
 			}
 		} else {
+			/*@@ The define for this has to make FreeBSD
+			 * adjustments.
+			 */
 			IP_SET_FRAGOFF(iph,(u_int16_t)strtoul(arg, (char **)NULL, 0) & 
 				(u_int16_t)0x1FFF);
 			pack->modified |= IP_MOD_FRAGOFF;
@@ -186,15 +206,18 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		break;
 
 	case 't':
-		iph->ttl = (u_int8_t)strtoul(arg, (char **)NULL, 0);
+		/*@@iph->ttl = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
+		iph->ttl = integerargument(arg, 1);
 		pack->modified |= IP_MOD_TTL;
 		break;
 	case 'p':
-	   iph->protocol = (u_int8_t)strtoul(arg, (char **)NULL, 0);
+		/*@@iph->protocol = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
+		iph->protocol = integerargument(arg, 1);
 		pack->modified |= IP_MOD_PROTOCOL;
 		break;
 	case 'c':
-		iph->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		/*@@iph->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
+		iph->check = integerargument(arg, 2);
 		pack->modified |= IP_MOD_CHECK;
 		break;
 
@@ -334,19 +357,21 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 					u_int32_t ip;
 					next=strchr(data_in,':');
 					if(!next) {
-						fprintf(stderr,"IP address in IP timestamp option must be followed by a timesamp\n");
+						fprintf(stderr,"IP address in IP timestamp option must be followed by a timestamp\n");
 						free(data);
 						return FALSE;
 					}
 					*(next++)=0;
-					ip=inet_addr(data_in);
+					/*@@ip=inet_addr(data_in);*/
+					ip=ipv4argument(data_in, next-data_in);
 					memcpy(data_out,&ip,4);
 					data_out+=4;
 					data_in = next;
 				}
 				next=strchr(next,':');
 				if(next) *(next++)=0;
-				ts = htonl(atoi(data_in));
+				/*@@ts = htonl(atoi(data_in));*/
+				ts = integerargument(data_in, 4);
 				memcpy(data_out,&ts,4);
 				data_out+=4;
 				data_in = next;
@@ -382,7 +407,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			}
 		} else if(!strcmp(opt+2, "sid")) {
 			/* Stream ID (RFC791) */
-			u_int16_t sid = htons(atoi(arg));
+			/*@@u_int16_t sid = htons(atoi(arg));*/
+			u_int16_t sid = integerargument(arg, 2);
 			addoption(1,0,8,4,(u_int8_t *)&sid,pack);
 		} else if(!strcmp(opt+2, "ssr")) {
 			/* Strict Source Route 

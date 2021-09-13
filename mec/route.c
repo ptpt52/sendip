@@ -70,7 +70,6 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	 * other fields.
 	 */
 	struct rt0_hdr *rt = (struct rt0_hdr *)route;
-	u_int32_t value;
 	u_int16_t svalue;
 
 	switch(opt[1]) {
@@ -97,8 +96,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= ROUTE_MOD_SEGMENTS;
 		break;
 	case 'r':	/* Reserved field (4 bytes) */
-		value = strtoul(arg, (char **)NULL, 0);
-		rt->reserved = htonl(value);
+		rt->reserved = integerargument(arg, 4);
 		pack->modified |= ROUTE_MOD_RESV;
 		break;
 	case 'a':	/* address list */

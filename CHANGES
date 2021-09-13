@@ -146,3 +146,9 @@ Changes between sendip-2.5-mec-1 and sendip-2.5-mec-2
 * SCTP
 * Extended uniform integer argument handling
 - Again, for details, see the README.mec file
+
+Changes between sendip-2.5-mec-2 and sendip-2.5-mec-3
+* Even more extended uniform string, integer and IP address handling
+* Looping capability and file-based arguments
+* First stab at fixing some FreeBSD and Ubuntu issues
+- As always, for details, see the README.mec file

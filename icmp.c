@@ -83,15 +83,18 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	icmp_header *icp = (icmp_header *)pack->data;
 	switch(opt[1]) {
 	case 't':
-		icp->type = (u_int8_t)strtoul(arg, (char **)NULL, 0);
+		/*@@icp->type = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
+		icp->type = integerargument(arg, 1);
 		pack->modified |= ICMP_MOD_TYPE;
 		break;
 	case 'd':
-		icp->code = (u_int8_t)strtoul(arg, (char **)NULL, 0);
+		/*@@icp->code = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
+		icp->code = integerargument(arg, 1);
 		pack->modified |= ICMP_MOD_CODE;
 		break;
 	case 'c':
-		icp->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		/*@@icp->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
+		icp->check = integerargument(arg, 2);
 		pack->modified |= ICMP_MOD_CHECK;
 		break;
 	}

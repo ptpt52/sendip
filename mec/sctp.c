@@ -136,13 +136,11 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	/* Overall header arguments are lowercase; chunk args are upper */
 	case 's':	/* SCTP source port (16 bits) */
 		pack->modified |= SCTP_MOD_SOURCE;
-		svalue = strtoul(arg, (char **)NULL, 0);
-		sctp->source = htons(svalue);
+		sctp->source = integerargument(arg, 2);
 		break;
 	case 'd':	/* SCTP destination port (16 bits) */
 		pack->modified |= SCTP_MOD_DEST;
-		svalue = strtoul(arg, (char **)NULL, 0);
-		sctp->dest = htons(svalue);
+		sctp->dest = integerargument(arg, 2);
 		break;
 	case 'v':	/* SCTP vtag (32 bits) */
 		pack->modified |= SCTP_MOD_VTAG;
@@ -160,8 +158,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'c':	/* SCTP checksum (32 bits) */
 		pack->modified |= SCTP_MOD_CHECKSUM;
-		lvalue = strtoul(arg, (char **)NULL, 0);
-		sctp->dest = htonl(lvalue);
+		sctp->dest = integerargument(arg, 4);
 		break;
 
 	case 'T':	/* SCTP chunk type (8 bits) */

@@ -22,11 +22,12 @@ Additions made:
 
 2. Helper functions
 
-   random data generation
+   random data and address generation
    protocol name/number conversion
    forward/back header lookup
    CRC32 calculation
-   "standard" string and integer parameter functions
+   "standard" string, integer, and IPv4 address parameter functions
+   (TODO: similar IPv6 address parameter function)
 
 Changes in existing modules:
 
@@ -47,3 +48,11 @@ size in packet finalization. This is to support ESP, which needs to
 pad out its trailer for alignment; we have it preallocate extra space,
 and then trim back to the minimum required for proper alignment during
 finalization.
+
+5. Added outer looping ability, so one invocation can produce a stream
+of packets. Note that unless some random (rXX) fields or other changing
+fields have been added, the packets will all be identical.
+
+6. Expanded and made more uniform parameter handling. Most parameters
+can now be specified either literally, as a random (rXX) value, or
+be taken from a file (ffilename).

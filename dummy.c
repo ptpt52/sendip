@@ -47,6 +47,9 @@
  *      the header file.  Typically, the code will look a lot like:
  *      case 'option':
  *        header->thing = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+ *        @@ New function allows specifying random values, etc.:
+ *        @@ header->thing = integerargument(arg, 2);  2 for 16-bit
+ *        @@ header->thing = hostargument(arg, 2);  if not byte-swapped
  *        pack->modified |= FOO_MOD_THING;
  *        break;
  *      If some of your options change the length of the packet, you might want
@@ -54,6 +57,7 @@
  *      TCP options.
  *      Make sure you use htons and htonl everywhere you need to to avoid 
  *      byteorder problems.
+ *      @@ New functions take care of that for input arguments.
  *      -opt contains the option string, including the starting opt_char
  *      -arg contains any argument given
  *      -pack contains our headers

@@ -37,11 +37,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	char *p, *q;
 	switch(opt[1]) {
 	case 'v': /* version */
-		rippack->version = (u_int8_t)strtoul(arg, (char **)0, 0);
+		/*@@rippack->version = (u_int8_t)strtoul(arg, (char **)0, 0);*/
+		rippack->version = integerargument(arg, 1);
 		pack->modified |= RIP_MOD_VERSION;
 		break;
 	case 'c': /* command */
-		rippack->command = (u_int8_t)strtoul(arg, (char **)0, 0);
+		/*@@rippack->command = (u_int8_t)strtoul(arg, (char **)0, 0);*/
+		rippack->command = integerargument(arg, 1);
 		pack->modified |= RIP_MOD_COMMAND;
 		break;
 	case 'a': /* authenticate */

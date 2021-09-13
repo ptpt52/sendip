@@ -326,21 +326,45 @@ out:
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
-	printf("Usage: %s [-v] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
+	printf("Usage: %s [-v] [-l loopcount] [-t time] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
 	printf(" -d data\tadd this data as a string to the end of the packet\n");
 	printf(" -f datafile\tread packet data from file\n");
 	printf(" -h\t\thelp (this message)\n");
+	printf(" -l loopcount\trun loopcount times (0 means indefinitely)\n");
 	printf(" -p module\tload the specified module (see below)\n");
+	printf(" -t time\twait time seconds between each loop run (0 means as fast as possible)\n");
 	printf(" -v\t\tbe verbose\n");
 
 	printf("\n\nPacket data, and argument values for many header fields, may\n");
 	printf("specified as\n");
-	printf("rN to generate N random(ish) data bytes;\n");
-	printf("zN to generate N nul (zero) data bytes;\n");
-	printf("0x or 0X followed by hex digits;\n");
-	printf("0 followed by octal digits;\n");
-	printf("decimal number for decimal digits;\n");
-	printf("any other stream of bytes, taken literally.\n");
+	printf(" rN\tto generate N random(ish) data bytes;\n");
+	printf(" zN\tto generate N nul (zero) data bytes;\n");
+	printf(" fF\tto read values from file F;\n");
+	printf(" 0x or 0X\tfollowed by hex digits;\n");
+	printf(" 0\tfollowed by octal digits;\n");
+	printf(" 1-9\tfollowed by decimal number for decimal digits;\n");
+	printf("Any other stream of bytes is taken literally.\n");
+
+	printf("\nFor example, the arguments\n\t-p ipv4 -is 10.1.1.r1 -p udp -us r2\n");
+	printf("generate a random 10.1.1.xx source address and random udp source port.\n\n");
+
+	printf("sendip may be run repeatedly by using the -l (loop) argument.\n");
+	printf("Each packet sent will be identical unless random (rN) or\n");
+	printf("file (fF) arguments are used.\n");
+	printf("When looping, sendip will send packets as quickly as possible\n");
+	printf("unless a time delay (-t) argument is specified.\n");
+	printf("\nFile arguments are read line by line, with the contents of\n");
+	printf("the line then substituted for the corresponding argument.\n");
+	printf("For example, assume the file F contains the four lines:\n");
+	printf("\n\t10.1.1.1\n");
+	printf("\n\t1000\n");
+	printf("\n\t10.1.1.2\n");
+	printf("\n\t2000\n");
+	printf("\nThen the arguments\n\n\t-l 2 -p ipv4 -id fF -p udp -ud fF\n");
+	printf("\nwould produce two UDP packets, one to 10.1.1.1:1000 and\n");
+	printf("one to 10.1.1.2:2000\n");
+	printf("When the lines in the file are exhausted, it is rewound\n");
+	printf("and read from the beginning again.\n");
 
 	printf("\n\nModules are loaded in the order the -p option appears.  The headers from\n");
 	printf("each module are put immediately inside the headers from the previous module in\n");
@@ -394,6 +418,10 @@ int main(int argc, char *const argv[]) {
 	int num_modules=0;
 
 	sendip_data packet;
+
+	/*@@*/
+	int loopcount=1;
+	unsigned int delaytime=0;
 	
 	num_opts = 0;	
 	first=last=NULL;
@@ -403,13 +431,22 @@ int main(int argc, char *const argv[]) {
 	/* magic random seed that gives 4 really random octets */
 	srandom(time(NULL) ^ (getpid()+(42<<15)));
 
+	/*@@ init global tools */
+	fa_init();
+
 	/* First, get all the builtin options, and load the modules */
 	gnuopterr=0; gnuoptind=0;
-	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:vd:hf:")))) {
+	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:l:t:vd:hf:")))) {
 		switch(optc) {
 		case 'p':
 			if(load_module(gnuoptarg))
 				num_modules++;
+			break;
+		case 'l':
+			loopcount = atoi(gnuoptarg);
+			break;
+		case 't':
+			delaytime = atoi(gnuoptarg);
 			break;
 		case 'v':
 			verbosity=TRUE;
@@ -471,6 +508,10 @@ int main(int argc, char *const argv[]) {
 		}
 	}
 
+/*@@ looping - needs to be after module loading, but before
+ * module option processing ... */
+while (--loopcount >= 0) {
+
 	/* Build the getopt listings */
 	opts = malloc((1+num_opts)*sizeof(struct option));
 	if(opts==NULL) {
@@ -509,7 +550,7 @@ int main(int argc, char *const argv[]) {
 	 * packets.
 	 */
 	currentmod = NULL;
-	while(EOF != (optc=getopt_long_only(argc,argv,"p:vd:hf:",opts,&longindex))) {
+	while(EOF != (optc=getopt_long_only(argc,argv,"p:l:t:vd:hf:",opts,&longindex))) {
 		
 		switch(optc) {
 		case 'p':
@@ -523,6 +564,8 @@ int main(int argc, char *const argv[]) {
 		case 'd':
 		case 'f':
 		case 'h':
+		case 'l':/*@@*/
+		case 't':/*@@*/
 			/* Processed above */
 			break;
 		case ':':
@@ -701,7 +744,15 @@ int main(int argc, char *const argv[]) {
 		i = sendpacket(&packet,argv[gnuoptind],af_type,verbosity);
 		free(packet.data);
 	}
+
+/*@@ looping */
+if (loopcount && delaytime)
+	sleep(delaytime);
+} /*@@ back to top of loop */
+
 	unload_modules(FALSE,verbosity);
+	/*@@ global de-init */
+	fa_close();
 
 	return 0;
 }

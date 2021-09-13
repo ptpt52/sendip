@@ -111,19 +111,23 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	// opt[0]==t
 	switch(opt[1]) {
 	case 's':
-		tcp->source = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		/*@@tcp->source = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
+		tcp->source = integerargument(arg, 2);
 		pack->modified |= TCP_MOD_SOURCE;
 		break;
 	case 'd':
-		tcp->dest = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		/*@@tcp->dest = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
+		tcp->dest = integerargument(arg, 2);
 		pack->modified |= TCP_MOD_DEST;
 		break;
 	case 'n':
-		tcp->seq = htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
+		/*@@tcp->seq = htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));*/
+		tcp->seq = integerargument(arg, 4);
 		pack->modified |= TCP_MOD_SEQ;
 		break;
 	case 'a':
-		tcp->ack_seq = htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
+		/*@@tcp->ack_seq = htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));*/
+		tcp->ack_seq = integerargument(arg, 4);
 		pack->modified |= TCP_MOD_ACKSEQ;
 		if(!(pack->modified&TCP_MOD_ACK)) {
 			tcp->ack = 1;
@@ -131,11 +135,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		}
 		break;
 	case 't':
-		tcp->off = (u_int16_t)strtoul(arg, (char **)NULL, 0) &0xF;
+		/*@@tcp->off = (u_int16_t)strtoul(arg, (char **)NULL, 0) &0xF;*/
+		tcp->off = (integerargument(arg, 1)&0xF);
 		pack->modified |= TCP_MOD_OFF;
 		break;
 	case 'r':
-		tcp->res = (u_int16_t)(strtoul(arg, (char **)NULL, 0) & 0x000F);
+		/*@@tcp->res = (u_int16_t)(strtoul(arg, (char **)NULL, 0) & 0x000F);*/
+		tcp->res = (integerargument(arg, 1)&0xF);
 		pack->modified |= TCP_MOD_RES;
 		break;
 	case 'f':
@@ -178,15 +184,18 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		}
 		break;
 	case 'w':
-		tcp->window = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		/*@@tcp->window = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
+		tcp->window = integerargument(arg, 2);
 		pack->modified |= TCP_MOD_WINDOW;
 		break;
 	case 'c':
-		tcp->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		/*@@tcp->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
+		tcp->check = integerargument(arg, 2);
 		pack->modified |= TCP_MOD_CHECK;
 		break;
 	case 'u':
-		tcp->urg_ptr = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		/*@@tcp->urg_ptr = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
+		tcp->urg_ptr = integerargument(arg, 2);
 		pack->modified |= TCP_MOD_URGPTR;
 		if(!(pack->modified&TCP_MOD_URG)) {
 			tcp->urg = 1;

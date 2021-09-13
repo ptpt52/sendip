@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include "sendip_module.h"
 
 int compact_string(char *data_out) {
@@ -100,6 +101,7 @@ randombytes(int length)
 		usage_error("Random data too long to be sane\n");
 		return NULL;
 	}
+	/* This could be done more efficiently ... */
 	for (i=0; i < length; ++i)
 		answer[i] = (u_int8_t)random();
 	/* Zero-pad out to 64-bit boundary */
@@ -137,7 +139,7 @@ stringargument(char *input, char **output)
 	int length=0;
 
 	if (!input || !output) return 0;
-	/* Special case for rN, zN strings */
+	/* Special case for rN, zN, fN strings */
 	switch (*input) {
 	case 'r':
 		if (isdigit(*(input+1))) {
@@ -155,6 +157,8 @@ stringargument(char *input, char **output)
 			return length;
 		}
 		break;
+	case 'f':
+		return stringargument(fileargument(input+1), output);
 	default:
 		break;
 	}
@@ -171,6 +175,7 @@ stringargument(char *input, char **output)
  *
  * 	field = integerargument(input, sizeof(field));
  */
+
 u_int32_t
 integerargument(char *input, int length)
 {
@@ -179,6 +184,57 @@ integerargument(char *input, int length)
 
 	if (!input || !length) return 0;
 	/* Special case for rN, zN strings */
+	switch (*input) {
+	case 'r':
+		if (isdigit(*(input+1))) {
+			inputlength = atoi(input+1);
+			if (inputlength > length)
+				inputlength = length;
+			string = randombytes(inputlength);
+			if (!string) return 0;
+			/* There's no point in byte-swapping
+			 * random bytes!
+			 */
+			switch (length) {
+			case 1:
+				return (u_int8_t)*string;
+			case 2:
+				return *(u_int16_t *)string;
+			default:
+				return *(u_int32_t *)string;
+			}
+		}
+		break;
+	case 'z':
+		/* like I said, pointless ... */
+		return 0;
+	case 'f':
+		return integerargument(fileargument(input+1), length);
+	default:
+		break;
+	}
+
+	/* Everything else, just use strtoul, then cast and swap */
+	switch (length) {
+	case 1:
+		return (u_int8_t)strtoul(input, (char **)NULL, 0);
+	case 2:
+		return htons((u_int16_t)strtoul(input, (char **)NULL, 0));
+	default:
+		return htonl(strtoul(input, (char **)NULL, 0));
+	}
+}
+
+
+/* same as above, except the result is in host byte order */
+u_int32_t
+hostintegerargument(char *input, int length)
+{
+	int inputlength;
+	u_int8_t *string;
+
+	if (!input || !length) return 0;
+	/* Special case for rN, zN, fN strings */
 	switch (*input) {
 	case 'r':
 		if (isdigit(*(input+1))) {
@@ -200,17 +256,70 @@ integerargument(char *input, int length)
 	case 'z':
 		/* like I said, pointless ... */
 		return 0;
+	case 'f':
+		return hostintegerargument(fileargument(input+1), length);
 	default:
 		break;
 	}
 
-	/* Everything else, just use strtoul, then cast and swap */
+	/* Everything else, just use strtoul, then cast */
 	switch (length) {
 	case 1:
 		return (u_int8_t)strtoul(input, (char **)NULL, 0);
 	case 2:
-		return htons((u_int16_t)strtoul(input, (char **)NULL, 0));
+		return (u_int16_t)strtoul(input, (char **)NULL, 0);
 	default:
-		return htonl(strtoul(input, (char **)NULL, 0));
+		return strtoul(input, (char **)NULL, 0);
 	}
 }
+/* @@ And this is the IPv4 dotted decimal version of the above. Here,
+ * each period-separated field is interpreted via integerargument.
+ * Note that "dotted decimal" includes not just those of the form
+ * aa.bb.cc.dd, but can also be aa.bb.cccc (i.e., last two bytes
+ * are specified as one 16-bit integer), aa.bbbbbb (last three bytes
+ * specified as one 24-bit integer), and even aaaaaaaa (entirely
+ * specified as one 32-bit integer). This allows specifying addresses
+ * such as:
+ * 	10.1.2.r1 - random address within this /24
+ * 	10.1.r2 - random address within this /16
+ * 	10.r3 - random 10. address
+ * 
+ * Returns the address, in network byte order.
+ */
+in_addr_t
+ipv4argument(char *input, int length)
+{
+	static char ipv4space[BUFSIZ]; /* actual max around 40 */
+	u_int32_t a, b, c, d;
+	char *dotpoint;
+
+	/* Special case for fN strings */
+	switch (*input) {
+	case 'f':
+		return ipv4argument(fileargument(input+1), length);
+	default:
+		break;
+	}
+	if (!(dotpoint=strchr(input, '.')))	/* aaaaaaaa */
+		return integerargument(input, 4);	/* in network order */
+	a = hostintegerargument(input, dotpoint-input);
+	input = dotpoint; ++input; length -= dotpoint-input;
+	if (!(dotpoint=strchr(input, '.'))) {	/* aa.bbbbbb */
+		b = hostintegerargument(input, length);
+		sprintf(ipv4space, "%d.%d", a, b);
+		return inet_addr(ipv4space);
+	}
+	b = hostintegerargument(input, dotpoint-input);
+	input = dotpoint; ++input; length -= dotpoint-input;
+	if (!(dotpoint=strchr(input, '.'))) {	/* aa.bb.cccc */
+		c = hostintegerargument(input, length);
+		sprintf(ipv4space, "%d.%d.%d", a, b, c);
+		return inet_addr(ipv4space);
+	}
+	c = hostintegerargument(input, dotpoint-input);
+	input = dotpoint; ++input; length -= dotpoint-input;
+	d = hostintegerargument(input, length);
+	sprintf(ipv4space, "%d.%d.%d.%d", a, b, c, d);
+	return inet_addr(ipv4space);
+}
+

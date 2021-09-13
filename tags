@@ -1,0 +1,462 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+AF_INET6	types.h	30;"	d
+BGP_BUFLEN	bgp.c	/^const u_int32_t  BGP_BUFLEN = 1400;$/;"	v
+BGP_HEADER	bgp.c	/^	BGP_HEADER,$/;"	e	enum:__anon18	file:
+BGP_MOD_ATTR_LEN	bgp.c	/^const u_int32_t BGP_MOD_ATTR_LEN = 0x00000008;$/;"	v
+BGP_MOD_LENGTH	bgp.c	/^const u_int32_t BGP_MOD_LENGTH =   0x00000001;$/;"	v
+BGP_MOD_OPT_LEN	bgp.c	/^const u_int32_t BGP_MOD_OPT_LEN =  0x00000002;$/;"	v
+BGP_MOD_WDR_LEN	bgp.c	/^const u_int32_t BGP_MOD_WDR_LEN =  0x00000004;$/;"	v
+BGP_NOTFN	bgp.c	/^	BGP_NOTFN$/;"	e	enum:__anon18	file:
+BGP_OPEN	bgp.c	/^	BGP_OPEN,$/;"	e	enum:__anon18	file:
+BGP_OPEN_OPT	bgp.c	/^	BGP_OPEN_OPT,$/;"	e	enum:__anon18	file:
+BGP_UPDATE_ATTR	bgp.c	/^	BGP_UPDATE_ATTR,$/;"	e	enum:__anon18	file:
+BGP_UPDATE_ATTR_LEN	bgp.c	/^	BGP_UPDATE_ATTR_LEN,$/;"	e	enum:__anon18	file:
+BGP_UPDATE_NLRI	bgp.c	/^	BGP_UPDATE_NLRI,$/;"	e	enum:__anon18	file:
+BGP_UPDATE_WDR	bgp.c	/^	BGP_UPDATE_WDR,$/;"	e	enum:__anon18	file:
+BGP_UPDATE_WDR_LEN	bgp.c	/^	BGP_UPDATE_WDR_LEN,$/;"	e	enum:__anon18	file:
+FALSE	types.h	14;"	d
+Filearray	filearray.c	/^} Filearray;$/;"	t	typeref:struct:_filearray	file:
+GETLONG	bgp.c	24;"	d	file:
+GETSHORT	bgp.c	19;"	d	file:
+HSIZE	filearray.c	29;"	d	file:
+ICMP6_ECHO_REQUEST	icmp.h	6;"	d
+ICMP_ECHO	icmp.h	7;"	d
+ICMP_MOD_CHECK	icmp.h	23;"	d
+ICMP_MOD_CODE	icmp.h	22;"	d
+ICMP_MOD_TYPE	icmp.h	21;"	d
+IPPROTO_DSTOPTS	types.h	33;"	d
+IPPROTO_ICMPV6	types.h	31;"	d
+IPPROTO_NONE	types.h	32;"	d
+IPV6_MOD_DST	ipv6.h	48;"	d
+IPV6_MOD_FLOW	ipv6.h	41;"	d
+IPV6_MOD_HLIM	ipv6.h	45;"	d
+IPV6_MOD_NXT	ipv6.h	46;"	d
+IPV6_MOD_PLEN	ipv6.h	44;"	d
+IPV6_MOD_PRIORITY	ipv6.h	43;"	d
+IPV6_MOD_SRC	ipv6.h	47;"	d
+IPV6_MOD_VERSION	ipv6.h	42;"	d
+IP_MOD_CHECK	ipv4.h	58;"	d
+IP_MOD_DADDR	ipv4.h	60;"	d
+IP_MOD_DF	ipv4.h	53;"	d
+IP_MOD_FRAGOFF	ipv4.h	55;"	d
+IP_MOD_HEADERLEN	ipv4.h	47;"	d
+IP_MOD_ID	ipv4.h	51;"	d
+IP_MOD_MF	ipv4.h	54;"	d
+IP_MOD_PROTOCOL	ipv4.h	57;"	d
+IP_MOD_RES	ipv4.h	52;"	d
+IP_MOD_SADDR	ipv4.h	59;"	d
+IP_MOD_TOS	ipv4.h	49;"	d
+IP_MOD_TOTLEN	ipv4.h	50;"	d
+IP_MOD_TTL	ipv4.h	56;"	d
+IP_MOD_VERSION	ipv4.h	48;"	d
+IP_SET_FRAGOFF	ipv4.h	28;"	d
+IP_SET_FRAGOFF	ipv4.h	34;"	d
+MAXRAND	sendip_module.h	48;"	d
+NONOPTION_P	gnugetopt.c	530;"	d	file:
+NTP_MOD_DRIFT	ntp.h	40;"	d
+NTP_MOD_ERROR	ntp.h	39;"	d
+NTP_MOD_LEAP	ntp.h	35;"	d
+NTP_MOD_ORIGINATE	ntp.h	43;"	d
+NTP_MOD_PRECISION	ntp.h	38;"	d
+NTP_MOD_RECEIVE	ntp.h	44;"	d
+NTP_MOD_REF	ntp.h	41;"	d
+NTP_MOD_REFERENCE	ntp.h	42;"	d
+NTP_MOD_STATUS	ntp.h	36;"	d
+NTP_MOD_TRANSMIT	ntp.h	45;"	d
+NTP_MOD_TYPE	ntp.h	37;"	d
+NULL	gnugetopt1.c	67;"	d	file:
+NULL	tcp.h	7;"	d
+PERMUTE	gnugetopt.c	/^  REQUIRE_ORDER, PERMUTE, RETURN_IN_ORDER$/;"	e	enum:__anon19	file:
+PUTLONG	bgp.c	37;"	d	file:
+PUTSHORT	bgp.c	31;"	d	file:
+REQUIRE_ORDER	gnugetopt.c	/^  REQUIRE_ORDER, PERMUTE, RETURN_IN_ORDER$/;"	e	enum:__anon19	file:
+RETURN_IN_ORDER	gnugetopt.c	/^  REQUIRE_ORDER, PERMUTE, RETURN_IN_ORDER$/;"	e	enum:__anon19	file:
+RIPNG_ADD_ENTRY	ripng.h	42;"	d
+RIPNG_ENTRY	ripng.h	43;"	d
+RIPNG_MOD_COMMAND	ripng.h	23;"	d
+RIPNG_MOD_RESERVED	ripng.h	25;"	d
+RIPNG_MOD_VERSION	ripng.h	24;"	d
+RIPNG_NUM_ENTRIES	ripng.h	41;"	d
+RIP_ADD_ENTRY	rip.h	44;"	d
+RIP_IS_AUTH	rip.h	29;"	d
+RIP_MOD_ADDRFAM	rip.h	27;"	d
+RIP_MOD_COMMAND	rip.h	25;"	d
+RIP_MOD_ROUTETAG	rip.h	28;"	d
+RIP_MOD_VERSION	rip.h	26;"	d
+RIP_NUM_ENTRIES	rip.h	43;"	d
+RIP_OPTION	rip.h	45;"	d
+SWAP_FLAGS	gnugetopt.c	278;"	d	file:
+SWAP_FLAGS	gnugetopt.c	286;"	d	file:
+TCP_MOD_ACK	tcp.h	62;"	d
+TCP_MOD_ACKSEQ	tcp.h	55;"	d
+TCP_MOD_CHECK	tcp.h	67;"	d
+TCP_MOD_CWR	tcp.h	65;"	d
+TCP_MOD_DEST	tcp.h	53;"	d
+TCP_MOD_ECN	tcp.h	64;"	d
+TCP_MOD_FIN	tcp.h	58;"	d
+TCP_MOD_OFF	tcp.h	57;"	d
+TCP_MOD_PSH	tcp.h	61;"	d
+TCP_MOD_RES	tcp.h	56;"	d
+TCP_MOD_RST	tcp.h	60;"	d
+TCP_MOD_SEQ	tcp.h	54;"	d
+TCP_MOD_SOURCE	tcp.h	52;"	d
+TCP_MOD_SYN	tcp.h	59;"	d
+TCP_MOD_URG	tcp.h	63;"	d
+TCP_MOD_URGPTR	tcp.h	68;"	d
+TCP_MOD_WINDOW	tcp.h	66;"	d
+TRUE	types.h	13;"	d
+UDP_MOD_CHECK	udp.h	20;"	d
+UDP_MOD_DEST	udp.h	18;"	d
+UDP_MOD_LEN	udp.h	19;"	d
+UDP_MOD_SOURCE	udp.h	17;"	d
+_	gnugetopt.c	89;"	d	file:
+_	gnugetopt.c	92;"	d	file:
+_BSD_SOURCE	csum.c	9;"	d	file:
+_GNU_SOURCE	filearray.c	1;"	d	file:
+_NO_PROTO	gnugetopt.c	32;"	d	file:
+_SENDIP_ICMP_H	icmp.h	4;"	d
+_SENDIP_IPV6_H	ipv6.h	4;"	d
+_SENDIP_IP_H	ipv4.h	4;"	d
+_SENDIP_MAIN	sendip.c	19;"	d	file:
+_SENDIP_MODULE_H	sendip_module.h	2;"	d
+_SENDIP_NTP_H	ntp.h	4;"	d
+_SENDIP_RIPNG_H	ripng.h	4;"	d
+_SENDIP_RIP_H	rip.h	4;"	d
+_SENDIP_TCP_H	tcp.h	4;"	d
+_SENDIP_TYPES_H	types.h	8;"	d
+_SENDIP_UDP_H	udp.h	4;"	d
+_SENDIP_dummy_H	dummy.h	5;"	d
+__BIG_ENDIAN	types.h	67;"	d
+__BIG_ENDIAN	types.h	75;"	d
+__BIG_ENDIAN	types.h	77;"	d
+__BYTE_ORDER	types.h	78;"	d
+__BYTE_ORDER	types.h	83;"	d
+__BYTE_ORDER	types.h	86;"	d
+__GNU_GETOPT_H	gnugetopt.h	21;"	d
+__LITTLE_ENDIAN	types.h	63;"	d
+__LITTLE_ENDIAN	types.h	74;"	d
+__LITTLE_ENDIAN	types.h	76;"	d
+__USE_BSD	csum.c	8;"	d	file:
+__getopt_initialized	gnugetopt.c	/^int __getopt_initialized;$/;"	v
+_filearray	filearray.c	/^typedef struct _filearray {$/;"	s	file:
+_getopt_initialize	gnugetopt.c	/^_getopt_initialize (argc, argv, optstring)$/;"	f	file:
+_getopt_internal	gnugetopt.c	/^int _getopt_internal (int argc, char *const *argv, const char *optstring,$/;"	f
+_s_m	sendip.c	/^typedef struct _s_m {$/;"	s	file:
+_sockaddr_storage	sendip.c	/^} _sockaddr_storage;$/;"	t	typeref:struct:__anon20	file:
+ack	tcp.h	/^	u_int16_t ack:1;$/;"	m	struct:__anon15
+ack_seq	tcp.h	/^	u_int32_t ack_seq;$/;"	m	struct:__anon15
+addoption	ipv4.c	/^static void addoption(u_int8_t copy, u_int8_t class, u_int8_t num,$/;"	f	file:
+addoption	tcp.c	/^static void addoption(u_int8_t opt, u_int8_t len, u_int8_t *data,$/;"	f	file:
+address	rip.h	/^	u_int32_t address;$/;"	m	struct:__anon10
+addressFamily	rip.h	/^	u_int16_t addressFamily;$/;"	m	struct:__anon9
+alloc_len	sendip_module.h	/^	int alloc_len;$/;"	m	struct:__anon14
+arg	sendip_module.h	/^	const bool arg;$/;"	m	struct:__anon13
+bgp_attr_len_ptr	bgp.c	/^\/*static*\/ u_int8_t     *bgp_attr_len_ptr = NULL;$/;"	v
+bgp_len_ptr	bgp.c	/^\/*static*\/ u_int8_t     *bgp_len_ptr = NULL;$/;"	v
+bgp_msg_part	bgp.c	/^} bgp_msg_part;$/;"	t	typeref:enum:__anon18	file:
+bgp_opt_char	bgp.c	/^const char bgp_opt_char = 'b';$/;"	v
+bgp_opt_len_ptr	bgp.c	/^\/*static*\/ u_int8_t     *bgp_opt_len_ptr = NULL;$/;"	v
+bgp_opts	bgp.c	/^sendip_option bgp_opts[] = {$/;"	v
+bgp_parse_bytes	bgp.c	/^static u_int32_t bgp_parse_bytes (u_int8_t   *buf,$/;"	f	file:
+bgp_parse_nlri	bgp.c	/^static u_int32_t bgp_parse_nlri (u_int8_t *buf,$/;"	f	file:
+bgp_prev_part	bgp.c	/^\/*static*\/ bgp_msg_part  bgp_prev_part;$/;"	v
+bgp_wdr_len_ptr	bgp.c	/^\/*static*\/ u_int8_t     *bgp_wdr_len_ptr = NULL;$/;"	v
+bool	types.h	/^typedef int bool;$/;"	t
+buildroute	ipv4.c	/^static u_int8_t buildroute(char *data) {$/;"	f	file:
+check	icmp.h	/^	u_int16_t check;$/;"	m	struct:__anon2
+check	ipv4.h	/^	u_int16_t check;$/;"	m	struct:__anon3
+check	tcp.h	/^	u_int16_t check;$/;"	m	struct:__anon15
+check	udp.h	/^  u_int16_t     check;$/;"	m	struct:__anon17
+code	icmp.h	/^	u_int8_t code;$/;"	m	struct:__anon2
+command	rip.h	/^	u_int8_t command;$/;"	m	struct:__anon9
+command	ripng.h	/^	u_int8_t command;$/;"	m	struct:__anon11
+compact_string	compact.c	/^int compact_string(char *data_out) {$/;"	f
+const	gnugetopt.c	43;"	d	file:
+const	gnugetopt1.c	35;"	d	file:
+csum	csum.c	/^u_int16_t csum (u_int16_t *packet, int packlen) {$/;"	f
+csumv	csum.c	/^u_int16_t csumv (u_int16_t *packet[], int packlen[]) {$/;"	f
+cwr	tcp.h	/^	u_int16_t cwr:1;$/;"	m	struct:__anon15
+daddr	ipv4.h	/^	u_int32_t daddr;$/;"	m	struct:__anon3
+data	sendip_module.h	/^	void *data;$/;"	m	struct:__anon14
+def	sendip_module.h	/^	const char *def;$/;"	m	struct:__anon13
+description	sendip_module.h	/^	const char *description;$/;"	m	struct:__anon13
+dest	tcp.h	/^	u_int16_t dest;$/;"	m	struct:__anon15
+dest	udp.h	/^  u_int16_t     dest;$/;"	m	struct:__anon17
+destination	ipv6.h	/^	struct in6_addr destination;$/;"	m	struct:ipv6_pseudo_hdr	typeref:struct:ipv6_pseudo_hdr::in6_addr
+df	ipv4.h	/^	u_int16_t df:1;$/;"	m	struct:__anon3
+do_opt	bgp.c	/^bool do_opt (char        *optstring,$/;"	f
+do_opt	dummy.c	/^bool do_opt(char *opt, char *arg, sendip_data *pack) {$/;"	f
+do_opt	icmp.c	/^bool do_opt(char *opt, char *arg, sendip_data *pack) {$/;"	f
+do_opt	ipv4.c	/^bool do_opt(char *opt, char *arg, sendip_data *pack) {$/;"	f
+do_opt	ipv6.c	/^bool do_opt(char *opt, char *arg, sendip_data *pack) {$/;"	f
+do_opt	ntp.c	/^bool do_opt(char *opt, char *arg, sendip_data *pack) {$/;"	f
+do_opt	rip.c	/^bool do_opt(char *opt, char *arg, sendip_data *pack) {$/;"	f
+do_opt	ripng.c	/^bool do_opt(char *opt, char *arg, sendip_data *pack) {$/;"	f
+do_opt	sendip.c	/^	bool (*do_opt)(const char *optstring, const char *optarg, $/;"	m	struct:_s_m	file:
+do_opt	tcp.c	/^bool do_opt(char *opt, char *arg, sendip_data *pack) {$/;"	f
+do_opt	udp.c	/^bool do_opt(char *opt, char *arg, sendip_data *pack) {$/;"	f
+drift	ntp.h	/^	u_int32_t drift;$/;"	m	struct:__anon7
+dummy_MOD_	dummy.h	17;"	d
+dummy_header	dummy.h	/^} dummy_header;$/;"	t	typeref:struct:__anon1
+dummy_opts	dummy.h	/^sendip_option dummy_opts[] = {$/;"	v
+ecn	tcp.h	/^	u_int16_t ecn:1;$/;"	m	struct:__anon15
+error	ntp.h	/^	u_int32_t error;$/;"	m	struct:__anon7
+exchange	gnugetopt.c	/^exchange (argv)$/;"	f	file:
+fa_close	filearray.c	/^fa_close(void)$/;"	f
+fa_create	filearray.c	/^fa_create(char *name)$/;"	f
+fa_find	filearray.c	/^fa_find(char *name)$/;"	f
+fa_init	filearray.c	/^fa_init(void)$/;"	f
+fa_tab	filearray.c	/^static struct hsearch_data fa_tab;$/;"	v	typeref:struct:hsearch_data	file:
+fileargument	filearray.c	/^fileargument(char *arg)$/;"	f
+fin	tcp.h	/^	u_int16_t fin:1;$/;"	m	struct:__anon15
+finalize	bgp.c	/^bool finalize (char        *hdrs,$/;"	f
+finalize	dummy.c	/^bool finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,$/;"	f
+finalize	icmp.c	/^bool finalize(char *hdrs, sendip_data *headers[], int index,$/;"	f
+finalize	ipv4.c	/^bool finalize(char *hdrs, sendip_data *headers[], int index,$/;"	f
+finalize	ipv6.c	/^bool finalize(char *hdrs, sendip_data *headers[], int index,$/;"	f
+finalize	ntp.c	/^bool finalize(char *hdrs, sendip_data *headers[], int index,$/;"	f
+finalize	rip.c	/^bool finalize(char *hdrs, sendip_data *headers[], int index,$/;"	f
+finalize	ripng.c	/^bool finalize(char *hdrs, sendip_data *headers[], int index,$/;"	f
+finalize	sendip.c	/^	bool (*finalize)(char *hdrs, sendip_data *headers[], int index,$/;"	m	struct:_s_m	file:
+finalize	tcp.c	/^bool finalize(char *hdrs, sendip_data *headers[], int index,$/;"	f
+finalize	udp.c	/^bool finalize(char *hdrs, sendip_data *headers[], int index,$/;"	f
+first	sendip.c	/^static sendip_module *first;$/;"	v	file:
+first_nonopt	gnugetopt.c	/^static int first_nonopt;$/;"	v	file:
+flag	gnugetopt.h	/^  int *flag;$/;"	m	struct:option
+fracpart	ntp.h	/^	u_int32_t fracpart;$/;"	m	struct:__anon6
+frag_off	ipv4.h	/^	u_int16_t frag_off:13;$/;"	m	struct:__anon3
+frag_off1	ipv4.h	/^	u_int16_t frag_off1:5;$/;"	m	struct:__anon3
+frag_off2	ipv4.h	/^	u_int16_t frag_off2:8;$/;"	m	struct:__anon3
+get_optchar	bgp.c	/^char get_optchar (void)$/;"	f
+get_optchar	dummy.c	/^char get_optchar() {$/;"	f
+get_optchar	icmp.c	/^char get_optchar() {$/;"	f
+get_optchar	ipv4.c	/^char get_optchar() {$/;"	f
+get_optchar	ipv6.c	/^char get_optchar() {$/;"	f
+get_optchar	ntp.c	/^char get_optchar() {$/;"	f
+get_optchar	rip.c	/^char get_optchar() {$/;"	f
+get_optchar	ripng.c	/^char get_optchar() {$/;"	f
+get_optchar	tcp.c	/^char get_optchar() {$/;"	f
+get_optchar	udp.c	/^char get_optchar() {$/;"	f
+get_opts	bgp.c	/^sendip_option *get_opts (void)$/;"	f
+get_opts	dummy.c	/^sendip_option *get_opts() {$/;"	f
+get_opts	icmp.c	/^sendip_option *get_opts() {$/;"	f
+get_opts	ipv4.c	/^sendip_option *get_opts() {$/;"	f
+get_opts	ipv6.c	/^sendip_option *get_opts() {$/;"	f
+get_opts	ntp.c	/^sendip_option *get_opts() {$/;"	f
+get_opts	rip.c	/^sendip_option *get_opts() {$/;"	f
+get_opts	ripng.c	/^sendip_option *get_opts() {$/;"	f
+get_opts	tcp.c	/^sendip_option *get_opts() {$/;"	f
+get_opts	udp.c	/^sendip_option *get_opts() {$/;"	f
+gethostbyname2	types.h	24;"	d
+getopt_long	gnugetopt1.c	/^int getopt_long (int argc, char *const *argv, const char *options,$/;"	f
+getopt_long_only	gnugetopt1.c	/^getopt_long_only (int argc, char *const *argv, const char *options,$/;"	f
+gnugetopt	gnugetopt.c	/^gnugetopt (int argc, char *const *argv, const char *optstring)$/;"	f
+gnuoptarg	gnugetopt.c	/^char *gnuoptarg;$/;"	v
+gnuopterr	gnugetopt.c	/^int gnuopterr = 1;$/;"	v
+gnuoptind	gnugetopt.c	/^int gnuoptind = 1;$/;"	v
+gnuoptopt	gnugetopt.c	/^int gnuoptopt = '?';$/;"	v
+handle	sendip.c	/^	void *handle;$/;"	m	struct:_s_m	file:
+has_arg	gnugetopt.h	/^  int has_arg;$/;"	m	struct:option
+header_len	ipv4.h	/^	unsigned int header_len:4;$/;"	m	struct:__anon3
+hostintegerargument	compact.c	/^hostintegerargument(char *input, int length)$/;"	f
+icmp6csum	icmp.c	/^static void icmp6csum(struct in6_addr *src, struct in6_addr *dst,$/;"	f	file:
+icmp_header	icmp.h	/^} icmp_header;$/;"	t	typeref:struct:__anon2
+icmp_opts	icmp.h	/^sendip_option icmp_opts[] = {$/;"	v
+icmpcsum	icmp.c	/^static void icmpcsum(sendip_data *icmp_hdr, sendip_data *data) {$/;"	f	file:
+id	ipv4.h	/^	u_int16_t id;$/;"	m	struct:__anon3
+id	ntp.h	/^		char id[4];$/;"	m	union:__anon7::__anon8
+in6_addr	types.h	/^struct in6_addr {$/;"	s
+in6_u	types.h	/^	} in6_u;$/;"	m	struct:in6_addr	typeref:union:in6_addr::__anon16
+index	filearray.c	/^	unsigned int index;$/;"	m	struct:_filearray	file:
+inet6_addr	ripng.c	/^static struct in6_addr inet6_addr(char *hostname) {$/;"	f	file:
+initialize	bgp.c	/^sendip_data *initialize (void)$/;"	f
+initialize	dummy.c	/^sendip_data *initialize(void) {$/;"	f
+initialize	icmp.c	/^sendip_data *initialize(void) {$/;"	f
+initialize	ipv4.c	/^sendip_data *initialize(void) {$/;"	f
+initialize	ipv6.c	/^sendip_data *initialize(void) {$/;"	f
+initialize	ntp.c	/^sendip_data *initialize(void) {$/;"	f
+initialize	rip.c	/^sendip_data *initialize(void) {$/;"	f
+initialize	ripng.c	/^sendip_data *initialize(void) {$/;"	f
+initialize	sendip.c	/^	sendip_data * (*initialize)(void);$/;"	m	struct:_s_m	file:
+initialize	tcp.c	/^sendip_data *initialize(void) {$/;"	f
+initialize	udp.c	/^sendip_data *initialize(void) {$/;"	f
+integerargument	compact.c	/^integerargument(char *input, int length)$/;"	f
+intpart	ntp.h	/^	u_int32_t intpart;$/;"	m	struct:__anon6
+ip6_ctlun	ipv6.h	/^	} ip6_ctlun;$/;"	m	struct:__anon4	typeref:union:__anon4::__anon5
+ip6_dst	ipv6.h	/^	struct in6_addr ip6_dst;      \/* destination address *\/$/;"	m	struct:__anon4	typeref:struct:__anon4::in6_addr
+ip6_flow	ipv6.h	33;"	d
+ip6_hdrctl	ipv6.h	/^		struct ip6_hdrctl {$/;"	s	union:__anon4::__anon5
+ip6_hlim	ipv6.h	36;"	d
+ip6_hops	ipv6.h	37;"	d
+ip6_nxt	ipv6.h	35;"	d
+ip6_plen	ipv6.h	34;"	d
+ip6_src	ipv6.h	/^	struct in6_addr ip6_src;      \/* source address *\/$/;"	m	struct:__anon4	typeref:struct:__anon4::in6_addr
+ip6_un1	ipv6.h	/^		} ip6_un1;$/;"	m	union:__anon4::__anon5	typeref:struct:__anon4::__anon5::ip6_hdrctl
+ip6_un1_flow	ipv6.h	/^			uint32_t ip6_un1_flow;   \/* 24 bits of flow-ID *\/$/;"	m	struct:__anon4::__anon5::ip6_hdrctl
+ip6_un1_hlim	ipv6.h	/^			uint8_t  ip6_un1_hlim;   \/* hop limit *\/$/;"	m	struct:__anon4::__anon5::ip6_hdrctl
+ip6_un1_nxt	ipv6.h	/^			uint8_t  ip6_un1_nxt;    \/* next header *\/$/;"	m	struct:__anon4::__anon5::ip6_hdrctl
+ip6_un1_plen	ipv6.h	/^			uint16_t ip6_un1_plen;   \/* payload length *\/$/;"	m	struct:__anon4::__anon5::ip6_hdrctl
+ip6_un2_vfc	ipv6.h	/^		uint8_t ip6_un2_vfc;       \/* 4 bits version, 4 bits priority *\/$/;"	m	union:__anon4::__anon5
+ip6_vfc	ipv6.h	32;"	d
+ip_header	ipv4.h	/^} ip_header;$/;"	t	typeref:struct:__anon3
+ip_opts	ipv4.h	/^sendip_option ip_opts[] = {$/;"	v
+ipaddr	ntp.h	/^		u_int32_t ipaddr;$/;"	m	union:__anon7::__anon8
+ipcsum	ipv4.c	/^static void ipcsum(sendip_data *ip_hdr) {$/;"	f	file:
+ipv4argument	compact.c	/^ipv4argument(char *input, int length)$/;"	f
+ipv6_header	ipv6.h	/^} ipv6_header;$/;"	t	typeref:struct:__anon4
+ipv6_opts	ipv6.h	/^sendip_option ipv6_opts[] = {$/;"	v
+ipv6_pseudo_hdr	ipv6.h	/^struct ipv6_pseudo_hdr {$/;"	s
+last	sendip.c	/^static sendip_module *last;$/;"	v	file:
+last_nonopt	gnugetopt.c	/^static int last_nonopt;$/;"	v	file:
+leap	ntp.h	/^	u_int8_t leap:2;     $/;"	m	struct:__anon7
+len	ripng.h	/^	u_int8_t len;$/;"	m	struct:__anon12
+len	udp.h	/^  u_int16_t     len;$/;"	m	struct:__anon17
+length	filearray.c	/^	unsigned int length;$/;"	m	struct:_filearray	file:
+lines	filearray.c	/^	char *lines[0];$/;"	m	struct:_filearray	file:
+load_module	sendip.c	/^static bool load_module(char *modname) {$/;"	f	file:
+main	filearray.c	/^main()$/;"	f
+main	gnugetopt1.c	/^main (argc, argv)$/;"	f
+main	sendip.c	/^int main(int argc, char *const argv[]) {$/;"	f
+make_fixed_point	ntp.c	/^u_int32_t make_fixed_point(double n, bool issigned, int totbits, int intbits) {$/;"	f
+make_ts	ntp.c	/^bool make_ts(ntp_ts *dest, char *src) {$/;"	f
+metric	rip.h	/^	u_int32_t metric;$/;"	m	struct:__anon10
+metric	ripng.h	/^	u_int8_t metric;$/;"	m	struct:__anon12
+mf	ipv4.h	/^	u_int16_t mf:1;$/;"	m	struct:__anon3
+modified	sendip_module.h	/^	unsigned int modified;$/;"	m	struct:__anon14
+my_index	gnugetopt.c	/^my_index (const char *str, int chr)$/;"	f	file:
+my_index	gnugetopt.c	202;"	d	file:
+name	gnugetopt.h	/^  const char *name;$/;"	m	struct:option
+name	sendip.c	/^	char *name;$/;"	m	struct:_s_m	file:
+next	sendip.c	/^	struct _s_m *next;$/;"	m	struct:_s_m	typeref:struct:_s_m::_s_m	file:
+nextHop	rip.h	/^	u_int32_t nextHop;$/;"	m	struct:__anon10
+nextchar	gnugetopt.c	/^char *nextchar = NULL;$/;"	v
+nexthdr	ipv6.h	/^		nexthdr:  8;$/;"	m	struct:ipv6_pseudo_hdr
+no_argument	gnugetopt.h	95;"	d
+nonoption_flags_len	gnugetopt.c	/^static int nonoption_flags_len;$/;"	v	file:
+nonoption_flags_max_len	gnugetopt.c	/^static int nonoption_flags_max_len;$/;"	v	file:
+ntp_header	ntp.h	/^} ntp_header;$/;"	t	typeref:struct:__anon7
+ntp_opts	ntp.h	/^sendip_option ntp_opts[] = {$/;"	v
+ntp_ts	ntp.h	/^} ntp_ts;$/;"	t	typeref:struct:__anon6
+num_opts	bgp.c	/^int num_opts (void)$/;"	f
+num_opts	dummy.c	/^int num_opts() {$/;"	f
+num_opts	icmp.c	/^int num_opts() {$/;"	f
+num_opts	ipv4.c	/^int num_opts() {$/;"	f
+num_opts	ipv6.c	/^int num_opts() {$/;"	f
+num_opts	ntp.c	/^int num_opts() {$/;"	f
+num_opts	rip.c	/^int num_opts() {$/;"	f
+num_opts	ripng.c	/^int num_opts() {$/;"	f
+num_opts	sendip.c	/^	int num_opts;$/;"	m	struct:_s_m	file:
+num_opts	sendip.c	/^static int num_opts=0;$/;"	v	file:
+num_opts	tcp.c	/^int num_opts() {$/;"	f
+num_opts	udp.c	/^int num_opts() {$/;"	f
+off	tcp.h	/^	u_int16_t off:4;$/;"	m	struct:__anon15
+opt_char	dummy.c	/^const char opt_char='dummy';$/;"	v
+opt_char	icmp.c	/^const char opt_char='c';$/;"	v
+opt_char	ipv4.c	/^const char opt_char='i';$/;"	v
+opt_char	ipv6.c	/^const char opt_char='6';$/;"	v
+opt_char	ntp.c	/^const char opt_char='n';$/;"	v
+opt_char	rip.c	/^const char opt_char='r';$/;"	v
+opt_char	ripng.c	/^const char opt_char='R';$/;"	v
+opt_char	tcp.c	/^const char opt_char='t';$/;"	v
+opt_char	udp.c	/^const char opt_char='u';$/;"	v
+optchar	sendip.c	/^	char optchar;$/;"	m	struct:_s_m	file:
+option	gnugetopt.h	/^struct option$/;"	s
+optional_argument	gnugetopt.h	97;"	d
+optname	sendip_module.h	/^	const char *optname;$/;"	m	struct:__anon13
+opts	sendip.c	/^	sendip_option *opts;$/;"	m	struct:_s_m	file:
+ordering	gnugetopt.c	/^} ordering;$/;"	v	typeref:enum:__anon19	file:
+original_argc	gnugetopt.c	/^static int original_argc;$/;"	v	file:
+original_argv	gnugetopt.c	/^static char *const *original_argv;$/;"	v	file:
+originate_ts	ntp.h	/^	ntp_ts originate_ts;$/;"	m	struct:__anon7
+pack	sendip.c	/^	sendip_data *pack;$/;"	m	struct:_s_m	file:
+precision	ntp.h	/^	u_int16_t precision;$/;"	m	struct:__anon7
+prefix	ripng.h	/^	struct in6_addr prefix;$/;"	m	struct:__anon12	typeref:struct:__anon12::in6_addr
+prev	sendip.c	/^	struct _s_m *prev;$/;"	m	struct:_s_m	typeref:struct:_s_m::_s_m	file:
+print_usage	sendip.c	/^static void print_usage(void) {$/;"	f	file:
+progname	sendip.c	/^static char *progname;$/;"	v	file:
+protocol	ipv4.h	/^	u_int8_t protocol;$/;"	m	struct:__anon3
+psh	tcp.h	/^	u_int16_t psh:1;$/;"	m	struct:__anon15
+randombytes	compact.c	/^randombytes(int length)$/;"	f
+receive_ts	ntp.h	/^	ntp_ts receive_ts;$/;"	m	struct:__anon7
+reference	ntp.h	/^	} reference;$/;"	m	struct:__anon7	typeref:union:__anon7::__anon8
+reference_ts	ntp.h	/^	ntp_ts reference_ts;$/;"	m	struct:__anon7
+required_argument	gnugetopt.h	96;"	d
+res	ipv4.h	/^	u_int16_t res:1;$/;"	m	struct:__anon3
+res	rip.h	/^	u_int16_t res;$/;"	m	struct:__anon9
+res	ripng.h	/^	u_int16_t res;$/;"	m	struct:__anon11
+res	tcp.h	/^	u_int16_t res:4;$/;"	m	struct:__anon15
+rip_header	rip.h	/^} rip_header;$/;"	t	typeref:struct:__anon9
+rip_options	rip.h	/^} rip_options;$/;"	t	typeref:struct:__anon10
+rip_opts	rip.h	/^sendip_option rip_opts[] = {$/;"	v
+rip_opts	ripng.h	/^sendip_option rip_opts[] = {$/;"	v
+ripng_entry	ripng.h	/^} ripng_entry;$/;"	t	typeref:struct:__anon12
+ripng_header	ripng.h	/^} ripng_header;$/;"	t	typeref:struct:__anon11
+routeTagOrAuthenticationType	rip.h	/^	u_int16_t routeTagOrAuthenticationType;$/;"	m	struct:__anon9
+rst	tcp.h	/^	u_int16_t rst:1;$/;"	m	struct:__anon15
+s6_add16	types.h	44;"	d
+s6_add32	types.h	45;"	d
+s6_addr	types.h	43;"	d
+saddr	ipv4.h	/^	u_int32_t saddr;$/;"	m	struct:__anon3
+sendip_data	sendip_module.h	/^} sendip_data;$/;"	t	typeref:struct:__anon14
+sendip_module	sendip.c	/^} sendip_module;$/;"	t	typeref:struct:_s_m	file:
+sendip_option	sendip_module.h	/^} sendip_option;$/;"	t	typeref:struct:__anon13
+sendpacket	sendip.c	/^static int sendpacket(sendip_data *data, char *hostname, int af_type,$/;"	f	file:
+seq	tcp.h	/^	u_int32_t seq;$/;"	m	struct:__anon15
+set_addr	ipv4.c	/^bool set_addr(char *hostname, sendip_data *pack) {$/;"	f
+set_addr	ipv6.c	/^bool set_addr(char *hostname, sendip_data *pack) {$/;"	f
+set_addr	sendip.c	/^	bool (*set_addr)(char *hostname, sendip_data *pack);$/;"	m	struct:_s_m	file:
+sin6_addr	types.h	/^	struct in6_addr sin6_addr;$/;"	m	struct:sockaddr_in6	typeref:struct:sockaddr_in6::in6_addr
+sin6_family	types.h	/^	u_int16_t sin6_family;$/;"	m	struct:sockaddr_in6
+sin6_flowinfo	types.h	/^	u_int32_t sin6_flowinfo;$/;"	m	struct:sockaddr_in6
+sin6_port	types.h	/^	u_int16_t sin6_port;$/;"	m	struct:sockaddr_in6
+sin6_scope_id	types.h	/^	u_int32_t sin6_scope_id;$/;"	m	struct:sockaddr_in6
+sockaddr_in6	types.h	/^struct sockaddr_in6 {$/;"	s
+source	ipv6.h	/^	struct in6_addr source;$/;"	m	struct:ipv6_pseudo_hdr	typeref:struct:ipv6_pseudo_hdr::in6_addr
+source	tcp.h	/^	u_int16_t source;$/;"	m	struct:__anon15
+source	udp.h	/^  u_int16_t     source;$/;"	m	struct:__anon17
+ss_align	sendip.c	/^	u_int32_t ss_align;$/;"	m	struct:__anon20	file:
+ss_family	sendip.c	/^	u_int16_t ss_family;$/;"	m	struct:__anon20	file:
+ss_padding	sendip.c	/^	char ss_padding[122];$/;"	m	struct:__anon20	file:
+status	ntp.h	/^	u_int8_t status:6;  $/;"	m	struct:__anon7
+store_args_and_env	gnugetopt.c	/^store_args_and_env (int argc, char *const *argv)$/;"	f	file:
+stringargument	compact.c	/^stringargument(char *input, char **output)$/;"	f
+subnetMask	rip.h	/^	u_int32_t subnetMask;$/;"	m	struct:__anon10
+syn	tcp.h	/^	u_int16_t syn:1;$/;"	m	struct:__anon15
+tag	ripng.h	/^	u_int16_t tag;$/;"	m	struct:__anon12
+tcp6csum	tcp.c	/^static void tcp6csum(sendip_data *ipv6_hdr, sendip_data *tcp_hdr,$/;"	f	file:
+tcp_header	tcp.h	/^} tcp_header;$/;"	t	typeref:struct:__anon15
+tcp_opts	tcp.h	/^sendip_option tcp_opts[] = {$/;"	v
+tcpcsum	tcp.c	/^static void tcpcsum(sendip_data *ip_hdr, sendip_data *tcp_hdr,$/;"	f	file:
+tos	ipv4.h	/^	u_int8_t tos;$/;"	m	struct:__anon3
+tot_len	ipv4.h	/^	u_int16_t tot_len;$/;"	m	struct:__anon3
+transmit_ts	ntp.h	/^	ntp_ts transmit_ts;$/;"	m	struct:__anon7
+ttl	ipv4.h	/^	u_int8_t ttl;$/;"	m	struct:__anon3
+type	icmp.h	/^	u_int8_t type;$/;"	m	struct:__anon2
+type	ntp.h	/^	u_int8_t type;$/;"	m	struct:__anon7
+u6_addr16	types.h	/^		u_int16_t u6_addr16[8];$/;"	m	union:in6_addr::__anon16
+u6_addr32	types.h	/^		u_int32_t u6_addr32[4];$/;"	m	union:in6_addr::__anon16
+u6_addr8	types.h	/^		u_int8_t  u6_addr8[16];$/;"	m	union:in6_addr::__anon16
+u_int16_t	types.h	/^typedef uint16_t u_int16_t;$/;"	t
+u_int32_t	types.h	/^typedef uint32_t u_int32_t;$/;"	t
+u_int8_t	types.h	/^typedef uint8_t  u_int8_t;$/;"	t
+udp6csum	udp.c	/^static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,$/;"	f	file:
+udp_header	udp.h	/^} udp_header;$/;"	t	typeref:struct:__anon17
+udp_opts	udp.h	/^sendip_option udp_opts[] = {$/;"	v
+udpcsum	udp.c	/^static void udpcsum(sendip_data *ip_hdr, sendip_data *udp_hdr,$/;"	f	file:
+ulp_length	ipv6.h	/^	u_int32_t ulp_length;$/;"	m	struct:ipv6_pseudo_hdr
+unload_modules	sendip.c	/^static void unload_modules(bool freeit, int verbosity) {$/;"	f	file:
+urg	tcp.h	/^	u_int16_t urg:1;$/;"	m	struct:__anon15
+urg_ptr	tcp.h	/^	u_int16_t urg_ptr;$/;"	m	struct:__anon15
+usage_error	sendip_module.h	43;"	d
+val	gnugetopt.h	/^  int val;$/;"	m	struct:option
+version	ipv4.h	/^	unsigned int version:4;$/;"	m	struct:__anon3
+version	rip.h	/^	u_int8_t version;$/;"	m	struct:__anon9
+version	ripng.h	/^	u_int8_t version;$/;"	m	struct:__anon11
+window	tcp.h	/^	u_int16_t window;$/;"	m	struct:__anon15
+zero	ipv6.h	/^	u_int32_t  zero: 24,$/;"	m	struct:ipv6_pseudo_hdr
+zerobytes	compact.c	/^zerobytes(int length)$/;"	f
