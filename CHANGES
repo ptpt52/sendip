@@ -141,3 +141,8 @@ Changes between sendip-2.5-mec-0 and sendip-2.5-mec-1
 * Support for external authentication and crypto modules for AH and ESP
 * Extended uniform string argument handling
 - Again, for details, see the README.mec file
+
+Changes between sendip-2.5-mec-1 and sendip-2.5-mec-2
+* SCTP
+* Extended uniform integer argument handling
+- Again, for details, see the README.mec file

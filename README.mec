@@ -7,7 +7,7 @@ Additions made:
    ESP - IPv4 or v6, with support for external auth and crypto modules
    	(demo xorauth "authentication" and xorcrypto "encryption"
 	modules included)
-   Wrapped ESP (WESP) - IPv4 or v6 (provisional - protocol number still TBD)
+   Wrapped ESP (WESP) - IPv4 or v6 (provisional)
    option headers (hop-by-hop or destination) - IPv6
 	pad0
 	padN
@@ -18,7 +18,7 @@ Additions made:
    fragment - IPv6
    GRE tunnel - IPv4 or v6
    routing - types 0, 1, 2
-   SCTP - with initial chunk support
+   SCTP - with some chunk/parameter support
 
 2. Helper functions
 
@@ -26,6 +26,7 @@ Additions made:
    protocol name/number conversion
    forward/back header lookup
    CRC32 calculation
+   "standard" string and integer parameter functions
 
 Changes in existing modules:
 

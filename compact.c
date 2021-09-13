@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <ctype.h>
+#include <netinet/in.h>
 #include "sendip_module.h"
 
 int compact_string(char *data_out) {
@@ -160,4 +161,56 @@ stringargument(char *input, char **output)
 	length = compact_string(input);
 	*output = input;
 	return length;
+}
+
+/* @@ This is the integer (1, 2 or 4 byte) version of the above. It takes
+ * the input, which may be decimal, octal, hex, or the special strings
+ * rX (random bytes) or zX (zero bytes - kind of pointless) and converts
+ * it to an integer with the specified number of bytes in *network* byte
+ * order. The idea is you can just do:
+ *
+ * 	field = integerargument(input, sizeof(field));
+ */
+u_int32_t
+integerargument(char *input, int length)
+{
+	int inputlength;
+	u_int8_t *string;
+
+	if (!input || !length) return 0;
+	/* Special case for rN, zN strings */
+	switch (*input) {
+	case 'r':
+		if (isdigit(*(input+1))) {
+			inputlength = atoi(input+1);
+			if (inputlength > length)
+				inputlength = length;
+			string = randombytes(inputlength);
+			if (!string) return 0;
+			switch (length) {
+			case 1:
+				return (u_int8_t)*string;
+			case 2:
+				return *(u_int16_t *)string;
+			default:
+				return *(u_int32_t *)string;
+			}
+		}
+		break;
+	case 'z':
+		/* like I said, pointless ... */
+		return 0;
+	default:
+		break;
+	}
+
+	/* Everything else, just use strtoul, then cast and swap */
+	switch (length) {
+	case 1:
+		return (u_int8_t)strtoul(input, (char **)NULL, 0);
+	case 2:
+		return htons((u_int16_t)strtoul(input, (char **)NULL, 0));
+	default:
+		return htonl(strtoul(input, (char **)NULL, 0));
+	}
 }

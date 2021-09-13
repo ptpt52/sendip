@@ -226,6 +226,14 @@ typedef struct sctp_unrecognized_param {
 } sctp_unrecognized_param_t;
 
 
+/* Added for support of sctp demo program */
+/* Forward TSN supported (0xC000, 49152) - mere presence seems to imply
+ * capability, just like with ECN, so there are no other fields.
+ */
+typedef struct sctp_forward_tsn_param {
+	sctp_paramhdr_t param_hdr;
+} sctp_forward_tsn_param_t;
+
 
 #define SCTP_MOD_SOURCE		(1)
 #define SCTP_MOD_DEST		(1<<1)
@@ -238,7 +246,7 @@ typedef struct sctp_unrecognized_param {
 sendip_option sctp_opts[] = {
 	{"s",1,"SCTP source port","0"},
 	{"d",1,"SCTP dest port","0"},
-	{"v",1,"SCTP vtag","0 (if init chunk) 1 (if other)"},
+	{"v",1,"SCTP vtag","0 (if init chunk) 1 (if other); may be specified as number, string, or rN for N (should be 4) random bytes"},
 	{"c",1,"SCTP CRC checksum","Correct"},
 	{"T",1,"SCTP chunk type","0 (i.e., a data chunk)\n"\
 "Note: multiple chunks may be included. Each chunk type begins a new\n"\
@@ -247,13 +255,20 @@ sendip_option sctp_opts[] = {
 	{"L",1,"SCTP chunk length","Correct"},
 	{"D",1,"SCTP chunk data (hex, octal, decimal, literal, "
 "zN for N zero bytes or rN for N random bytes).", "0"},
-	{"I",2,"SCTP INIT chunk", "1.0x1000.1.1.1\n"\
+	{"I",1,"SCTP INIT chunk", "1.0x1000.1.1.1\n"\
 "Creates a complete INIT chunk with the specified initiate tag, receiver\n"\
 "window credit, number of outbound and inbound streams, and initial TSN,\n"\
-"in that order. Other variable parameters may be appended to this chunk."},
+"in that order. Each field may be specified as number, string, or rN for N\n"\
+"(should be 2 or 4) random bytes. Other variable parameters may be appended\n"\
+"to this chunk."},
 	{"4",1,"SCTP IPv4 address TLV", "none"},
 	{"6",1,"SCTP IPv6 address TLV", "none"},
 	{"C",1,"SCTP cookie preservative TLV", "none"},
+	{"H",1,"SCTP host name address TLV", "none"},
+	{"A",1,"SCTP supported address types TLV", "none"},
+	{"E",0,"SCTP ECN capable (boolean)", "(false)"},
+	{"W",0,"SCTP forward TSN supported (boolean)", "(false)"},
+	{"Y",1,"SCTP adaptation layer indication parameter", "none"},
 };
 
 #endif  /* _SENDIP_SCTP_H */

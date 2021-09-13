@@ -14,6 +14,7 @@
 #include "ipv6ext.h"
 #include "sctp.h"
 #include "crc32.h"
+#include "parse.h"
 
 /* Character that identifies our options
  */
@@ -75,6 +76,52 @@ fprintf(stderr, "Adding %d data bytes, total SCTP length %d\n", length, pack->al
 	return chunk;
 }
 
+/* Chunks and parameters in them need to be rounded up to 4 byte boundaries.
+ * The chunks headers are already the right size, but some of the parameters
+ * are arbitrary lengths. Somewhat inconveniently, RFC 4960 says that the
+ * chunk length must include the padding of all but the last parameter
+ * in the chunk. (The padding needs to be there, just not included in
+ * the length.) The lengths in the individual TLV parameters should not
+ * include the padding.
+ */
+int
+round2(int number)
+{
+	return (number&1) ? (number + 1) : number;
+}
+
+int
+round4(int number)
+{
+	return (number&3) ? (number + 4-(number&3)) : number;
+}
+
+/* Add in data space, rounded up to 4-byte boundary */
+sctp_chunk_header *
+grow_chunk_round4(sendip_data *pack, sctp_chunk_header *chunk,
+		u_int16_t length, void *data)
+{
+	sctp_header *sctp = (sctp_header *)pack->data;
+	/* urp */
+	int offset = (u_int8_t *)chunk - (u_int8_t *)sctp;
+	u_int16_t roundup;
+
+	roundup = round4(length);
+	if (roundup == length) return grow_chunk(pack, chunk, length, data);
+
+	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
+			pack->alloc_len + roundup);
+	chunk = (sctp_chunk_header *)((u_int8_t *)sctp + offset);
+	pack->alloc_len += roundup;
+	offset = ntohs(chunk->length);
+	chunk->length = htons(offset+roundup);
+	if (data)
+		memcpy((void *)((u_int8_t *)chunk+offset), data, length);
+fprintf(stderr, "Rounding %d to %d data bytes, total SCTP length %d\n", length, roundup, pack->alloc_len);
+	memset((void *)((u_int8_t *)chunk+offset+length), 0, roundup-length);
+	return chunk;
+}
+
 bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
@@ -99,8 +146,17 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'v':	/* SCTP vtag (32 bits) */
 		pack->modified |= SCTP_MOD_VTAG;
-		lvalue = strtoul(arg, (char **)NULL, 0);
-		sctp->dest = htonl(lvalue);
+		/* While the value should be 32 bits, let them specify
+		 * whatever they want. We only try to fit four bytes,
+		 * however.
+		 */
+		length = stringargument(arg, &temp);
+		if (length < sizeof(u_int32_t)) {
+			sctp->vtag = 0;
+			memcpy((void *)&sctp->vtag, temp, length);
+		} else {
+			memcpy((void *)&sctp->vtag, temp, sizeof(u_int32_t));
+		}
 		break;
 	case 'c':	/* SCTP checksum (32 bits) */
 		pack->modified |= SCTP_MOD_CHECKSUM;
@@ -163,7 +219,9 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	case 'I':	/* SCTP Init chunk (complete) */
 		{
 		sctp_inithdr_t init;
-		int i;
+#define INITFIELDS	5
+		char *strargs[INITFIELDS+1];
+		int nargs;
 
 		currentchunk = add_chunk(pack, SCTP_CID_INIT);
 		/* set up defaults first, then overwrite with any others */
@@ -172,35 +230,32 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		init.num_outbound_streams = __constant_htons(1);
 		init.num_inbound_streams = __constant_htons(1);
 		init.initial_tsn = __constant_htonl(1);
-		for (i=0; arg; ++i) {
-			lvalue = strtoul(arg, (char **)NULL, 0);
-			switch (i) {
-			case 0:
-				init.init_tag = htonl(lvalue);
-				break;
-			case 1:
-				init.a_rwnd = htonl(lvalue);
-				break;
-			case 2:
-				init.num_outbound_streams =
-					htons((u_int16_t)lvalue);
-				break;
-			case 3:
-				init.num_inbound_streams =
-					htons((u_int16_t)lvalue);
-				break;
-			case 4:
-				init.initial_tsn = htonl(lvalue);
-				break;
-			default:
-				break;
-			}
-			arg = index(arg, '.');
-			if (arg) {
-				++arg;
-			}
 
+		nargs = parsenargs(arg, strargs, INITFIELDS, " ,:.");
+		/* Note the cheesy reverse fallthrough */
+		switch (nargs) {
+		case 5:
+			init.initial_tsn =
+				integerargument(strargs[4],
+					sizeof(init.initial_tsn));
+		case 4:
+			init.num_inbound_streams =
+				integerargument(strargs[3],
+					sizeof(init.num_inbound_streams));
+		case 3:
+			init.num_outbound_streams =
+				integerargument(strargs[2],
+					sizeof(init.num_outbound_streams));
+		case 2:
+			init.a_rwnd = 
+				integerargument(strargs[1],
+					sizeof(init.a_rwnd));
+		case 1:
+			init.init_tag = 
+				integerargument(strargs[0],
+					sizeof(init.init_tag));
 		}
+
 		currentchunk = grow_chunk(pack, currentchunk,
 			sizeof(sctp_inithdr_t), (void *)&init);
 		break;
@@ -210,7 +265,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		sctp_ipv4addr_param_t v4param;
 
 		v4param.param_hdr.type = SCTP_PARAM_IPV4_ADDRESS;
-		v4param.param_hdr.length = sizeof(sctp_ipv4addr_param_t);
+		v4param.param_hdr.length = htons(sizeof(sctp_ipv4addr_param_t));
 		if (inet_aton(arg, &v4param.addr)) {
 			;
 		} else {
@@ -228,7 +283,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		sctp_ipv6addr_param_t v6param;
 
 		v6param.param_hdr.type = SCTP_PARAM_IPV6_ADDRESS;
-		v6param.param_hdr.length = sizeof(sctp_ipv6addr_param_t);
+		v6param.param_hdr.length = htons(sizeof(sctp_ipv6addr_param_t));
 		if (inet_pton(AF_INET6, arg, &v6param.addr) > 0) {
 			;
 		} else {
@@ -246,12 +301,116 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 		cookieparam.param_hdr.type = SCTP_PARAM_STATE_COOKIE;
 		cookieparam.param_hdr.length =
-			sizeof(sctp_cookie_preserve_param_t);
+			htons(sizeof(sctp_cookie_preserve_param_t));
 		lvalue = strtoul(arg, (char **)NULL, 0);
 		cookieparam.lifespan_increment = htonl(lvalue);
 		currentchunk = grow_chunk(pack, currentchunk,
 			sizeof(sctp_cookie_preserve_param_t),
 				(void *)&cookieparam);
+		}
+		break;
+	case 'H':	/* Host name address */
+		{
+		sctp_hostname_param_t hostnameparam;
+
+		/* From RFC 4960: "At least one null terminator is included
+		 * in the Host Name string and must be included in the length."
+		 * Also, parameters need to be padded to a multiple of
+		 * 4 bytes in length.
+		 */
+		hostnameparam.param_hdr.type = SCTP_PARAM_HOST_NAME_ADDRESS;
+		hostnameparam.param_hdr.length =
+			htons(sizeof(sctp_hostname_param_t)
+				+ strlen(arg)+1);
+		currentchunk = grow_chunk(pack, currentchunk,
+			sizeof(sctp_hostname_param_t),
+				(void *)&hostnameparam);
+		currentchunk = grow_chunk_round4(pack, currentchunk,
+			strlen(arg)+1, (void *)arg);
+		}
+		break;
+
+	case 'A':	/* Supported address types */
+		{
+		/* The supported address type parameter is, somewhat
+		 * clumsily, an array of 16-bit ints, rather than,
+		 * say, a bitmask. But considering there are only three
+		 * defined types right now, that's not a huge waste,
+		 * I suppose.
+		 */
+		sctp_supported_addrs_param_t supportedaddrs;
+#define MAXSUPPORTEDADDRS	8	/* why not */
+		char *straddrs[MAXSUPPORTEDADDRS+1];
+		u_int16_t addrs[MAXSUPPORTEDADDRS+1];
+		int naddrs, i;
+
+		supportedaddrs.param_hdr.type =
+			SCTP_PARAM_SUPPORTED_ADDRESS_TYPES;
+		naddrs = parsenargs(arg, straddrs, MAXSUPPORTEDADDRS, " ,:.");
+		for (i=0; i < naddrs; ++i)
+			addrs[i] = htons(atoi(straddrs[i]));
+		addrs[i] = 0;
+		supportedaddrs.param_hdr.length =
+			htons(sizeof(sctp_supported_addrs_param_t)
+				+ 2*naddrs);
+		currentchunk = grow_chunk(pack, currentchunk,
+			sizeof(sctp_supported_addrs_param_t),
+				(void *)&supportedaddrs);
+		currentchunk = grow_chunk(pack, currentchunk,
+				2*round2(naddrs), addrs);
+		break;
+		}
+
+	case 'E':	/* ECN capable */
+		{
+		sctp_ecn_capable_param_t ecncapable;
+
+		/* So far as I can tell with this one, just it being
+		 * present implies capability, so there are no
+		 * additional parameters at all.
+		 */
+		ecncapable.param_hdr.type = SCTP_PARAM_ECN_CAPABLE;
+		ecncapable.param_hdr.length =
+			htons(sizeof(sctp_ecn_capable_param_t));
+		currentchunk = grow_chunk(pack, currentchunk,
+			sizeof(sctp_ecn_capable_param_t),
+				(void *)&ecncapable);
+		break;
+		}
+
+	case 'W':	/* Forward TSN supported */
+		{
+		sctp_forward_tsn_param_t forward_tsn;
+
+		/* This seems to be like ECN capable - presence
+		 * implies capability.
+		 */
+		forward_tsn.param_hdr.type = SCTP_PARAM_FWD_TSN_SUPPORT;
+		forward_tsn.param_hdr.length =
+			htons(sizeof(sctp_forward_tsn_param_t));
+		currentchunk = grow_chunk(pack, currentchunk,
+			sizeof(sctp_forward_tsn_param_t),
+				(void *)&forward_tsn);
+		break;
+		}
+	case 'Y':	/* Adaptation layer indication */
+		{
+		sctp_adaptation_ind_param_t adaptationparam;
+
+		/* I assume this is just some value that can be
+		 * passed up to higher (adaptation) layers. Since
+		 * I don't know what it is, I'll just allow fixed
+		 * specification of it.
+		 */
+		adaptationparam.param_hdr.type =
+			SCTP_PARAM_ADAPTATION_LAYER_IND;
+		adaptationparam.param_hdr.length =
+			htons(sizeof(sctp_adaptation_ind_param_t));
+		lvalue = strtoul(arg, (char **)NULL, 0);
+		adaptationparam.adaptation_ind = htonl(lvalue);
+		currentchunk = grow_chunk(pack, currentchunk,
+			sizeof(sctp_adaptation_ind_param_t),
+				(void *)&adaptationparam);
 		}
 		break;
 

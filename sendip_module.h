@@ -48,6 +48,7 @@ extern int compact_string(char *data_out);
 #define MAXRAND	8192	/* maximum length of random data */
 u_int8_t * randombytes(int length);
 int stringargument(char *input, char **output);
+u_int32_t integerargument(char *input, int length);
 
 const char * proto_to_name(u_int8_t proto, int nolookup);
 u_int8_t name_to_proto(char *s);

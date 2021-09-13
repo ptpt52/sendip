@@ -3,7 +3,7 @@ Content-type: text/html
 <HTML><HEAD><TITLE>Manpage of SENDIP</TITLE>
 </HEAD><BODY>
 <H1>SENDIP</H1>
-Section: FSF (1)<BR>Updated: August 2010<BR><A HREF="#index">Index</A>
+Section: FSF (1)<BR>Updated: September 2010<BR><A HREF="#index">Index</A>
 <A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -25,7 +25,7 @@ add this data as a string to the end of the packet
 <DT><B>-f</B> datafile<DD>
 read packet data from file
 <DT><B>-h</B><DD>
-print this message
+help (this message)
 <DT><B>-p</B> module<DD>
 load the specified module (see below)
 <DT><B>-v</B><DD>
@@ -689,7 +689,7 @@ Default: 0
 <DT><B>-sv</B> x<DD>
 SCTP vtag
 <DT><DD>
-Default: 0 (if init chunk) 1 (if other)
+Default: 0 (if init chunk) 1 (if other); may be specified as number, string, or rN for N (should be 4) random bytes
 <DT><B>-sc</B> x<DD>
 SCTP CRC checksum
 <DT><DD>
@@ -716,6 +716,51 @@ Default: Correct
 SCTP chunk data (hex, octal, decimal, literal, zN for N zero bytes or rN for N random bytes).
 <DT><DD>
 Default: 0
+<DT><B>-sI</B> x<DD>
+SCTP INIT chunk
+<DT><DD>
+Default: 1.0x1000.1.1.1
+</DL>
+<P>
+
+Creates a complete INIT chunk with the specified initiate tag, receiver
+window credit, number of outbound and inbound streams, and initial TSN,
+in that order. Each field may be specified as number, string, or rN for N
+(should be 2 or 4) random bytes. Other variable parameters may be appended
+to this chunk.
+<DL COMPACT>
+<DT><B>-s4</B> x<DD>
+SCTP IPv4 address TLV
+<DT><DD>
+Default: none
+<DT><B>-s6</B> x<DD>
+SCTP IPv6 address TLV
+<DT><DD>
+Default: none
+<DT><B>-sC</B> x<DD>
+SCTP cookie preservative TLV
+<DT><DD>
+Default: none
+<DT><B>-sH</B> x<DD>
+SCTP host name address TLV
+<DT><DD>
+Default: none
+<DT><B>-sA</B> x<DD>
+SCTP supported address types TLV
+<DT><DD>
+Default: none
+<DT><B>-sE</B><DD>
+SCTP ECN capable (boolean)
+<DT><DD>
+Default: (false)
+<DT><B>-sW</B><DD>
+SCTP forward TSN supported (boolean)
+<DT><DD>
+Default: (false)
+<DT><B>-sY</B> x<DD>
+SCTP adaptation layer indication parameter
+<DT><DD>
+Default: none
 </DL>
 <A NAME="lbAW">&nbsp;</A>
 <H3>Arguments for module wesp.so:</H3>
@@ -784,6 +829,6 @@ Default: Correct
 This document was created by
 <A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 19:55:36 GMT, August 10, 2010
+Time: 19:45:51 GMT, September 02, 2010
 </BODY>
 </HTML>
