@@ -63,6 +63,9 @@ load_crypto_module(char *modname)
 	/* Longest possible name is:
 	 * SENDIP_LIBS/modname.so
 	 */
+	if (!newmod)
+		return NULL;
+	memset(newmod, 0, sizeof(crypto_module));
 
 	newmod->name = (char *)
 		malloc(strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+2);
