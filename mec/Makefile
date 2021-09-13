@@ -9,13 +9,13 @@ INSTALL ?= install
 #INSTALL=/usr/ucb/install
 
 CFLAGS=	-I.. -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
-	-Wstrict-prototypes -Wnested-externs -Winline -Werror -g -Wcast-align \
+	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O3 -Wcast-align \
 	-DSENDIP_LIBS=\"$(LIBDIR)\"
 #-Wcast-align causes problems on solaris, but not serious ones
-LDFLAGS=	-g -rdynamic -lm
-#LDFLAGS_SOLARIS= -g -lsocket -lnsl -lm
-LDFLAGS_SOLARIS= -g -lsocket -lnsl -lm -ldl
-LDFLAGS_LINUX= -g  -rdynamic -ldl -lm
+LDFLAGS=	-rdynamic -lm
+#LDFLAGS_SOLARIS= -lsocket -lnsl -lm
+LDFLAGS_SOLARIS= -lsocket -lnsl -lm -ldl
+LDFLAGS_LINUX= -rdynamic -ldl -lm
 LIBCFLAGS= -shared
 CC=	gcc
 

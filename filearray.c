@@ -38,7 +38,7 @@ fa_close(void)
 }
 
 Filearray *
-fa_create(char *name)
+fa_create(const char *name)
 {
 	FILE *fp;
 	Filearray *answer;
@@ -74,11 +74,16 @@ fa_create(char *name)
  * create it.
  */
 Filearray *
-fa_find(char *name)
+fa_find(const char *name)
 {
 	ENTRY item, *found;
 
-	item.key = name;
+	/* Yes, this cast "throws away" the const, but in fact, the
+	 * name is not altered in any way by being entered into the
+	 * hash table. It's just I can't muck with the declaration
+	 * in search.h.
+	 */
+	item.key = (char *)name;
 	item.data = NULL;
 	if (hsearch_r(item, FIND, &found, &fa_tab) <= 0) {
 		if (errno == ESRCH || !found) {
@@ -101,7 +106,7 @@ fa_find(char *name)
  * returns the next line from the associated file.
  */
 char *
-fileargument(char *arg)
+fileargument(const char *arg)
 {
 	Filearray *fa;
 	char *answer;

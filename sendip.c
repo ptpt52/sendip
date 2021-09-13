@@ -339,13 +339,17 @@ static void print_usage(void) {
 	printf("specified as\n");
 	printf(" rN\tto generate N random(ish) data bytes;\n");
 	printf(" zN\tto generate N nul (zero) data bytes;\n");
+	printf(" tN\tto generate a timestamp (16 bytes) padded with N-16 nul (zero) bytes;\n");
 	printf(" fF\tto read values from file F;\n");
 	printf(" 0x or 0X\tfollowed by hex digits;\n");
 	printf(" 0\tfollowed by octal digits;\n");
 	printf(" 1-9\tfollowed by decimal number for decimal digits;\n");
 	printf("Any other stream of bytes is taken literally.\n");
+	printf("\nIPv4 addresses may be specified by the methods above,\n");
+	printf("or by CIDR-style notation to indicate a random host address\n");
+	printf("within a subnet.\n");
 
-	printf("\nFor example, the arguments\n\t-p ipv4 -is 10.1.1.r1 -p udp -us r2\n");
+	printf("\nFor example, the arguments\n\t-p ipv4 -is 10.1.1.0/24 -p udp -us r2\n");
 	printf("generate a random 10.1.1.xx source address and random udp source port.\n\n");
 
 	printf("sendip may be run repeatedly by using the -l (loop) argument.\n");
@@ -398,6 +402,8 @@ static void print_usage(void) {
 
 }
 
+extern u_int32_t randomcalls;
+
 int main(int argc, char *const argv[]) {
 	int i;
 
@@ -410,7 +416,7 @@ int main(int argc, char *const argv[]) {
 	char *data=NULL;
 	int datafile=-1;
 	int datalen=0;
-	bool randomflag=FALSE;
+	char *datarg=NULL;
 
 	sendip_module *mod, *currentmod;
 	int optc;
@@ -452,15 +458,14 @@ int main(int argc, char *const argv[]) {
 			verbosity=TRUE;
 			break;
 		case 'd':
-			if(data == NULL) {
-				char *datarg;
+			if (datafile == -1) {
+				char *sdata;
 
-				/* normal data, rN for random string,
-				 * zN for nul (zero) string.
-				 */
-				datalen = stringargument(gnuoptarg, &datarg);
+				datarg = gnuoptarg;	/* save for regen */
+				datalen = stringargument(datarg, &sdata);
 				data=(char *)malloc(datalen);
-				memcpy(data, datarg, datalen);
+				memcpy(data, sdata, datalen);
+
 			} else {
 				fprintf(stderr,"Only one -d or -f option can be given\n");
 				usage = TRUE;
@@ -538,6 +543,8 @@ while (--loopcount >= 0) {
 	/* Initialize all */
 	for(mod=first;mod!=NULL;mod=mod->next) {
 		if(verbosity) printf("Initializing module %s\n",mod->name);
+		/*@@ if looping, check if reloading */
+		/*@@*/if (mod->pack) free(mod->pack);
 		mod->pack=mod->initialize();
 	}
 
@@ -633,7 +640,7 @@ while (--loopcount >= 0) {
 			close(datafile);
 			datafile=-1;
 		}
-		if(randomflag) free(data);
+		if (datarg) free(data);
 		return 0;
 	}
 
@@ -670,12 +677,6 @@ while (--loopcount >= 0) {
 
 	/* Add any data */
 	if(data != NULL) memcpy((char *)packet.data+i,data,datalen);
-	if(datafile != -1) {
-		munmap(data,datalen);
-		close(datafile);
-		datafile=-1;
-	}
-	if(randomflag) free(data);
 
 	/* Finalize from inside out */
 	{
@@ -744,15 +745,33 @@ while (--loopcount >= 0) {
 		i = sendpacket(&packet,argv[gnuoptind],af_type,verbosity);
 		free(packet.data);
 	}
+	/* @@ Regenerate data on subsequent loop calls */
+	if (loopcount && datarg) {
+		char *sdata;
+
+		datalen = stringargument(datarg, &sdata);
+		memcpy(data, sdata, datalen);
+	}
 
 /*@@ looping */
 if (loopcount && delaytime)
 	sleep(delaytime);
 } /*@@ back to top of loop */
 
+	/* cleanup */
+	if(datafile != -1) {
+		munmap(data,datalen);
+		close(datafile);
+		datafile=-1;
+	}
+	if (datarg) free(data);
+
 	unload_modules(FALSE,verbosity);
 	/*@@ global de-init */
 	fa_close();
+
+
+/*@@fprintf(stderr, "%d random calls\n", randomcalls);*/
 
 	return 0;
 }

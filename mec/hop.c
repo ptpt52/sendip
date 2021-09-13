@@ -220,6 +220,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 			return FALSE;
 		}
 		type = svalue;
+
 		arg = index(arg, '.');
 		if (arg) {
 			++arg;
@@ -227,7 +228,6 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 		} else {
 			svalue = 0;
 		}
-
 		if (svalue > OCTET_MAX) {
 			usage_error("Too big a length value\n");
 			return FALSE;
@@ -239,15 +239,17 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 
 			length = stringargument(arg, &temp);
 		} else {
+			length = 0;
 			temp = NULL;
 		}
 		hopt = (struct ipv6_hopopt *)
-			malloc(sizeof(struct ipv6_hopopt) + svalue);
+			malloc(sizeof(struct ipv6_hopopt) + length);
 		hopt->hopt_type = type;
 		hopt->hopt_len = svalue;
-		memset(hopt->hopt_data, 0, svalue);
-		length = (length > svalue) ? svalue : length;
-		memcpy((void *)hopt->hopt_data, (void *)temp, length);
+		if (length) {
+			memset(hopt->hopt_data, 0, length);
+			memcpy((void *)hopt->hopt_data, (void *)temp, length);
+		}
 		if (!addopt(pack, hopt))
 			return FALSE;
 		free((void *)hopt);

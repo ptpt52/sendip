@@ -56,3 +56,12 @@ fields have been added, the packets will all be identical.
 6. Expanded and made more uniform parameter handling. Most parameters
 can now be specified either literally, as a random (rXX) value, or
 be taken from a file (ffilename).
+
+7. IPv4 addresses can be expressed with CIDR notation, e.g., 1.2.3.0/26,
+which is interpreted as meaning a random address within that subnet,
+in this case, one from 1.2.3.1 to 1.2.3.62. (1.2.3.0 and the broadcast
+address 1.2.3.63 are excluded.)
+
+8. Added timestamp arguments. This is intended for packet payloads;
+tN writes (in host byte order) the current time, as specified by
+the struct timeval returned by gettimeofday(). There's a 

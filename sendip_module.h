@@ -48,10 +48,11 @@ extern int compact_string(char *data_out);
 #define MAXRAND	8192	/* maximum length of random data */
 u_int8_t * randombytes(int length);
 int stringargument(char *input, char **output);
-u_int32_t integerargument(char *input, int length);
-u_int32_t hostintegerargument(char *input, int length);
-in_addr_t ipv4argument(char *input, int length);
-char *fileargument(char *input);
+u_int32_t integerargument(const char *input, int length);
+u_int32_t hostintegerargument(const char *input, int length);
+in_addr_t cidrargument(const char *input, char *slashpoint, int length);
+in_addr_t ipv4argument(const char *input, int length);
+char *fileargument(const char *input);
 int fa_init(void);
 void fa_close(void);
 

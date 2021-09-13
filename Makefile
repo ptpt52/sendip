@@ -13,10 +13,10 @@ CFLAGS=	-fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
 			-Wcast-align -O3 \
 			-DSENDIP_LIBS=\"$(LIBDIR)\"
 #-Wcast-align causes problems on solaris, but not serious ones
-LDFLAGS=	-g -rdynamic -lm
-#LDFLAGS_SOLARIS= -g -lsocket -lnsl -lm
-LDFLAGS_SOLARIS= -g -lsocket -lnsl -lm -ldl
-#LDFLAGS_LINUX= -g  -rdynamic -lm -ldl
+LDFLAGS=	-rdynamic -lm
+#LDFLAGS_SOLARIS= -lsocket -lnsl -lm
+LDFLAGS_SOLARIS= -lsocket -lnsl -lm -ldl
+#LDFLAGS_LINUX= -rdynamic -lm -ldl
 # @@ Needed some flag fixes for Ubuntu; these are ok for Fedora, also
 LDFLAGS_LINUX= -rdynamic -lm --enable-dependency-linking -Wl,--no-as-needed -ldl
 LIBCFLAGS= -shared

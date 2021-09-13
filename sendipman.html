@@ -2,7 +2,7 @@
 <HTML><HEAD><TITLE>Manpage of SENDIP</TITLE>
 </HEAD><BODY>
 <H1>SENDIP</H1>
-Section: FSF (1)<BR>Updated: February 2015<BR><A HREF="#index">Index</A>
+Section: FSF (1)<BR>Updated: April 2015<BR><A HREF="#index">Index</A>
 <A HREF="/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -43,6 +43,8 @@ specified as
 to generate N random(ish) data bytes;
 <DT>zN<DD>
 to generate N nul (zero) data bytes;
+<DT>tN<DD>
+to generate a timestamp (16 bytes) padded with N-16 nul (zero) bytes;
 <DT>fF<DD>
 to read values from file F;
 <DT>0x or 0X<DD>
@@ -57,10 +59,15 @@ followed by decimal number for decimal digits;
 Any other stream of bytes is taken literally.
 <P>
 
+IPv4 addresses may be specified by the methods above,
+or by CIDR-style notation to indicate a random host address
+within a subnet.
+<P>
+
 For example, the arguments
 <DL COMPACT>
 <DT>
-<B>-p</B> ipv4 <B>-is</B> 10.1.1.r1 <B>-p</B> udp <B>-us</B> r2
+<B>-p</B> ipv4 <B>-is</B> 10.1.1.0/24 <B>-p</B> udp <B>-us</B> r2
 </DL>
 <P>
 
@@ -888,6 +895,6 @@ Default: Correct
 This document was created by
 <A HREF="/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 15:51:33 GMT, February 12, 2015
+Time: 17:43:56 GMT, April 27, 2015
 </BODY>
 </HTML>
