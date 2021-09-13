@@ -1,0 +1,42 @@
+Additions made:
+
+1. Header types
+
+   AH (dummy only) - IPv4 or v6
+   ESP (dummy only) - IPv4 or v6
+   option headers (hop-by-hop or destination) - IPv6
+	pad0
+	padN
+	router alert
+	jumbo
+	home address
+	(arbitrary)
+   fragment - IPv6
+   GRE tunnel - IPv4 or v6
+   routing - types 0, 1, 2
+
+2. Helper functions
+
+   random data generation
+   protocol name/number conversion
+   forward/back header lookup
+
+Changes in existing modules:
+
+1. Kept inner header type info available for outer headers which need it
+(for, e.g., determining next header value).
+
+2. Changed inner header code which looks at outer headers so that it
+can find the proper outer header even when there are other headers
+intervening.
+
+3. Allowed multiple invocation of the same header type, to allow for
+things like ipip tunnels. To get this to work properly, I changed the
+argument processing to first attempt to apply arguments to the most
+recently invoked header module.
+
+4. Allowed header modules to trim (but not increase) the total packet
+size in packet finalization. This is to support ESP, which needs to
+pad out its trailer for alignment; we have it preallocate extra space,
+and then trim back to the minimum required for proper alignment during
+finalization.
