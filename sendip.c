@@ -100,7 +100,9 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 	memset(to, 0, sizeof(_sockaddr_storage));
 
 	if ((host = gethostbyname2(hostname, af_type)) == NULL) {
-		perror("Couldn't get destination host: gethostbyname2()");
+		fprintf(stderr,"Couldn't get destination host %s (af %d): ",
+			hostname, af_type);
+		perror("gethostbyname2");
 		free(to);
 		return -1;
 	}
@@ -327,7 +329,7 @@ static void print_usage(void) {
 	printf("Usage: %s [-v] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
 	printf(" -d data\tadd this data as a string to the end of the packet\n");
 	printf(" -f datafile\tread packet data from file\n");
-	printf(" -h\t\tprint this message\n");
+	printf(" -h\t\thelp (this message)\n");
 	printf(" -p module\tload the specified module (see below)\n");
 	printf(" -v\t\tbe verbose\n");
 
@@ -354,7 +356,7 @@ static void print_usage(void) {
 
 	printf("\n\nModules available at compile time:\n");
 	printf("\tipv4 ipv6 icmp tcp udp bgp rip ripng ntp\n");
-	printf("\tah dest esp frag gre hop route wesp.\n\n");
+	printf("\tah dest esp frag gre hop route sctp wesp.\n\n");
 	for(mod=first;mod!=NULL;mod=mod->next) {
 		char *shortname = strrchr(mod->name, '/');
 

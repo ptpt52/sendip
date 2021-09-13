@@ -26,7 +26,7 @@ UDPPROTOS= rip.so ripng.so ntp.so
 TCPPROTOS= bgp.so
 PROTOS= $(BASEPROTOS) $(IPPROTOS) $(UDPPROTOS) $(TCPPROTOS)
 LIBS= libsendipaux.a
-LIBOBJS= csum.o compact.o protoname.o headers.o parseargs.o cryptomod.o
+LIBOBJS= csum.o compact.o protoname.o headers.o parseargs.o cryptomod.o crc32.o
 SUBDIRS= mec
 
 all:	$(LIBS) subdirs sendip $(PROTOS) sendip.1 sendip.spec
@@ -62,6 +62,12 @@ parseargs.o:	mec/parseargs.c
 
 cryptomod.o:	mec/cryptomod.c
 	$(CC) -o $@ -c -I. $(CFLAGS) $+
+
+crc32.o: mec/crc32table.h mec/crc32.c
+	$(CC) -o $@ -c -I. $(CFLAGS) mec/crc32.c
+
+mec/crc32table.h: mec/gen_crc32table
+	mec/gen_crc32table > mec/crc32table.h
 
 sendip.1:	./help2man $(PROGS) $(PROTOS) subdirs VERSION
 			./help2man -n "Send arbitrary IP packets" -N >sendip.1

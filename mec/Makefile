@@ -19,7 +19,7 @@ LDFLAGS_LINUX= -g  -rdynamic -ldl -lm
 LIBCFLAGS= -shared
 CC=	gcc
 
-MYPROTOS= ah.so hop.so dest.so frag.so route.so gre.so esp.so wesp.so
+MYPROTOS= ah.so dest.so esp.so frag.so gre.so hop.so route.so sctp.so wesp.so
 MYCRYPTOS= xorauth.so xorcrypto.so
 PROTOS= $(MYPROTOS)
 CRYPTOS= $(MYCRYPTOS)

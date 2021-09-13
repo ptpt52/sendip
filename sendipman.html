@@ -1,0 +1,789 @@
+Content-type: text/html
+
+<HTML><HEAD><TITLE>Manpage of SENDIP</TITLE>
+</HEAD><BODY>
+<H1>SENDIP</H1>
+Section: FSF (1)<BR>Updated: August 2010<BR><A HREF="#index">Index</A>
+<A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+sendip - Send arbitrary IP packets
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>sendip</B>
+
+[<I>-v</I>] [<I>-d data</I>] [<I>-h</I>] [<I>-f datafile</I>] [<I>-p module</I>] [<I>module options</I>] <I>hostname</I>
+<A NAME="lbAD">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-d</B> data<DD>
+add this data as a string to the end of the packet
+<DT><B>-f</B> datafile<DD>
+read packet data from file
+<DT><B>-h</B><DD>
+print this message
+<DT><B>-p</B> module<DD>
+load the specified module (see below)
+<DT><B>-v</B><DD>
+be verbose
+</DL>
+<P>
+
+Packet data, and argument values for many header fields, may
+specified as
+rN to generate N random(ish) data bytes;
+zN to generate N nul (zero) data bytes;
+0x or 0X followed by hex digits;
+0 followed by octal digits;
+decimal number for decimal digits;
+any other stream of bytes, taken literally.
+<P>
+
+Modules are loaded in the order the <B>-p</B> option appears.  The headers from
+each module are put immediately inside the headers from the previous module in
+the final packet.  For example, to embed bgp inside tcp inside ipv4, do
+sendip <B>-p</B> ipv4 <B>-p</B> tcp <B>-p</B> bgp ....
+<P>
+
+Modules may be repeated to create multiple instances of a given header
+type. For example, to create an ipip tunneled packet (ipv4 inside ipv4), do
+sendip <B>-p</B> ipv4 &lt;outer header arguments&gt; <B>-p</B> ipv4 &lt;inner header arguments&gt; ....
+In the case of repeated modules, arguments are applied to the closest matching
+module in the command line.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Modules available at compile time:</H3>
+
+<DL COMPACT>
+<DT><DD>
+ipv4 ipv6 icmp tcp udp bgp rip ripng ntp
+ah dest esp frag gre hop route sctp wesp.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Arguments for module bgp.so:</H3>
+
+<DL COMPACT>
+<DT><B>-bm</B> x<DD>
+BGP Marker field (format is &lt;hex byte&gt;:&lt;hex byte&gt;:...)
+<DT><DD>
+Default: FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF
+<DT><B>-bl</B> x<DD>
+Packet length
+<DT><DD>
+Default: Correct
+<DT><B>-bt</B> x<DD>
+Message Type (1 OPEN, 2 UPDATE, 3 NOTIFICATION, 4 KEEPALIVE)
+<DT><DD>
+Default: 4 (KEEPALIVE)
+<DT><B>-bo</B> x<DD>
+Open message.  Format is &lt;version&gt;:&lt;AS number&gt;:&lt;Hold time&gt;:&lt;BGP Identifier&gt;:&lt;Options length&gt;
+<DT><DD>
+Default: 4:1:90:127.0.0.1:Correct (Any parameter can be omitted to get the default)
+<DT><B>-boo</B> x<DD>
+Optional OPEN parameter.  Format is &lt;Type&gt;:&lt;Length&gt;:&lt;Value&gt; - value is in hex bytes separated by :s
+<DT><DD>
+Default: None, though length may be omitted to get correct value
+<DT><B>-bul</B> x<DD>
+Withdrawn routes length
+<DT><DD>
+Default: Correct
+<DT><B>-buw</B> x<DD>
+Withdrawn route.  Format is x.x.x.x/n:&lt;bytes for prefix&gt;
+<DT><DD>
+Default: Bytes field may be omitted to use the correct number
+<DT><B>-bus</B> x<DD>
+Attributes length
+<DT><DD>
+Default: Correct
+<DT><B>-bua</B> x<DD>
+Attribute.  Format is &lt;flags&gt;:&lt;type&gt;:&lt;length length (1 or 2):&lt;length&gt;:&lt;data&gt;
+<DT><DD>
+Default: The length fields may be omitted to use the correct value
+<DT><B>-bun</B> x<DD>
+NLRI Prefix.  Format is as for <B>-buw</B>
+<DT><DD>
+Default: As for <B>-buw</B>
+<DT><B>-bn</B> x<DD>
+Notification.  Format is &lt;code&gt;:&lt;subcode&gt;:&lt;data&gt;
+<DT><DD>
+Default: Data may be omitted for no data
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Arguments for module icmp.so:</H3>
+
+<DL COMPACT>
+<DT><B>-ct</B> x<DD>
+ICMP message type
+<DT><DD>
+Default: ICMP_ECHO (8), or ICMP6_ECHO_REQUEST (128) if embedded in an IPv6 packet
+<DT><B>-cd</B> x<DD>
+ICMP code
+<DT><DD>
+Default: 0
+<DT><B>-cc</B> x<DD>
+ICMP checksum
+<DT><DD>
+Default: Correct
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Arguments for module ipv4.so:</H3>
+
+<DL COMPACT>
+<DT><B>-is</B> x<DD>
+Source IP address (see README)
+<DT><DD>
+Default: 127.0.0.1
+<DT><B>-id</B> x<DD>
+Destination IP address
+<DT><DD>
+Default: Correct
+<DT><B>-ih</B> x<DD>
+IP header length (see README)
+<DT><DD>
+Default: Correct
+<DT><B>-iv</B> x<DD>
+IP version (you almost definitely don't want to change this)
+<DT><DD>
+Default: 4
+<DT><B>-iy</B> x<DD>
+IP type of service
+<DT><DD>
+Default: 0
+<DT><B>-il</B> x<DD>
+Total IP packet length (see README)
+<DT><DD>
+Default: Correct
+<DT><B>-ii</B> x<DD>
+IP packet ID (see README)
+<DT><DD>
+Default: Random
+<DT><B>-ifr</B> x<DD>
+IP reserved flag (see README)
+<DT><DD>
+Default: 0 (options are 0,1,r)
+<DT><B>-ifd</B> x<DD>
+IP don't fragment flag (see README)
+<DT><DD>
+Default: 0 (options are 0,1,r)
+<DT><B>-ifm</B> x<DD>
+IP more fragments flag (see README)
+<DT><DD>
+Default: 0 (options are 0,1,r)
+<DT><B>-if</B> x<DD>
+IP fragment offset
+<DT><DD>
+Default: 0
+<DT><B>-it</B> x<DD>
+IP time to live
+<DT><DD>
+Default: 255
+<DT><B>-ip</B> x<DD>
+IP protocol
+<DT><DD>
+Default: Correct, or set by underlying protocol
+<DT><B>-ic</B> x<DD>
+IP checksum (see README)
+<DT><DD>
+Default: Correct
+<DT><B>-ionum</B> x<DD>
+IP option as string of hex bytes (length is always correct)
+<DT><DD>
+Default: (no options)
+<DT><B>-ioeol</B><DD>
+IP option: end of list
+<DT><B>-ionop</B><DD>
+IP option: no-op
+<DT><B>-iorr</B> x<DD>
+IP option: record route. Format: pointer:addr1:addr2:...
+<DT><B>-iots</B> x<DD>
+IP option: timestamp. Format: pointer:overflow:flag:(ip1:)ts1:(ip2:)ts2:...
+<DT><B>-iolsr</B> x<DD>
+IP option: loose source route. Format: pointer:addr1:addr2:...
+<DT><B>-iosid</B> x<DD>
+IP option: stream identifier
+<DT><B>-iossr</B> x<DD>
+IP option: strict source route. Format: pointer:addr1:addr2:...
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Arguments for module ipv6.so:</H3>
+
+<DL COMPACT>
+<DT><B>-6f</B> x<DD>
+IPv6 flow ID
+<DT><DD>
+Default: 32
+<DT><B>-6t</B> x<DD>
+IPv6 traffic class
+<DT><DD>
+Default: 0
+<DT><B>-6v</B> x<DD>
+IP version (you probably don't want to change this)
+<DT><B>-6p</B> x<DD>
+IPv6 priority
+<DT><DD>
+Default: 0
+<DT><B>-6l</B> x<DD>
+IPv6 payload length
+<DT><DD>
+Default: Correct
+<DT><B>-6h</B> x<DD>
+IPv6 hop limit
+<DT><DD>
+Default: 32
+<DT><B>-6n</B> x<DD>
+IPv6 next header
+<DT><DD>
+Default: Correct
+<DT><B>-6s</B> x<DD>
+IPv6 source address
+<DT><DD>
+Default: ::1
+<DT><B>-6d</B> x<DD>
+IPv6 destination address
+<DT><DD>
+Default: Correct
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Arguments for module ntp.so:</H3>
+
+<DL COMPACT>
+<DT><B>-nl</B> x<DD>
+NTP Leap Indicator
+<DT><DD>
+Default: 00 (no warning)
+<DT><B>-ns</B> x<DD>
+NTP status
+<DT><DD>
+Default: 0 (clock operating OK)
+<DT><B>-nt</B> x<DD>
+NTP type
+<DT><DD>
+Default: 0 (unspecified)
+<DT><B>-np</B> x<DD>
+NTP precision
+<DT><DD>
+Default: 0
+<DT><B>-ne</B> x<DD>
+NTP estimated error
+<DT><DD>
+Default: 0.0
+<DT><B>-nd</B> x<DD>
+NTP estimated drift rate
+<DT><DD>
+Default: 0.0
+<DT><B>-nr</B> x<DD>
+NTP reference clock ID (string or IP or number)
+<DT><DD>
+Default: 0
+<DT><B>-nf</B> x<DD>
+NTP reference timestamp
+<DT><DD>
+Default: 0.0
+<DT><B>-no</B> x<DD>
+NTP originate timestamp
+<DT><DD>
+Default: 0.0
+<DT><B>-na</B> x<DD>
+NTP arrival (receive) timestamp
+<DT><DD>
+Default: 0.0
+<DT><B>-nx</B> x<DD>
+NTP xmit (transmit) timestamp
+<DT><DD>
+Default: 0.0
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H3>Arguments for module rip.so:</H3>
+
+<DL COMPACT>
+<DT><B>-rv</B> x<DD>
+RIP version
+<DT><DD>
+Default: 2
+<DT><B>-rc</B> x<DD>
+RIP command (1=request, 2=response, 3=traceon (obsolete), 4=traceoff (obsolete), 5=poll (undocumented), 6=poll entry (undocumented)
+<DT><DD>
+Default: 1
+<DT><B>-re</B> x<DD>
+Add a RIP entry.  Format is: Address family:route tag:address:subnet mask:next hop:metric
+<DT><DD>
+Default: 2:0:0.0.0.0:255.255.255.0:0.0.0.0:16, any option my be left out to use the default
+<DT><B>-ra</B> x<DD>
+RIP authenticate packet, argument is the password; do not use any other RIP options on this RIP header
+<DT><B>-rd</B><DD>
+RIP default request - get router's entire routing table; do not use any other RIP options on this RIP header
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>Arguments for module ripng.so:</H3>
+
+<DL COMPACT>
+<DT><B>-Rv</B> x<DD>
+RIPng version
+<DT><DD>
+Default: 1
+<DT><B>-Rc</B> x<DD>
+RIPng command (1=request, 2=response)
+<DT><DD>
+Default: 1
+<DT><B>-Rr</B> x<DD>
+RIPng reserved field (should be 0)
+<DT><DD>
+Default: 0
+<DT><B>-Re</B> x<DD>
+Add a RIPng entry.  Format is: Address/route tag/address/len/metric
+<DT><DD>
+Default: ::/0/128/1, any option my be left out to use the default
+<DT><B>-Rd</B><DD>
+RIPng default request - get router's entire routing table; do not use any other RIPng options on this RIPng header
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H3>Arguments for module tcp.so:</H3>
+
+<DL COMPACT>
+<DT><B>-ts</B> x<DD>
+TCP source port
+<DT><DD>
+Default: 0
+<DT><B>-td</B> x<DD>
+TCP destination port
+<DT><DD>
+Default: 0
+<DT><B>-tn</B> x<DD>
+TCP sequence number
+<DT><DD>
+Default: Random
+<DT><B>-ta</B> x<DD>
+TCP ack number
+<DT><DD>
+Default: 0
+<DT><B>-tt</B> x<DD>
+TCP data offset
+<DT><DD>
+Default: Correct
+<DT><B>-tr</B> x<DD>
+TCP header reserved field EXCLUDING ECN and CWR bits
+<DT><DD>
+Default: 0
+<DT><B>-tfe</B> x<DD>
+TCP ECN bit (rfc2481)
+<DT><DD>
+Default: 0 (options are 0,1,r)
+<DT><B>-tfc</B> x<DD>
+TCP CWR bit (rfc2481)
+<DT><DD>
+Default: 0 (options are 0,1,r)
+<DT><B>-tfu</B> x<DD>
+TCP URG bit
+<DT><DD>
+Default: 0, or 1 if <B>-tu</B> specified (options are 0,1,r)
+<DT><B>-tfa</B> x<DD>
+TCP ACK bit
+<DT><DD>
+Default: 0, or 1 if <B>-ta</B> specified (options are 0,1,r)
+<DT><B>-tfp</B> x<DD>
+TCP PSH bit
+<DT><DD>
+Default: 0 (options are 0,1,r)
+<DT><B>-tfr</B> x<DD>
+TCP RST bit
+<DT><DD>
+Default: 0 (options are 0,1,r)
+<DT><B>-tfs</B> x<DD>
+TCP SYN bit
+<DT><DD>
+Default: 1 (options are 0,1,r)
+<DT><B>-tff</B> x<DD>
+TCP FIN bit
+<DT><DD>
+Default: 0 (options are 0,1,r)
+<DT><B>-tw</B> x<DD>
+TCP window size
+<DT><DD>
+Default: 65535
+<DT><B>-tc</B> x<DD>
+TCP checksum
+<DT><DD>
+Default: Correct
+<DT><B>-tu</B> x<DD>
+TCP urgent pointer
+<DT><DD>
+Default: 0
+<DT><B>-tonum</B> x<DD>
+TCP option as string of hex bytes (length is always correct)
+<DT><DD>
+Default: (no options)
+<DT><B>-toeol</B><DD>
+TCP option: end of list
+<DT><B>-tonop</B><DD>
+TCP option: no op
+<DT><B>-tomss</B> x<DD>
+TCP option: maximum segment size
+<DT><B>-towscale</B> x<DD>
+TCP option: window scale (rfc1323)
+<DT><B>-tosackok</B><DD>
+TCP option: allow selective ack (rfc2018)
+<DT><B>-tosack</B> x<DD>
+TCP option: selective ack (rfc2018), format is l_edge1:r_edge1,l_edge2:r_edge2...
+<DT><B>-tots</B> x<DD>
+TCP option: timestamp (rfc1323), format is tsval:tsecr
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H3>Arguments for module udp.so:</H3>
+
+<DL COMPACT>
+<DT><B>-us</B> x<DD>
+UDP source port
+<DT><DD>
+Default: 0
+<DT><B>-ud</B> x<DD>
+UDP destination port
+<DT><DD>
+Default: 0
+<DT><B>-ul</B> x<DD>
+UDP packet length
+<DT><DD>
+Default: Correct
+<DT><B>-uc</B> x<DD>
+UDP checksum
+<DT><DD>
+Default: Correct
+</DL>
+<A NAME="lbAO">&nbsp;</A>
+<H3>Arguments for module ah.so:</H3>
+
+<DL COMPACT>
+<DT><B>-as</B> x<DD>
+AH Security Parameters Index
+<DT><DD>
+Default: 1
+<DT><B>-aq</B> x<DD>
+AH Sequence Number
+<DT><DD>
+Default: 1
+<DT><B>-ad</B> x<DD>
+AH Authentication Data  Variable length authentication data, can be a user-provided string (in hex, octal, decimal, or raw), zN for N nul (zero) bytes or rN for N random bytes.
+<DT><DD>
+Default: 0
+<DT><B>-an</B> x<DD>
+AH Next Header
+<DT><DD>
+Default: Correct
+<DT><B>-ak</B> x<DD>
+AH Key (string, zN for N nul bytes, or rN for N random bytes)  Not transmitted in the packet, but passed to the authentication module, if any.
+<DT><DD>
+Default: none
+<DT><B>-am</B> x<DD>
+AH Authentication Module
+<DT><DD>
+Default: none
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H3>Arguments for module dest.so:</H3>
+
+<DL COMPACT>
+<DT><B>-dn</B> x<DD>
+Option next header
+<DT><DD>
+Default: Correct
+<DT><B>-d0</B><DD>
+Option pad 0 (1 byte padding)
+<DT><B>-dp</B> x<DD>
+Option pad N bytes
+<DT><DD>
+Default: 2
+<DT><B>-dr</B> x<DD>
+Option router alert
+<DT><DD>
+Default: 0
+<DT><B>-dj</B> x<DD>
+Option jumbo frame length Note: actual production of jumbo frames requires interface support.
+<DT><DD>
+Default: 0
+<DT><B>-dh</B> x<DD>
+(Destination) option home address
+<DT><DD>
+Default: ::1
+<DT><B>-dt</B> x<DD>
+Option arbitrary t.l.v option The fields are type.length.value. Each field can be specified in the usual way as hex, octal, decimal, literal, zN for N zero bytes or rN for N random bytes.
+<DT><DD>
+Default: 0.0.0
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H3>Arguments for module esp.so:</H3>
+
+<DL COMPACT>
+<DT><B>-es</B> x<DD>
+ESP Security Parameters Index
+<DT><DD>
+Default: 0
+<DT><B>-eq</B> x<DD>
+ESP Sequence Number
+<DT><DD>
+Default: 0
+<DT><B>-ep</B> x<DD>
+ESP Padding Length
+<DT><DD>
+Default: Minimum needed for alignment
+<DT><B>-en</B> x<DD>
+ESP Next Header
+<DT><DD>
+Default: Correct
+<DT><B>-ei</B> x<DD>
+ESP IV (string, zN for N nul bytes, or rN for N random bytes)
+<DT><DD>
+Default: None
+<DT><B>-eI</B> x<DD>
+ESP ICV (string, zN for N nul bytes, or rN for N random bytes)
+<DT><DD>
+Default: None
+<DT><B>-ek</B> x<DD>
+ESP Key (string, zN for N nul bytes, or rN for N random bytes)  Not transmitted in the packet, but passed to the cryptographic module(s), if any.
+<DT><DD>
+Default: none
+<DT><B>-ea</B> x<DD>
+ESP authentication module
+<DT><DD>
+Default: none
+<DT><B>-ec</B> x<DD>
+ESP cryptographic (encryption/privacy) module
+<DT><DD>
+Default: none
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H3>Arguments for module frag.so:</H3>
+
+<DL COMPACT>
+<DT><B>-Fn</B> x<DD>
+Fragment next header
+<DT><DD>
+Default: Correct
+<DT><B>-Fr</B> x<DD>
+Fragment reserved (1 byte)
+<DT><DD>
+Default: 0
+<DT><B>-Fo</B> x<DD>
+Fragment offset
+<DT><DD>
+Default: 0
+<DT><B>-Ff</B> x<DD>
+Fragment flags (3 bits, lsb=more fragments)
+<DT><DD>
+Default: 0
+<DT><B>-Fi</B> x<DD>
+Fragment identification
+<DT><DD>
+Default: 0
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H3>Arguments for module gre.so:</H3>
+
+<DL COMPACT>
+<DT><B>-gc</B> x<DD>
+GRE supplied checksum
+<DT><DD>
+Default: none
+<DT><B>-gC</B><DD>
+GRE add actual checksum
+<DT><B>-gr</B> x<DD>
+GRE routing field
+<DT><DD>
+Default: none
+<DT><B>-gk</B> x<DD>
+GRE key field
+<DT><DD>
+Default: none
+<DT><B>-gs</B> x<DD>
+GRE sequence number
+<DT><DD>
+Default: none
+<DT><B>-gS</B><DD>
+GRE strict source routing flag on
+<DT><B>-ge</B> x<DD>
+GRE recursion encapsulation limit
+<DT><DD>
+Default: 0
+<DT><B>-gv</B> x<DD>
+GRE version number
+<DT><DD>
+Default: 0
+<DT><B>-gp</B> x<DD>
+GRE encapsulated protocol
+<DT><DD>
+Default: Correct (if known, IPv4 and IPv6 only)
+<DT><B>-go</B> x<DD>
+GRE offset
+<DT><DD>
+Default: none
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H3>Arguments for module hop.so:</H3>
+
+<DL COMPACT>
+<DT><B>-Hn</B> x<DD>
+Option next header
+<DT><DD>
+Default: Correct
+<DT><B>-H0</B><DD>
+Option pad 0 (1 byte padding)
+<DT><B>-Hp</B> x<DD>
+Option pad N bytes
+<DT><DD>
+Default: 2
+<DT><B>-Hr</B> x<DD>
+Option router alert
+<DT><DD>
+Default: 0
+<DT><B>-Hj</B> x<DD>
+Option jumbo frame length Note: actual production of jumbo frames requires interface support.
+<DT><DD>
+Default: 0
+<DT><B>-Hh</B> x<DD>
+(Destination) option home address
+<DT><DD>
+Default: ::1
+<DT><B>-Ht</B> x<DD>
+Option arbitrary t.l.v option The fields are type.length.value. Each field can be specified in the usual way as hex, octal, decimal, literal, zN for N zero bytes or rN for N random bytes.
+<DT><DD>
+Default: 0.0.0
+</DL>
+<A NAME="lbAU">&nbsp;</A>
+<H3>Arguments for module route.so:</H3>
+
+<DL COMPACT>
+<DT><B>-on</B> x<DD>
+Routing next header
+<DT><DD>
+Default: Correct
+<DT><B>-ot</B> x<DD>
+Routing header type
+<DT><DD>
+Default: 0
+<DT><B>-os</B> x<DD>
+Routing segments left
+<DT><DD>
+Default: 0
+<DT><B>-or</B> x<DD>
+Routing reserved field
+<DT><DD>
+Default: 0
+<DT><B>-oa</B> x<DD>
+Routing list of addresses (comma separated)
+<DT><DD>
+Default: none
+</DL>
+<A NAME="lbAV">&nbsp;</A>
+<H3>Arguments for module sctp.so:</H3>
+
+<DL COMPACT>
+<DT><B>-ss</B> x<DD>
+SCTP source port
+<DT><DD>
+Default: 0
+<DT><B>-sd</B> x<DD>
+SCTP dest port
+<DT><DD>
+Default: 0
+<DT><B>-sv</B> x<DD>
+SCTP vtag
+<DT><DD>
+Default: 0 (if init chunk) 1 (if other)
+<DT><B>-sc</B> x<DD>
+SCTP CRC checksum
+<DT><DD>
+Default: Correct
+<DT><B>-sT</B> x<DD>
+SCTP chunk type
+<DT><DD>
+Default: 0 (i.e., a data chunk)
+</DL>
+<P>
+
+Note: multiple chunks may be included. Each chunk type begins a new
+chunk; subsequent chunk-related fields are applied to that chunk.
+<DL COMPACT>
+<DT><B>-sF</B> x<DD>
+SCTP chunk flags
+<DT><DD>
+Default: 0
+<DT><B>-sL</B> x<DD>
+SCTP chunk length
+<DT><DD>
+Default: Correct
+<DT><B>-sD</B> x<DD>
+SCTP chunk data (hex, octal, decimal, literal, zN for N zero bytes or rN for N random bytes).
+<DT><DD>
+Default: 0
+</DL>
+<A NAME="lbAW">&nbsp;</A>
+<H3>Arguments for module wesp.so:</H3>
+
+<DL COMPACT>
+<DT><B>-wv</B> x<DD>
+WESP Version
+<DT><DD>
+Default: 0
+<DT><B>-we</B> x<DD>
+WESP Encrypted Payload flag
+<DT><DD>
+Default: 0
+<DT><B>-wp</B> x<DD>
+WESP Padded flag (also adds 4 bytes padding)
+<DT><DD>
+Default: 0
+<DT><B>-wr</B> x<DD>
+WESP Reserved field
+<DT><DD>
+Default: 0
+<DT><B>-wh</B> x<DD>
+WESP Header Length
+<DT><DD>
+Default: Correct
+<DT><B>-wt</B> x<DD>
+WESP Trailer Length
+<DT><DD>
+Default: Correct
+<DT><B>-wn</B> x<DD>
+WESP Next Header
+<DT><DD>
+Default: Correct
+<P>
+</DL>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">OPTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Modules available at compile time:</A><DD>
+<DT><A HREF="#lbAF">Arguments for module bgp.so:</A><DD>
+<DT><A HREF="#lbAG">Arguments for module icmp.so:</A><DD>
+<DT><A HREF="#lbAH">Arguments for module ipv4.so:</A><DD>
+<DT><A HREF="#lbAI">Arguments for module ipv6.so:</A><DD>
+<DT><A HREF="#lbAJ">Arguments for module ntp.so:</A><DD>
+<DT><A HREF="#lbAK">Arguments for module rip.so:</A><DD>
+<DT><A HREF="#lbAL">Arguments for module ripng.so:</A><DD>
+<DT><A HREF="#lbAM">Arguments for module tcp.so:</A><DD>
+<DT><A HREF="#lbAN">Arguments for module udp.so:</A><DD>
+<DT><A HREF="#lbAO">Arguments for module ah.so:</A><DD>
+<DT><A HREF="#lbAP">Arguments for module dest.so:</A><DD>
+<DT><A HREF="#lbAQ">Arguments for module esp.so:</A><DD>
+<DT><A HREF="#lbAR">Arguments for module frag.so:</A><DD>
+<DT><A HREF="#lbAS">Arguments for module gre.so:</A><DD>
+<DT><A HREF="#lbAT">Arguments for module hop.so:</A><DD>
+<DT><A HREF="#lbAU">Arguments for module route.so:</A><DD>
+<DT><A HREF="#lbAV">Arguments for module sctp.so:</A><DD>
+<DT><A HREF="#lbAW">Arguments for module wesp.so:</A><DD>
+</DL>
+</DL>
+<HR>
+This document was created by
+<A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
+using the manual pages.<BR>
+Time: 19:55:36 GMT, August 10, 2010
+</BODY>
+</HTML>

@@ -18,12 +18,14 @@ Additions made:
    fragment - IPv6
    GRE tunnel - IPv4 or v6
    routing - types 0, 1, 2
+   SCTP - with initial chunk support
 
 2. Helper functions
 
    random data generation
    protocol name/number conversion
    forward/back header lookup
+   CRC32 calculation
 
 Changes in existing modules:
 
