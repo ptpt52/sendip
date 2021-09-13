@@ -46,12 +46,12 @@ add_chunk(sendip_data *pack, u_int8_t type)
 
 	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
 		pack->alloc_len + sizeof(sctp_chunk_header));
-	chunk = (sctp_chunk_header *)((u_int8_t *)sctp + pack->alloc_len);
+	chunk = (sctp_chunk_header *)(void *)((u_int8_t *)sctp + pack->alloc_len);
 	pack->alloc_len += sizeof(sctp_chunk_header);
 	memset(chunk, 0, sizeof(sctp_chunk_header));
 	chunk->type = type;
 	chunk->length = ntohs(sizeof(sctp_chunk_header));
-fprintf(stderr, "Adding %ld byte SCTP chunk header, total SCTP length %d\n", sizeof(sctp_chunk_header), pack->alloc_len);
+	fprintf(stderr, "Adding %ld byte SCTP chunk header, total SCTP length %d\n", (long)sizeof(sctp_chunk_header), pack->alloc_len);
 	return chunk;
 }
 
@@ -66,7 +66,7 @@ grow_chunk(sendip_data *pack, sctp_chunk_header *chunk,
 
 	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
 			pack->alloc_len + length);
-	chunk = (sctp_chunk_header *)((u_int8_t *)sctp + offset);
+	chunk = (sctp_chunk_header *)(void *)((u_int8_t *)sctp + offset);
 	pack->alloc_len += length;
 	offset = ntohs(chunk->length);
 	chunk->length = htons(offset+length);
@@ -111,7 +111,7 @@ grow_chunk_round4(sendip_data *pack, sctp_chunk_header *chunk,
 
 	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
 			pack->alloc_len + roundup);
-	chunk = (sctp_chunk_header *)((u_int8_t *)sctp + offset);
+	chunk = (sctp_chunk_header *)(void *)((u_int8_t *)sctp + offset);
 	pack->alloc_len += roundup;
 	offset = ntohs(chunk->length);
 	chunk->length = htons(offset+roundup);

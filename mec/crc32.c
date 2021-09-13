@@ -110,7 +110,7 @@ u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len)
 u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len)
 {
 # if CRC_LE_BITS == 8
-	const u_int32_t      *b =(u_int32_t *)p;
+	const u_int32_t      *b =(const u_int32_t *)(const void *)p;
 	const u_int32_t      *tab = crc32table_le;
 
 # ifdef __LITTLE_ENDIAN
@@ -208,7 +208,7 @@ u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
 u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
 {
 # if CRC_BE_BITS == 8
-	const u_int32_t      *b =(u_int32_t *)p;
+	const u_int32_t      *b =(const u_int32_t *)(const void *)p;
 	const u_int32_t      *tab = crc32table_be;
 
 # ifdef __LITTLE_ENDIAN
@@ -223,7 +223,7 @@ u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
 		do {
 			u_int8_t *p = (u_int8_t *)b;
 			DO_CRC(*p++);
-			b = (u_int32_t *)p;
+			b = (const u_int32_t *)(const void *)p;
 		} while ((--len) && ((long)b)&3 );
 	}
 	if(likely(len >= 4)){

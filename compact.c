@@ -232,7 +232,7 @@ timestamp(int length)
 		usage_error("Time data too long to be sane\n");
 		return NULL;
 	}
-	gettimeofday((struct timeval *)answer, NULL);
+	gettimeofday((void *)answer, NULL);
 #ifdef notdef
 	/* Paranoia */
 	(void) memset((void *)answer, 0, MAXRAND);
@@ -300,7 +300,7 @@ u_int32_t
 integerargument(const char *input, int length)
 {
 	int inputlength;
-	u_int8_t *string;
+	void *string;
 
 	if (!input || !length) return 0;
 	/* Special case for rN, zN strings */
@@ -317,7 +317,7 @@ integerargument(const char *input, int length)
 			 */
 			switch (length) {
 			case 1:
-				return (u_int8_t)*string;
+				return *(u_int8_t *)string;
 			case 2:
 				return *(u_int16_t *)string;
 			case 3:
@@ -353,7 +353,7 @@ u_int32_t
 hostintegerargument(const char *input, int length)
 {
 	int inputlength;
-	u_int8_t *string;
+	void *string;
 
 	if (!input || !length) return 0;
 	/* Special case for rN, zN, fN strings */
@@ -367,7 +367,7 @@ hostintegerargument(const char *input, int length)
 			if (!string) return 0;
 			switch (length) {
 			case 1:
-				return (u_int8_t)*string;
+				return *(u_int8_t *)string;
 			case 2:
 				return *(u_int16_t *)string;
 			case 3:

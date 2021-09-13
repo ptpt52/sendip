@@ -69,7 +69,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	/* We'll use the type 0 routing header to get at the
 	 * other fields.
 	 */
-	struct rt0_hdr *rt = (struct rt0_hdr *)route;
+	struct rt0_hdr *rt = (struct rt0_hdr *)(void *)route;
 	u_int16_t svalue;
 
 	switch(opt[1]) {
