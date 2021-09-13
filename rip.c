@@ -63,7 +63,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		ripopt = RIP_OPTION(pack);
 		p=q=arg;
 		/* TODO: if arg is malformed, this could segfault */
-		while(*(q++)!=':') /* do nothing */; *(--q)='\0';
+		while(*(q++)!=':') /* do nothing */;
+		*(--q)='\0';
 		rippack->addressFamily= htons((p==q)?2:(u_int16_t)strtoul(p, (char **)0, 0));
 		pack->modified |= RIP_MOD_ADDRFAM;
 		p=++q; while(*(q++)!=':') /* do nothing */; *(--q)='\0';

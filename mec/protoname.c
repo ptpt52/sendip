@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <netdb.h>
+#include <ctype.h>
 #include <sys/types.h>
 
 #include "mec/ipv6ext.h"

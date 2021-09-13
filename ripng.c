@@ -77,7 +77,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		ripopt = RIPNG_ENTRY(pack);
 		p=q=arg;
 		/* TODO: if arg is malformed, this could segfault */
-		while(*(q++)!='/') /* do nothing */; *(--q)='\0';
+		while(*(q++)!='/') /* do nothing */;
+		*(--q)='\0';
 		ripopt->prefix = (p==q)?in6addr_any:inet6_addr(p);
 
 		p=++q; while(*(q++)!='/') /* do nothing */; *(--q)='\0';
