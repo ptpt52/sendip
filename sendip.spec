@@ -1,4 +1,4 @@
-%define ver 2.5-mec-0
+%define ver 2.5-mec-1
 %define name sendip
 
 Summary: A command line tool to allow sending arbitrary IP packets

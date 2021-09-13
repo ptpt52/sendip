@@ -19,14 +19,14 @@ LDFLAGS_LINUX= -g  -rdynamic -ldl -lm
 LIBCFLAGS= -shared
 CC=	gcc
 
-MYPROTOS= ah.so hop.so dest.so frag.so route.so gre.so esp.so
+MYPROTOS= ah.so hop.so dest.so frag.so route.so gre.so esp.so wesp.so
+MYCRYPTOS= xorauth.so xorcrypto.so
 PROTOS= $(MYPROTOS)
+CRYPTOS= $(MYCRYPTOS)
 
 LIBS= ../libsendipaux.a
 
-#all:	$(GLOBALOBJS) $(PROTOS)
-
-all:	$(PROTOS)
+all:	$(PROTOS) $(CRYPTOS)
 
 %.so: %.c $(LIBS)
 			$(CC) -o $@ $(CFLAGS) $(LIBCFLAGS) $+ $(LIBS)
@@ -40,7 +40,7 @@ dest.so: hop.c $(LIBS)
 .PHONY:	clean install
 
 clean:
-			rm -f *.o *~ *.so $(PROTOS) $(PROGS) core gmon.out
+			rm -f *.o *~ *.so $(PROTOS) $(CRYPTOS) $(PROGS) core gmon.out
 
 veryclean:
 			make clean
@@ -50,4 +50,4 @@ install:		all
 			[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
 			[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
 			[ -d $(MANDIR) ] || mkdir -p $(MANDIR)
-			$(INSTALL) -m 755 $(PROTOS) $(LIBDIR)
+			$(INSTALL) -m 755 $(PROTOS) $(CRYPTOS) $(LIBDIR)

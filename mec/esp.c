@@ -12,11 +12,16 @@
 #include <ctype.h>
 #include "sendip_module.h"
 #include "ipv6ext.h"
+#define _CRYPTO_MAIN
+#define _ESP_MAIN
 #include "esp.h"
+#include "crypto_module.h"
 
 /* Character that identifies our options
  */
 const char opt_char='e';
+
+crypto_module *authesp, *cryptoesp;
 
 sendip_data *
 initialize(void)
@@ -34,6 +39,7 @@ initialize(void)
 	memset(priv,0,sizeof(esp_private));
 	ret->alloc_len = sizeof(esp_header)+ESP_MIN_PADDING;
 	ret->data = esp;
+	priv->type = IPPROTO_ESP;
 	ret->private = priv;
 	ret->modified=0;
 	return ret;
@@ -82,19 +88,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 * where in finalize it will constitute the beginning
 		 * of the payload area.
 		 */
-		length = compact_or_rand(arg, &temp);
-#ifdef notdef
-		switch (*arg) {
-		case 'r':	/* rN - random data, N bytes */
-			length = atoi(arg+1);
-			temp = randombytes(length);
-			break;
-		default:	/* read hex/octal/decimal/raw string */
-			length = compact_string(arg);
-			temp = arg;
-			break;
-		}
-#endif
+		length = stringargument(arg, &temp);
 		priv->ivlen = length;
 		pack->alloc_len += length;
 		pack->data = realloc(esp, pack->alloc_len);
@@ -111,25 +105,40 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 * or a user-provided string. We put it in the header,
 		 * then move it into the trailer in finalize.
 		 */
-		length = compact_or_rand(arg, &temp);
-#ifdef notdef
-		switch (*arg) {
-		case 'r':	/* rN - random data, N bytes */
-			length = atoi(arg+1);
-			temp = randombytes(length);
-			break;
-		default:	/* read hex/octal/decimal/raw string */
-			length = compact_string(arg);
-			temp = arg;
-			break;
-		}
-#endif
+		length = stringargument(arg, &temp);
 		priv->icvlen = length;
 		pack->alloc_len += length;
 		pack->data = realloc(esp, pack->alloc_len);
 		esp = (esp_header *)pack->data;
 		memcpy(&esp->tail.ivicv[priv->ivlen], temp, priv->icvlen);
 		pack->modified |= ESP_MOD_ICV;
+		break;
+	case 'k':	/* Key */
+		length = stringargument(arg, &temp);
+		priv->keylen = length;
+		priv = (esp_private *)realloc(priv,
+				sizeof(esp_private) + length);
+		memcpy(priv->key, temp, priv->keylen);
+		pack->private = priv;
+		pack->modified |= ESP_MOD_KEY;
+		break;
+	case 'a':	/* Authentication module */
+		authesp = load_crypto_module(arg);
+		if (!authesp)
+			return FALSE;
+		/* Call any init routine */
+		pack->modified |= ESP_MOD_AUTH;
+		if (authesp->cryptoinit)
+			return (*authesp->cryptoinit)(pack);
+		break;
+	case 'c':	/* Cryptographic (encryption/privacy) module */
+		cryptoesp = load_crypto_module(arg);
+		if (!cryptoesp)
+			return FALSE;
+		/* Call any init routine */
+		pack->modified |= ESP_MOD_CRYPT;
+		if (cryptoesp->cryptoinit)
+			return (*cryptoesp->cryptoinit)(pack);
 		break;
 	case 'n':	/* Next header */
 		esp->tail.nexthdr = name_to_proto(arg);
@@ -149,6 +158,7 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	/* Let's just be stupid! */
 	u_int8_t padlen, nexthdr;
 	u_int8_t *iv, *icv, *where;
+	int ret = TRUE;
 
 	if (!(pack->modified&ESP_MOD_NEXTHDR))
 		esp->tail.nexthdr = header_type(hdrs[index+1]);
@@ -226,6 +236,14 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	 * be an "overlapping" move, we'll use memmove.
 	 */
 	memmove(where, data->data, data->alloc_len);
+	/* Move the data pointer to the new payload head for the
+	 * benefit of any crypto module that wants to know where
+	 * things are.
+	 */
+	data->data = (void *)(where - priv->ivlen);
+	/* Now move our work pointer past the packet data and
+	 * fill out the trailer.
+	 */
 	where += data->alloc_len;
 	memset(where, 0, padlen);
 	where += padlen;
@@ -241,10 +259,24 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	pack->alloc_len = sizeof(struct ip_esp_hdr);
 	data->alloc_len += priv->ivlen + padlen + priv->icvlen + 2;
 
-	/* Free the private data as no longer required */
-	free((void *)priv);
-	pack->private = NULL;
-	return TRUE;
+	/* Call any authentication and/or encryption modules, in
+	 * that order, and let them work their magic.
+	 */
+	if (authesp && authesp->cryptomod) {
+		ret = (*authesp->cryptomod)(priv, hdrs, headers, index,
+			data, pack);
+	}
+	if (ret == TRUE) {
+		if (cryptoesp && cryptoesp->cryptomod) {
+			ret = (*cryptoesp->cryptomod)(priv, hdrs, headers,
+				index, data, pack);
+		}
+	}
+
+	/* @@ We can't free the private data, as WESP needs it */
+	/* free((void *)priv);
+	pack->private = NULL; */
+	return ret;
 }
 
 int

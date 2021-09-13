@@ -45,6 +45,9 @@
 #define IPPROTO_RAW		255	/* Raw IP packets		*/
 #endif
 
+/* Just allocated by IANA */
+#define IPPROTO_WESP		141	/* Wrapped ESP */
+
 /* Header types and associated sendip opt_chars. Things should be set
  * up so this can be determined dynamically, but for now, we'll just
  * make a fixed table.
@@ -176,7 +179,12 @@ struct ip_beet_phdr {
 };
 
 /* miscellanea */
-/* for code documentation purposes, largest u_int8_t value */
+/* for code documentation purposes, largest u_int8_t (8-bit unsigned) value */
 #define OCTET_MAX	255
+/* Largest 4-bit unsigned value */
+#define QUARTET_MAX	15
+/* Largest 2-bit unsigned value */
+#define DUO_MAX		3
+/* Largest 1-bit value is left as an exercise for the reader */
 
 #endif

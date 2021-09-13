@@ -334,6 +334,7 @@ static void print_usage(void) {
 	printf("\n\nPacket data, and argument values for many header fields, may\n");
 	printf("specified as\n");
 	printf("rN to generate N random(ish) data bytes;\n");
+	printf("zN to generate N nul (zero) data bytes;\n");
 	printf("0x or 0X followed by hex digits;\n");
 	printf("0 followed by octal digits;\n");
 	printf("decimal number for decimal digits;\n");
@@ -352,7 +353,8 @@ static void print_usage(void) {
 
 
 	printf("\n\nModules available at compile time:\n");
-	printf("\tipv4 ipv6 icmp tcp udp bgp rip ripng ntp ah dest esp frag gre hop route.\n\n");
+	printf("\tipv4 ipv6 icmp tcp udp bgp rip ripng ntp\n");
+	printf("\tah dest esp frag gre hop route wesp.\n\n");
 	for(mod=first;mod!=NULL;mod=mod->next) {
 		char *shortname = strrchr(mod->name, '/');
 
@@ -412,23 +414,14 @@ int main(int argc, char *const argv[]) {
 			break;
 		case 'd':
 			if(data == NULL) {
-				data=gnuoptarg;
-				if(*data=='r') {
-					/* random data, format is r<n> when n is number of bytes */
-					datalen = atoi(data+1);
-					if(datalen < 1) {
-						fprintf(stderr,"Random data with length %d invalid\nNo data will be included\n",datalen);
-						data=NULL;
-						datalen=0;
-					}
-					data=(char *)malloc(datalen);
-					for(i=0;i<datalen;i++)
-						data[i]=(char)random();
-					randomflag=TRUE;
-				} else {
-					/* "normal" data */
-					datalen = compact_string(data);
-				}
+				char *datarg;
+
+				/* normal data, rN for random string,
+				 * zN for nul (zero) string.
+				 */
+				datalen = stringargument(gnuoptarg, &datarg);
+				data=(char *)malloc(datalen);
+				memcpy(data, datarg, datalen);
 			} else {
 				fprintf(stderr,"Only one -d or -f option can be given\n");
 				usage = TRUE;
@@ -663,7 +656,10 @@ int main(int argc, char *const argv[]) {
 			 * headers where they are in the list.
 			 */
 			/*@@hdrs[i]='\0';@@*/
-			headers[i] = NULL;
+			/* @@ wesp needs to see the esp header info,
+			 * so now we can't erase that, either.
+			 */
+			/*@@headers[i] = NULL;*/
 
 			/* @@ */
 			mod->finalize(hdrs, headers, i, &d, mod->pack);
@@ -676,6 +672,7 @@ int main(int argc, char *const argv[]) {
 		if (d.alloc_len < packet.alloc_len)
 			packet.alloc_len = d.alloc_len;
 	}
+	/* @@ We could (and should?) free any leftover priv data here. */
 
 	/* And send the packet */
 	{

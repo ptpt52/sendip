@@ -131,7 +131,13 @@ Changes between sendip-2.4 and sendip-2.5
 * tcp.so
 - Fix -tonum bug found by Yaniv Kaul <ykaul@checkpoint.com>
 
-Changes between sendip-2.5 and sendip-2.5-mec
-* Several new headers, especially for IPv6
+Changes between sendip-2.5 and sendip-2.5-mec-0
+* Many new headers, especially for IPv6
 * Some interface and miscellaneous changes to support the above
 - For details, see the README.mec file
+
+Changes between sendip-2.5-mec-0 and sendip-2.5-mec-1
+* Addition of Wrapped ESP (WESP) header
+* Support for external authentication and crypto modules for AH and ESP
+* Extended uniform string argument handling
+- Again, for details, see the README.mec file

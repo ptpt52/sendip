@@ -70,7 +70,7 @@
  *      -headers is an array of all the enclosing headers in the same order
  *      -data contains the data inside this set of headers.  This may include
  *       headers of underlying protocols, that will already have been
- *       finalized.  DO NOT MODIFY IT.
+ *       finalized.  DO NOT MODIFY IT. @@unless you really need to! (ESP)
  *      -pack contains our headers.
  *    - You might, possibly, find the following functions useful.  They are
  *      automatically available to all modules:
@@ -81,10 +81,14 @@
  *       all other strings, does nothing.  Returns the length of the final
  *       string.  This is recomended when parsing arbitrary data (like the -d
  *       option of sendip, -tonum for arbitrary TCP options)
+ *      -@@int stringargument(char *input, char **output);
+ *       The "standard" string argument routine - does either compact_string
+ *       above, or for strings of the form rN, returns N random bytes, or
+ *       for strings of the form zN, returns N nul (zero) bytes.
  *      -u_int16_t csum(u_int16_t *data, int len)
  *       returns the standard internet checksum of the packet
  *    - If something doesn't work as expected, or you can't figure out how to
- *      do sometihng, mail mike@earth.li and ask.
+ *      do something, mail mike@earth.li and ask. 
  * * In the Makefile add <your_module>.so to the PROTOS line
  * * Test it
  * * Mail it to mike@earth.li, either as a patch or just send the .c and .h 

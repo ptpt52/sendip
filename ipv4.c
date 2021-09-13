@@ -202,7 +202,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	case 'o':
 		/* IP options */
 		if(!strcmp(opt+2, "num")) {
-			/* Other options (auto legnth) */
+			/* Other options (auto length) */
 			u_int8_t cp, cls, num, len;
 			u_int8_t *data = malloc(strlen(arg)+2);
 			if(!data) {

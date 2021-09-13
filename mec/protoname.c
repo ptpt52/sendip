@@ -40,6 +40,7 @@ static struct pprot chain_protos[] = {
 	{ "esp", IPPROTO_ESP },
 	{ "none", IPPROTO_NONE },
 	{ "prot", IPPROTO_RAW },
+	{ "wesp", IPPROTO_WESP },
 	{ "0", IPPROTO_HOPOPTS },
 	{ "60", IPPROTO_DSTOPTS },
 	{ "43", IPPROTO_ROUTING },
@@ -47,6 +48,7 @@ static struct pprot chain_protos[] = {
 	{ "51", IPPROTO_AH },
 	{ "50", IPPROTO_ESP },
 	{ "59", IPPROTO_NONE },
+	{ "141", IPPROTO_WESP },
 	{ "255", IPPROTO_RAW },
 	/* { "all", 0 }, */
 };

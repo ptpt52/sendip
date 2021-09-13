@@ -237,19 +237,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 		if (arg) {
 			++arg;
 
-			length = compact_or_rand(arg, &temp);
-#ifdef notdef
-			switch (*arg) {
-			case 'r':	/* rN - random data, N bytes */
-				length = atoi(arg+1);
-				temp = randombytes(length);
-				break;
-			default:	/* read hex/octal/decimal/raw string */
-				length = compact_string(arg);
-				temp = (u_int8_t *)arg;
-				break;
-			}
-#endif
+			length = stringargument(arg, &temp);
 		} else {
 			temp = NULL;
 		}

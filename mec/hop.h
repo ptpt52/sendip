@@ -77,8 +77,8 @@ sendip_option hop_opts[] = {
 	{"h",1,"(Destination) option home address","::1"},
 	{"t",1,"Option arbitrary t.l.v option"
 " The fields are type.length.value. Each field can be specified "
-"in the usual way as hex, octal, decimal, literal, or rN for "
-"N random bytes.",
+"in the usual way as hex, octal, decimal, literal, zN for N zero bytes "
+"or rN for N random bytes.",
 					"0.0.0"},
 };
 

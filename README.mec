@@ -2,8 +2,12 @@ Additions made:
 
 1. Header types
 
-   AH (dummy only) - IPv4 or v6
-   ESP (dummy only) - IPv4 or v6
+   AH - IPv4 or v6, with support for external authentication modules
+   	(demo xorauth "authentication" module included)
+   ESP - IPv4 or v6, with support for external auth and crypto modules
+   	(demo xorauth "authentication" and xorcrypto "encryption"
+	modules included)
+   Wrapped ESP (WESP) - IPv4 or v6 (provisional - protocol number still TBD)
    option headers (hop-by-hop or destination) - IPv6
 	pad0
 	padN

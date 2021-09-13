@@ -26,7 +26,7 @@ UDPPROTOS= rip.so ripng.so ntp.so
 TCPPROTOS= bgp.so
 PROTOS= $(BASEPROTOS) $(IPPROTOS) $(UDPPROTOS) $(TCPPROTOS)
 LIBS= libsendipaux.a
-LIBOBJS= csum.o compact.o protoname.o headers.o parseargs.o
+LIBOBJS= csum.o compact.o protoname.o headers.o parseargs.o cryptomod.o
 SUBDIRS= mec
 
 all:	$(LIBS) subdirs sendip $(PROTOS) sendip.1 sendip.spec
@@ -58,6 +58,9 @@ headers.o:	mec/headers.c
 	$(CC) -o $@ -c -I. $(CFLAGS) $+
 
 parseargs.o:	mec/parseargs.c
+	$(CC) -o $@ -c -I. $(CFLAGS) $+
+
+cryptomod.o:	mec/cryptomod.c
 	$(CC) -o $@ -c -I. $(CFLAGS) $+
 
 sendip.1:	./help2man $(PROGS) $(PROTOS) subdirs VERSION

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <ctype.h>
 #include "sendip_module.h"
 
 int compact_string(char *data_out) {
@@ -68,16 +69,16 @@ int compact_string(char *data_out) {
 	}
 }
 
-/* @@ Since I'm using the "string and/or rand" business for filling
+/* @@ Since I'm using the "string, rand or zero" business for filling
  * out several header data areas, I decided to extract all of this
  * into routines here.
  *
  * Note the handling of space is slightly screwy - compact_string
  * above overwrites its argument in place, since it knows that
  * no matter what, the string it produces can be no longer than
- * its argument. randombytes, however, uses a static area, since
- * the calling argument there (something like r32) will generally
- * be much shorter than the string produced.
+ * its argument. randombytes and zerobytes, however, use a static
+ * areas, since the calling argument there (something like r32) will
+ * generally be much shorter than the string produced.
  *
  * In practice, in both cases the string returned will be immediately
  * copied into an allocated area, so the differences in string handling
@@ -106,26 +107,57 @@ randombytes(int length)
 	return answer;
 }
 
+/* @@ Return a pointer to a string of zero bytes. Note this is a
+ * static area which should really be left alone ...
+ */
+u_int8_t *
+zerobytes(int length)
+{
+	static u_int8_t answer[MAXRAND];
+
+	/* Sanity check */
+	if (length > MAXRAND) {
+		usage_error("Zero data too long to be sane\n");
+		return NULL;
+	}
+	/* Paranoia */
+	(void) memset((void *)answer, 0, MAXRAND);
+	return answer;
+}
+
 /* @@ Yes, well, not the world's most brilliant name, but this
  * does the standard string argument handling. The output
  * may either be the transformed input or a static area.
  * The return value is the length of the output.
  */
 int
-compact_or_rand(char *input, char **output)
+stringargument(char *input, char **output)
 {
 	int length=0;
 
 	if (!input || !output) return 0;
+	/* Special case for rN, zN strings */
 	switch (*input) {
 	case 'r':
-		length = atoi(input+1);
-		*output = (char *)randombytes(length);
-		if (!*output) return 0;
-		return length;
+		if (isdigit(*(input+1))) {
+			length = atoi(input+1);
+			*output = (char *)randombytes(length);
+			if (!*output) return 0;
+			return length;
+		}
+		break;
+	case 'z':
+		if (isdigit(*(input+1))) {
+			length = atoi(input+1);
+			*output = (char *)zerobytes(length);
+			if (!*output) return 0;
+			return length;
+		}
+		break;
 	default:
-		length = compact_string(input);
-		*output = input;
-		return length;
+		break;
 	}
+	length = compact_string(input);
+	*output = input;
+	return length;
 }
