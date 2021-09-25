@@ -43,6 +43,9 @@
  * different from those used in user space.
  */
 #include <features.h>
+#ifndef __attribute_pure__
+#define __attribute_pure__ /* Ignore */
+#endif
 #define __pure __attribute_pure__
 #if !defined(__GNUC__) || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
 #define __builtin_expect(x, expected_value) (x)
