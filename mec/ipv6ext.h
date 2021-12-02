@@ -1,5 +1,5 @@
 #ifndef _IPV6EXT_H
-#define _IPV6EXT_h
+#define _IPV6EXT_H
 
 /* The following are taken from a variety of Linux kernel header
  * files, rearranged and reworked for our purposes here.
