@@ -1,5 +1,5 @@
 #configureable stuff
-PREFIX ?= /usr/local
+PREFIX ?= /usr
 BINDIR ?= $(PREFIX)/bin
 MANDIR ?= $(PREFIX)/share/man/man1
 LIBDIR ?= $(PREFIX)/lib/sendip
@@ -8,7 +8,7 @@ INSTALL ?= install
 #For Solaris, you may need
 #INSTALL=/usr/ucb/install
 
-CFLAGS=	-I.. -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
+CFLAGS +=	-I.. -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
 	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O3 -Wcast-align \
 	-DSENDIP_LIBS=\"$(LIBDIR)\"
 #-Wcast-align causes problems on solaris, but not serious ones
@@ -17,7 +17,9 @@ LDFLAGS=	-rdynamic -lm
 LDFLAGS_SOLARIS= -lsocket -lnsl -lm -ldl
 LDFLAGS_LINUX= -rdynamic -ldl -lm
 LIBCFLAGS= -shared
-CC=	gcc
+CC ?=	gcc
+AR ?=	ar
+
 
 MYPROTOS= ah.so dest.so esp.so frag.so gre.so hop.so route.so sctp.so wesp.so
 MYCRYPTOS= xorauth.so xorcrypto.so

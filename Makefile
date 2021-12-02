@@ -1,5 +1,5 @@
 #configureable stuff
-PREFIX ?= /usr/local
+PREFIX ?= /usr
 BINDIR ?= $(PREFIX)/bin
 MANDIR ?= $(PREFIX)/share/man/man1
 LIBDIR ?= $(PREFIX)/lib/sendip
@@ -8,7 +8,7 @@ INSTALL ?= install
 #For Solaris, you may need
 #INSTALL=/usr/ucb/install
 
-CFLAGS=	-fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
+CFLAGS +=	-fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
 			-Wstrict-prototypes -Wnested-externs -Winline -Werror \
 			-Wcast-align -O3 \
 			-DSENDIP_LIBS=\"$(LIBDIR)\"
@@ -20,7 +20,8 @@ LDFLAGS_SOLARIS= -lsocket -lnsl -lm -ldl
 # @@ Needed some flag fixes for Ubuntu; these are ok for Fedora, also
 LDFLAGS_LINUX= -rdynamic -lm --enable-dependency-linking -Wl,--no-as-needed -ldl
 LIBCFLAGS= -shared
-CC=	gcc
+CC ?=	gcc
+AR ?=	ar
 
 PROGS= sendip
 BASEPROTOS= ipv4.so ipv6.so
@@ -32,7 +33,9 @@ LIBS= libsendipaux.a
 LIBOBJS= csum.o compact.o protoname.o headers.o parseargs.o cryptomod.o crc32.o filearray.o
 SUBDIRS= mec
 
-all:	$(LIBS) subdirs sendip $(PROTOS) sendip.1 sendip.spec sendipman.html
+all:	$(LIBS) subdirs sendip $(PROTOS)
+
+man: sendip.1 sendip.spec sendipman.html
 
 #there has to be a nice way to do this
 sendip:	sendip.o	gnugetopt.o gnugetopt1.o compact.o filearray.o
@@ -45,7 +48,7 @@ $(CC) -o $@ $(LDFLAGS) $(CFLAGS) $+ ; \
 fi"
 
 libsendipaux.a: $(LIBOBJS)
-	ar vr $@ $?
+	$(AR) vr $@ $?
 
 subdirs:
 	for subdir in $(SUBDIRS) ; do \
