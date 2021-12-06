@@ -5,7 +5,12 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#if defined(__APPLE_CC__)
+#include <libkern/OSByteOrder.h>
+#define __constant_htons OSSwapHostToBigConstInt16
+#else
 #include <asm/byteorder.h>
+#endif
 #include <memory.h>
 #include <string.h>
 #include <ctype.h>

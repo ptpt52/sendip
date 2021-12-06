@@ -35,18 +35,33 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <inttypes.h>
+#if defined(__APPLE_CC__)
+#include <libkern/OSByteOrder.h>
+#else
 #include <asm/byteorder.h>
+#endif
 
 #include "crc32.h"
 
 /* Compiler features used in the Linux kernel; defines are somewhat
  * different from those used in user space.
  */
+#if defined(__APPLE_CC__)
+#define __constant_cpu_to_le32 OSSwapHostToLittleConstInt32
+#define __constant_cpu_to_be32 OSSwapHostToBigConstInt32
+#define __cpu_to_le32 OSSwapHostToLittleInt32
+#define __le32_to_cpu OSSwapLittleToHostInt32
+#define __cpu_to_be32 OSSwapHostToBigInt32
+#define __be32_to_cpu OSSwapBigToHostInt32
+#else
 #include <features.h>
+#endif
 #ifndef __attribute_pure__
 #define __attribute_pure__ /* Ignore */
 #endif
+#ifndef __pure
 #define __pure __attribute_pure__
+#endif
 #if !defined(__GNUC__) || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
 #define __builtin_expect(x, expected_value) (x)
 #endif

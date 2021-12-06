@@ -9,7 +9,13 @@
 #ifndef _SENDIP_SCTP_H
 #define _SENDIP_SCTP_H
 
+#if defined(__APPLE_CC__)
+#include <libkern/OSByteOrder.h>
+#define __constant_htons OSSwapHostToBigConstInt16
+#define __constant_htonl OSSwapHostToBigConstInt32
+#else
 #include <asm/byteorder.h>
+#endif
 
 /*
  * Overall header

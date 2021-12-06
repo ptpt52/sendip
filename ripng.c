@@ -81,13 +81,16 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		*(--q)='\0';
 		ripopt->prefix = (p==q)?in6addr_any:inet6_addr(p);
 
-		p=++q; while(*(q++)!='/') /* do nothing */; *(--q)='\0';
+		p=++q; while(*(q++)!='/') /* do nothing */;
+		*(--q)='\0';
 		ripopt->tag=htons( (p==q)?0:(u_int16_t)strtoul(p, (char **)0,0));
 
-		p=++q; while(*(q++)!='/') /* do nothing */; *(--q)='\0';
+		p=++q; while(*(q++)!='/') /* do nothing */;
+		*(--q)='\0';
 		ripopt->len=(p==q)?(u_int8_t)128:(u_int8_t)strtoul(p, (char **)0,0);
 
-		p=++q; while(*(q++)!='\0') /* do nothing */; *(--q)='\0';
+		p=++q; while(*(q++)!='\0') /* do nothing */;
+		*(--q)='\0';
 		ripopt->metric=(p==q)?(u_int8_t)16:(u_int8_t)strtoul(p,(char **)0, 0);
 		break;
 	case 'd': /* default request */
@@ -103,7 +106,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		ripopt->prefix=in6addr_any;
 		ripopt->tag=(u_int16_t)0;
 		ripopt->len=(u_int8_t)0;
-		ripopt->metric=htons((u_int16_t)16);
+		ripopt->metric=(u_int8_t)htons((u_int16_t)16);
 		break;
 	}
 	return TRUE;

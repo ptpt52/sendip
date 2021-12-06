@@ -3,7 +3,16 @@
 #ifndef _SENDIP_WESP_H
 #define _SENDIP_WESP_H
 
+#if defined(__APPLE_CC__)
+#include <libkern/OSByteOrder.h>
+#if defined(__BIG_ENDIAN__)
+#define __BIG_ENDIAN_BITFIELD
+#else
+#define __LITTLE_ENDIAN_BITFIELD
+#endif
+#else
 #include <asm/byteorder.h>
+#endif
 
 /*
  * wrapped esp header

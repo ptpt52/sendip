@@ -67,16 +67,21 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		*(--q)='\0';
 		rippack->addressFamily= htons((p==q)?2:(u_int16_t)strtoul(p, (char **)0, 0));
 		pack->modified |= RIP_MOD_ADDRFAM;
-		p=++q; while(*(q++)!=':') /* do nothing */; *(--q)='\0';
+		p=++q; while(*(q++)!=':') /* do nothing */;
+		*(--q)='\0';
 		rippack->routeTagOrAuthenticationType=htons((p==q)?0:(u_int16_t)strtoul(p, (char **)0,0));
 		pack->modified |= RIP_MOD_ROUTETAG;
-		p=++q; while(*(q++)!=':') /* do nothing */; *(--q)='\0';
+		p=++q; while(*(q++)!=':') /* do nothing */;
+		*(--q)='\0';
 		ripopt->address=(p==q)?inet_addr("0.0.0.0"):inet_addr(p);
-		p=++q; while(*(q++)!=':') /* do nothing */; *(--q)='\0';
+		p=++q; while(*(q++)!=':') /* do nothing */;
+		*(--q)='\0';
 		ripopt->subnetMask=(p==q)?inet_addr("255.255.255.0"):inet_addr(p);
-		p=++q; while(*(q++)!=':') /* do nothing */; *(--q)='\0';
+		p=++q; while(*(q++)!=':') /* do nothing */;
+		*(--q)='\0';
 		ripopt->nextHop=(p==q)?inet_addr("0.0.0.0"):inet_addr(p);
-		p=++q; while(*(q++)!='\0') /* do nothing */; *(--q)='\0';
+		p=++q; while(*(q++)!='\0') /* do nothing */;
+		*(--q)='\0';
 		ripopt->metric=htonl((p==q)?16:(u_int32_t)strtoul(p,(char **)0, 0));
 		break;
 	case 'd': /* default request */

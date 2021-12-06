@@ -7,8 +7,12 @@
 #ifndef _SENDIP_TYPES_H
 #define _SENDIP_TYPES_H
 
+#if defined(__APPLE_CC__)
+#include <stdbool.h>
+#else
 /* Make sure we have bool */
 typedef int bool;
+#endif
 #ifndef FALSE
 #define TRUE  (0==0)
 #define FALSE (!TRUE)
