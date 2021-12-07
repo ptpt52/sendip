@@ -24,11 +24,11 @@ typedef struct {
 	u_int8_t tos;
 	u_int16_t tot_len;
 	u_int16_t id;
-/*@@ In FreeBSD, for historical reasons, fragment offsets (and also tot_len)
- * are specified in *host* byte order at user level; the kernel then does
- * byte swapping before sending. So for FreeBSD only, we use the same
- * bitfield ordering and IP_SET_FRAGOFF macro for both little and big endian.
- */
+	/*@@ In FreeBSD, for historical reasons, fragment offsets (and also tot_len)
+	 * are specified in *host* byte order at user level; the kernel then does
+	 * byte swapping before sending. So for FreeBSD only, we use the same
+	 * bitfield ordering and IP_SET_FRAGOFF macro for both little and big endian.
+	 */
 #if defined(__FreeBSD__) || defined(__FreeBSD)
 	u_int16_t res:1;
 	u_int16_t df:1;

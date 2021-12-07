@@ -72,7 +72,7 @@ typedef enum {
  * recognize the Chunk Type.
  */
 typedef enum {
-        SCTP_CID_ACTION_DISCARD     = 0x00,
+	SCTP_CID_ACTION_DISCARD     = 0x00,
 	SCTP_CID_ACTION_DISCARD_ERR = 0x40,
 	SCTP_CID_ACTION_SKIP        = 0x80,
 	SCTP_CID_ACTION_SKIP_ERR    = 0xc0,
@@ -254,19 +254,22 @@ sendip_option sctp_opts[] = {
 	{"d",1,"SCTP dest port","0"},
 	{"v",1,"SCTP vtag","0 (if init chunk) 1 (if other); may be specified as number, string, or rN for N (should be 4) random bytes"},
 	{"c",1,"SCTP CRC checksum","Correct"},
-	{"T",1,"SCTP chunk type","0 (i.e., a data chunk)\n"\
-"Note: multiple chunks may be included. Each chunk type begins a new\n"\
-"chunk; subsequent chunk-related fields are applied to that chunk."},
+	{	"T",1,"SCTP chunk type","0 (i.e., a data chunk)\n"\
+		"Note: multiple chunks may be included. Each chunk type begins a new\n"\
+		"chunk; subsequent chunk-related fields are applied to that chunk."
+	},
 	{"F",1,"SCTP chunk flags","0"},
 	{"L",1,"SCTP chunk length","Correct"},
-	{"D",1,"SCTP chunk data (hex, octal, decimal, literal, "
-"zN for N zero bytes or rN for N random bytes).", "0"},
-	{"I",1,"SCTP INIT chunk", "1.0x1000.1.1.1\n"\
-"Creates a complete INIT chunk with the specified initiate tag, receiver\n"\
-"window credit, number of outbound and inbound streams, and initial TSN,\n"\
-"in that order. Each field may be specified as number, string, or rN for N\n"\
-"(should be 2 or 4) random bytes. Other variable parameters may be appended\n"\
-"to this chunk."},
+	{	"D",1,"SCTP chunk data (hex, octal, decimal, literal, "
+		"zN for N zero bytes or rN for N random bytes).", "0"
+	},
+	{	"I",1,"SCTP INIT chunk", "1.0x1000.1.1.1\n"\
+		"Creates a complete INIT chunk with the specified initiate tag, receiver\n"\
+		"window credit, number of outbound and inbound streams, and initial TSN,\n"\
+		"in that order. Each field may be specified as number, string, or rN for N\n"\
+		"(should be 2 or 4) random bytes. Other variable parameters may be appended\n"\
+		"to this chunk."
+	},
 	{"4",1,"SCTP IPv4 address TLV", "none"},
 	{"6",1,"SCTP IPv6 address TLV", "none"},
 	{"C",1,"SCTP cookie preservative TLV", "none"},

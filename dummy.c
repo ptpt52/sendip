@@ -55,7 +55,7 @@
  *      If some of your options change the length of the packet, you might want
  *      to take a look in ipv4.c or tcp.c - specifically where they add IPV4 or
  *      TCP options.
- *      Make sure you use htons and htonl everywhere you need to to avoid 
+ *      Make sure you use htons and htonl everywhere you need to to avoid
  *      byteorder problems.
  *      @@ New functions take care of that for input arguments.
  *      -opt contains the option string, including the starting opt_char
@@ -92,10 +92,10 @@
  *      -u_int16_t csum(u_int16_t *data, int len)
  *       returns the standard internet checksum of the packet
  *    - If something doesn't work as expected, or you can't figure out how to
- *      do something, mail mike@earth.li and ask. 
+ *      do something, mail mike@earth.li and ask.
  * * In the Makefile add <your_module>.so to the PROTOS line
  * * Test it
- * * Mail it to mike@earth.li, either as a patch or just send the .c and .h 
+ * * Mail it to mike@earth.li, either as a patch or just send the .c and .h
  *   files you created
  */
 
@@ -128,13 +128,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
-				  sendip_data *pack) {
+              sendip_data *pack) {
 	//...
 	return TRUE;
 }
 
 int num_opts() {
-	return sizeof(dummy_opts)/sizeof(sendip_option); 
+	return sizeof(dummy_opts)/sizeof(sendip_option);
 }
 sendip_option *get_opts() {
 	return dummy_opts;

@@ -1,7 +1,7 @@
 /* protoname.c - protocol number/name conversion */
 
 /* Based on some code in ipv6header from ip6tables:
- * Original idea: Brad Chapman 
+ * Original idea: Brad Chapman
  * Rewritten by: Andras Kis-Szabo <kisza@sch.bme.hu>
  *
  * This by Mark Carson.
@@ -57,49 +57,49 @@ static struct pprot chain_protos[] = {
 const char *
 proto_to_name(u_int8_t proto, int nolookup)
 {
-        unsigned int i;
+	unsigned int i;
 
-        if (proto && !nolookup) {
-                struct protoent *pent = getprotobynumber(proto);
-                if (pent)
-                        return pent->p_name;
-        }
+	if (proto && !nolookup) {
+		struct protoent *pent = getprotobynumber(proto);
+		if (pent)
+			return pent->p_name;
+	}
 
-        for (i = 0; i < sizeof(chain_protos)/sizeof(struct pprot); i++)
-                if (chain_protos[i].num == proto)
-                        return chain_protos[i].name;
+	for (i = 0; i < sizeof(chain_protos)/sizeof(struct pprot); i++)
+		if (chain_protos[i].num == proto)
+			return chain_protos[i].name;
 
-        return NULL;
+	return NULL;
 }
 
 u_int8_t
 name_to_proto(char *s)
 {
-        unsigned int proto=0;
-        struct protoent *pent;
+	unsigned int proto=0;
+	struct protoent *pent;
 
 	/* Check for a number */
 	if (isdigit(*s))
 		return (u_int8_t)strtoul(s, (char **)NULL, 0);
 	/* If we have /etc/protocols, use that */
-        if ((pent = getprotobyname(s)))
-        	proto = pent->p_proto;
-        else {	/* our backup method */
-        	unsigned int i;
-        	for (i = 0;
-        		i < sizeof(chain_protos)/sizeof(struct pprot);
-        		i++) {
-        		if (strcmp(s, chain_protos[i].name) == 0) {
-        			proto = chain_protos[i].num;
-        			break;
-        		}
-        	}
+	if ((pent = getprotobyname(s)))
+		proto = pent->p_proto;
+	else {	/* our backup method */
+		unsigned int i;
+		for (i = 0;
+		        i < sizeof(chain_protos)/sizeof(struct pprot);
+		        i++) {
+			if (strcmp(s, chain_protos[i].name) == 0) {
+				proto = chain_protos[i].num;
+				break;
+			}
+		}
 
-        	if (i == sizeof(chain_protos)/sizeof(struct pprot)) {
-        		fprintf(stderr, "unknown header `%s' specified", s);
+		if (i == sizeof(chain_protos)/sizeof(struct pprot)) {
+			fprintf(stderr, "unknown header `%s' specified", s);
 			exit(1);
 		}
-        }
+	}
 
-        return (u_int8_t)proto;
+	return (u_int8_t)proto;
 }

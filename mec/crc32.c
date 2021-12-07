@@ -139,17 +139,17 @@ u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len)
 
 	crc = __cpu_to_le32(crc);
 	/* Align it */
-	if(unlikely(((long)b)&3 && len)){
+	if(unlikely(((long)b)&3 && len)) {
 		do {
 			u_int8_t *p = (u_int8_t *)b;
 			DO_CRC(*p++);
 			b = (void *)p;
 		} while ((--len) && ((long)b)&3 );
 	}
-	if(likely(len >= 4)){
+	if(likely(len >= 4)) {
 		/* load data 32 bits wide, xor data 32 bits wide. */
 		size_t save_len = len & 3;
-	        len = len >> 2;
+		len = len >> 2;
 		--b; /* use pre increment below(*++b) for speed */
 		do {
 			crc ^= *++b;
@@ -162,7 +162,7 @@ u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len)
 		len = save_len;
 	}
 	/* And the last few bytes */
-	if(len){
+	if(len) {
 		do {
 			u_int8_t *p = (u_int8_t *)b;
 			DO_CRC(*p++);
@@ -217,7 +217,7 @@ u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
 		for (i = 0; i < 8; i++)
 			crc =
 			    (crc << 1) ^ ((crc & 0x80000000) ? CRCPOLY_BE :
-					  0);
+			                  0);
 	}
 	return crc;
 }
@@ -237,17 +237,17 @@ u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
 
 	crc = __cpu_to_be32(crc);
 	/* Align it */
-	if(unlikely(((long)b)&3 && len)){
+	if(unlikely(((long)b)&3 && len)) {
 		do {
 			u_int8_t *p = (u_int8_t *)b;
 			DO_CRC(*p++);
 			b = (const u_int32_t *)(const void *)p;
 		} while ((--len) && ((long)b)&3 );
 	}
-	if(likely(len >= 4)){
+	if(likely(len >= 4)) {
 		/* load data 32 bits wide, xor data 32 bits wide. */
 		size_t save_len = len & 3;
-	        len = len >> 2;
+		len = len >> 2;
 		--b; /* use pre increment below(*++b) for speed */
 		do {
 			crc ^= *++b;
@@ -260,7 +260,7 @@ u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
 		len = save_len;
 	}
 	/* And the last few bytes */
-	if(len){
+	if(len) {
 		do {
 			u_int8_t *p = (u_int8_t *)b;
 			DO_CRC(*p++);
@@ -404,7 +404,7 @@ EXPORT_SYMBOL(crc32_be);
  * in the correct multiple to subtract, we can shift a byte at a time.
  * This produces a 40-bit (rather than a 33-bit) intermediate remainder,
  * but again the multiple of the polynomial to subtract depends only on
- * the high bits, the high 8 bits in this case.  
+ * the high bits, the high 8 bits in this case.
  *
  * The multiple we need in that case is the low 32 bits of a 40-bit
  * value whose high 8 bits are given, and which is a multiple of the

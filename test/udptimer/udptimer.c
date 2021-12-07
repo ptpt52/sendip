@@ -57,7 +57,7 @@
  * 				...
  * 				1027 -> 23
  * This structure allows around 1 million (1048320) entries per address,
- * which is way more than enough for statistics. 
+ * which is way more than enough for statistics.
  */
 
 /* 4096 - 1  - I keep these allocations at 8K each, as I have some
@@ -150,11 +150,11 @@ storetime(struct in_addr *from, int delaytime)
 
 	/* from->s_addr is 32-bit address */
 #ifdef DEBUG
-	printf("store %s %d\n", 
-		inet_ntop(AF_INET, from,
-				dst, INET_ADDRSTRLEN), delaytime);
+	printf("store %s %d\n",
+	       inet_ntop(AF_INET, from,
+	                 dst, INET_ADDRSTRLEN), delaytime);
 #endif
-	
+
 	t = gettimentry(from);
 	storetimentry(t, delaytime);
 }
@@ -187,7 +187,7 @@ timestats(Timentry **t, double *mu, double *sigma, double *rho)
 			break;
 		for (j=0; j < t[i]->used; ++j) {
 			top += ((double)t[i]->times[j] - *mu)*
-				(prev - *mu);
+			       (prev - *mu);
 			sigma2 += (prev - *mu) * (prev - *mu);
 			prev = (double)t[i]->times[j];
 		}
@@ -210,7 +210,7 @@ printtime(Timentry **t, double *mu)
 
 		/* Dump only for debug */
 		for (n=0; n < t[m]->used; ++n) {
-		    printf(" %d", t[m]->times[n]);
+			printf(" %d", t[m]->times[n]);
 		}
 #endif
 		numused += t[m]->used;
@@ -226,38 +226,38 @@ printtime(Timentry **t, double *mu)
 void
 printtimes(void)
 {
-    int i, j, k, l;
-    AddrTime *at1, *at2, *at3;
-    Timentry **t;
-    int used, totalused = 0;
-    double mu, totalmu = 0.0;
+	int i, j, k, l;
+	AddrTime *at1, *at2, *at3;
+	Timentry **t;
+	int used, totalused = 0;
+	double mu, totalmu = 0.0;
 
-    for (i=0; i < TABLESIZE; ++i) {
-	if (tstore.p[i]) {
-	    at1 = tstore.p[i];
-	    for (j=0; j < TABLESIZE; ++j) {
-		if (at1->p[j]) {
-		    at2 = at1->p[j];
-		    for (k=0; k < TABLESIZE; ++k) {
-			if (at2->p[k]) {
-			    at3 = at2->p[k];
-			    for (l=0; l < TABLESIZE; ++l) {
-				if (at3->p[l]) {
-				    t = at3->p[l]->t;
-				    printf("%d.%d.%d.%d:", i, j, k, l);
-				    used = printtime(t, &mu);
-				    totalused += used;
-				    totalmu += mu*used;
+	for (i=0; i < TABLESIZE; ++i) {
+		if (tstore.p[i]) {
+			at1 = tstore.p[i];
+			for (j=0; j < TABLESIZE; ++j) {
+				if (at1->p[j]) {
+					at2 = at1->p[j];
+					for (k=0; k < TABLESIZE; ++k) {
+						if (at2->p[k]) {
+							at3 = at2->p[k];
+							for (l=0; l < TABLESIZE; ++l) {
+								if (at3->p[l]) {
+									t = at3->p[l]->t;
+									printf("%d.%d.%d.%d:", i, j, k, l);
+									used = printtime(t, &mu);
+									totalused += used;
+									totalmu += mu*used;
+								}
+							}
+						}
+					}
 				}
-			    }
 			}
-		    }
 		}
-	    }
 	}
-    }
-    printf("total entries: %d, overall average %6.4f\n",
-    	totalused, totalmu/totalused);
+	printf("total entries: %d, overall average %6.4f\n",
+	       totalused, totalmu/totalused);
 }
 
 main(int argc, char **argv)
@@ -306,14 +306,14 @@ main(int argc, char **argv)
 			* initial data portion
 			*/
 			cc = recvfrom(sock, (void *)&t, sizeof(t), 0,
-				(struct sockaddr *)&from, &length);
+			              (struct sockaddr *)&from, &length);
 			if (cc <= 0) {
 				perror("receiving datagram packet");
 				break;
 			}
 			gettimeofday(&now, NULL);
 			storetime(&from.sin_addr,
-				1000000*(now.tv_sec-t.tv_sec)+now.tv_usec-t.tv_usec);
+			          1000000*(now.tv_sec-t.tv_sec)+now.tv_usec-t.tv_usec);
 			++pnum;
 		} else {
 			/* timeout; dump data if new */

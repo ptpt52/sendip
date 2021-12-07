@@ -6,10 +6,10 @@
 /* UDP HEADER
  */
 typedef struct {
-  u_int16_t     source;
-  u_int16_t     dest;
-  u_int16_t     len;
-  u_int16_t     check;
+	u_int16_t     source;
+	u_int16_t     dest;
+	u_int16_t     len;
+	u_int16_t     check;
 } udp_header;
 
 /* Defines for which parts have been modified

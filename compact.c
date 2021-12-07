@@ -29,7 +29,7 @@ int compact_string(char *data_out) {
 					c+=*data_in-'a'+10;
 				} else {
 					fprintf(stderr,"Character %c invalid in hex data stream\n",
-							  *data_in);
+					        *data_in);
 					return 0;
 				}
 				if( i&1) {
@@ -38,20 +38,22 @@ int compact_string(char *data_out) {
 				} else {
 					c<<=4;   // even nibble - shift to top of byte
 				}
-				data_in++; i++;
+				data_in++;
+				i++;
 			}
 			*data_out=c; // make sure last nibble is added
-			i++; i>>=1;  // i was a nibble count...
+			i++;
+			i>>=1;  // i was a nibble count...
 			return i;
 		} else {
-         /* Octal */
+			/* Octal */
 			char c='\0';
 			while(*data_in) {
 				if(*data_in>='0' && *data_in<='7') {
 					c+=*data_in-'0';
 				} else {
 					fprintf(stderr,"Character %c invalid in octal data stream\n",
-							  *data_in);
+					        *data_in);
 					return 0;
 				}
 				if( (i&3) == 3 ) {
@@ -60,10 +62,12 @@ int compact_string(char *data_out) {
 				} else {        // otherwise just shift it up
 					c<<=2;
 				}
-				data_in++; i++;
+				data_in++;
+				i++;
 			}
 			*data_out=c;     // add partial last byte
-			i+=3; i>>=2;
+			i+=3;
+			i>>=2;
 			return i;
 		}
 	} else {
@@ -155,7 +159,7 @@ u_int32_t randomcalls;
 static void
 randomfill(u_int32_t *buffer, int length)
 {
-	int i; 
+	int i;
 
 	for (i=0; i < length; ++i) {
 		++randomcalls;
@@ -419,7 +423,7 @@ hostintegerargument(const char *input, int length)
  * only did the first type at first, because it was easiest to implement,
  * but then needed the others, with the noted restrictions, for a
  * particular project.
- * 
+ *
  * This returns the address, in network byte order.
  */
 in_addr_t
@@ -484,21 +488,27 @@ ipv4argument(const char *input, int length)
 	if (!(dotpoint=strchr(input, '.')))	/* aaaaaaaa */
 		return integerargument(input, 4);	/* in network order */
 	a = hostintegerargument(input, 1);
-	input = dotpoint; ++input; length -= dotpoint-input;
+	input = dotpoint;
+	++input;
+	length -= dotpoint-input;
 	if (!(dotpoint=strchr(input, '.'))) {	/* aa.bbbbbb */
 		b = hostintegerargument(input, 3);
 		sprintf(ipv4space, "%d.%d", a, b);
 		return inet_addr(ipv4space);
 	}
 	b = hostintegerargument(input, 1);
-	input = dotpoint; ++input; length -= dotpoint-input;
+	input = dotpoint;
+	++input;
+	length -= dotpoint-input;
 	if (!(dotpoint=strchr(input, '.'))) {	/* aa.bb.cccc */
 		c = hostintegerargument(input, 2);
 		sprintf(ipv4space, "%d.%d.%d", a, b, c);
 		return inet_addr(ipv4space);
 	}
 	c = hostintegerargument(input, 1);
-	input = dotpoint; ++input; length -= dotpoint-input;
+	input = dotpoint;
+	++input;
+	length -= dotpoint-input;
 	d = hostintegerargument(input, 1);
 	sprintf(ipv4space, "%d.%d.%d.%d", a, b, c, d);
 	return inet_addr(ipv4space);

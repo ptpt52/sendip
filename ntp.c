@@ -37,14 +37,14 @@ u_int32_t make_fixed_point(double n, bool issigned, int totbits, int intbits) {
 
 	n=fabs(n);
 
-/*
-	fracpartd=floor(ldexp(modf(n,&intpartd),ldexp(2.0,fracbits)));
-*/
+	/*
+		fracpartd=floor(ldexp(modf(n,&intpartd),ldexp(2.0,fracbits)));
+	*/
 	fracpartd=floor(ldexp(modf(n,&intpartd),32));
 	intpart=(u_int32_t)intpartd;
 	fracpart=(u_int32_t)fracpartd;
- 
-	
+
+
 	if(issigned&&signbit) {
 		result=1<<totbits;
 	} else {
@@ -186,7 +186,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack) {
+              sendip_data *data, sendip_data *pack) {
 	if(hdrs[index-1] != 'u') {
 		usage_error("Warning: NTP should be contained in a UDP packet\n");
 	}
@@ -194,7 +194,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 }
 
 int num_opts() {
-	return sizeof(ntp_opts)/sizeof(sendip_option); 
+	return sizeof(ntp_opts)/sizeof(sendip_option);
 }
 sendip_option *get_opts() {
 	return ntp_opts;

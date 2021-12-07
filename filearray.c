@@ -133,7 +133,7 @@ hdestroy_r (struct hsearch_data *htab)
    unnecessary expensive calls of strcmp.  */
 int
 hsearch_r (ENTRY item, ACTION action, ENTRY **retval,
-		struct hsearch_data *htab)
+           struct hsearch_data *htab)
 {
 	unsigned int hval;
 	unsigned int count;
@@ -158,7 +158,7 @@ hsearch_r (ENTRY item, ACTION action, ENTRY **retval,
 	{
 		/* Further action might be required according to the action value. */
 		if (htab->table[idx].used == hval
-				&& strcmp (item.key, htab->table[idx].entry.key) == 0)
+		        && strcmp (item.key, htab->table[idx].entry.key) == 0)
 		{
 			if (retval == NULL)
 			{
@@ -193,7 +193,7 @@ hsearch_r (ENTRY item, ACTION action, ENTRY **retval,
 
 			/* If entry is found use it. */
 			if (htab->table[idx].used == hval
-					&& strcmp (item.key, htab->table[idx].entry.key) == 0)
+			        && strcmp (item.key, htab->table[idx].entry.key) == 0)
 			{
 				if (retval == NULL)
 				{
@@ -293,7 +293,7 @@ fa_create(const char *name)
 		if (answer->length >= linelimit-1) {
 			linelimit *= 2;
 			answer = (Filearray *)realloc(answer,
-				sizeof(struct _filearray)+linelimit*(sizeof(char *)));
+			                              sizeof(struct _filearray)+linelimit*(sizeof(char *)));
 			if (!answer) return NULL;
 		}
 		line[strlen(line)-1] = '\0';

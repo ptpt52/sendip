@@ -41,7 +41,7 @@ static void icmpcsum(sendip_data *icmp_hdr, sendip_data *data) {
 }
 
 static void icmp6csum(struct in6_addr *src, struct in6_addr *dst,
-							 sendip_data *hdr, sendip_data *data) {
+                      sendip_data *hdr, sendip_data *data) {
 	icmp_header *icp = (icmp_header *)hdr->data;
 	struct ipv6_pseudo_hdr phdr;
 
@@ -64,7 +64,7 @@ static void icmp6csum(struct in6_addr *src, struct in6_addr *dst,
 	phdr.nexthdr = IPPROTO_ICMPV6;
 
 	memcpy(tempbuf, &phdr, sizeof(phdr));
-	
+
 	icp->check = csum(buf,sizeof(phdr)+hdr->alloc_len+data->alloc_len);
 	free(buf);
 }
@@ -103,7 +103,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack) {
+              sendip_data *data, sendip_data *pack) {
 	icmp_header *icp = (icmp_header *)pack->data;
 	int i;
 
@@ -127,15 +127,15 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 			headers[i]->modified |= IP_MOD_PROTOCOL;
 		}
 	} else if(hdrs[i]=='6') {
-	   // ipv6
-	   // @@ This is subsumed by my new code which determines the
-	   // next header type in the ipv6 module.
+		// ipv6
+		// @@ This is subsumed by my new code which determines the
+		// next header type in the ipv6 module.
 		//if(!(headers[i]->modified&IPV6_MOD_NXT)) {
 		//	((ipv6_header *)(headers[i]->data))->ip6_nxt=IPPROTO_ICMPV6;
 		//	headers[i]->modified |= IPV6_MOD_NXT;
 		//}
 	}
-		
+
 	if(!(pack->modified&ICMP_MOD_TYPE)) {
 		if(hdrs[i]=='6') {
 			icp->type=ICMP6_ECHO_REQUEST;
@@ -160,7 +160,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 }
 
 int num_opts() {
-	return sizeof(icmp_opts)/sizeof(sendip_option); 
+	return sizeof(icmp_opts)/sizeof(sendip_option);
 }
 sendip_option *get_opts() {
 	return icmp_opts;

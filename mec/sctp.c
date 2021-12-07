@@ -45,7 +45,7 @@ add_chunk(sendip_data *pack, u_int8_t type)
 	sctp_chunk_header *chunk;
 
 	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
-		pack->alloc_len + sizeof(sctp_chunk_header));
+	                    pack->alloc_len + sizeof(sctp_chunk_header));
 	chunk = (sctp_chunk_header *)(void *)((u_int8_t *)sctp + pack->alloc_len);
 	pack->alloc_len += sizeof(sctp_chunk_header);
 	memset(chunk, 0, sizeof(sctp_chunk_header));
@@ -58,21 +58,21 @@ add_chunk(sendip_data *pack, u_int8_t type)
 /* Add in data space */
 sctp_chunk_header *
 grow_chunk(sendip_data *pack, sctp_chunk_header *chunk,
-		u_int16_t length, void *data)
+           u_int16_t length, void *data)
 {
 	sctp_header *sctp = (sctp_header *)pack->data;
 	/* urp */
 	int offset = (u_int8_t *)chunk - (u_int8_t *)sctp;
 
 	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
-			pack->alloc_len + length);
+	                    pack->alloc_len + length);
 	chunk = (sctp_chunk_header *)(void *)((u_int8_t *)sctp + offset);
 	pack->alloc_len += length;
 	offset = ntohs(chunk->length);
 	chunk->length = htons(offset+length);
 	if (data)
 		memcpy((void *)((u_int8_t *)chunk+offset), data, length);
-fprintf(stderr, "Adding %d data bytes, total SCTP length %d\n", length, pack->alloc_len);
+	fprintf(stderr, "Adding %d data bytes, total SCTP length %d\n", length, pack->alloc_len);
 	return chunk;
 }
 
@@ -99,7 +99,7 @@ round4(int number)
 /* Add in data space, rounded up to 4-byte boundary */
 sctp_chunk_header *
 grow_chunk_round4(sendip_data *pack, sctp_chunk_header *chunk,
-		u_int16_t length, void *data)
+                  u_int16_t length, void *data)
 {
 	sctp_header *sctp = (sctp_header *)pack->data;
 	/* urp */
@@ -110,14 +110,14 @@ grow_chunk_round4(sendip_data *pack, sctp_chunk_header *chunk,
 	if (roundup == length) return grow_chunk(pack, chunk, length, data);
 
 	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
-			pack->alloc_len + roundup);
+	                    pack->alloc_len + roundup);
 	chunk = (sctp_chunk_header *)(void *)((u_int8_t *)sctp + offset);
 	pack->alloc_len += roundup;
 	offset = ntohs(chunk->length);
 	chunk->length = htons(offset+roundup);
 	if (data)
 		memcpy((void *)((u_int8_t *)chunk+offset), data, length);
-fprintf(stderr, "Rounding %d to %d data bytes, total SCTP length %d\n", length, roundup, pack->alloc_len);
+	fprintf(stderr, "Rounding %d to %d data bytes, total SCTP length %d\n", length, roundup, pack->alloc_len);
 	memset((void *)((u_int8_t *)chunk+offset+length), 0, roundup-length);
 	return chunk;
 }
@@ -210,11 +210,11 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			currentchunk = add_chunk(pack, 0);
 		}
 		currentchunk = grow_chunk(pack, currentchunk, length,
-			(void *)temp);
+		                          (void *)temp);
 		break;
 
 	case 'I':	/* SCTP Init chunk (complete) */
-		{
+	{
 		sctp_inithdr_t init;
 #define INITFIELDS	5
 		char *strargs[INITFIELDS+1];
@@ -233,32 +233,32 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		switch (nargs) {
 		case 5:
 			init.initial_tsn =
-				integerargument(strargs[4],
-					sizeof(init.initial_tsn));
+			    integerargument(strargs[4],
+			                    sizeof(init.initial_tsn));
 		case 4:
 			init.num_inbound_streams =
-				integerargument(strargs[3],
-					sizeof(init.num_inbound_streams));
+			    integerargument(strargs[3],
+			                    sizeof(init.num_inbound_streams));
 		case 3:
 			init.num_outbound_streams =
-				integerargument(strargs[2],
-					sizeof(init.num_outbound_streams));
+			    integerargument(strargs[2],
+			                    sizeof(init.num_outbound_streams));
 		case 2:
-			init.a_rwnd = 
-				integerargument(strargs[1],
-					sizeof(init.a_rwnd));
+			init.a_rwnd =
+			    integerargument(strargs[1],
+			                    sizeof(init.a_rwnd));
 		case 1:
-			init.init_tag = 
-				integerargument(strargs[0],
-					sizeof(init.init_tag));
+			init.init_tag =
+			    integerargument(strargs[0],
+			                    sizeof(init.init_tag));
 		}
 
 		currentchunk = grow_chunk(pack, currentchunk,
-			sizeof(sctp_inithdr_t), (void *)&init);
+		                          sizeof(sctp_inithdr_t), (void *)&init);
 		break;
-		}
+	}
 	case '4':	/* IPv4 address parameter */
-		{
+	{
 		sctp_ipv4addr_param_t v4param;
 
 		v4param.param_hdr.type = SCTP_PARAM_IPV4_ADDRESS;
@@ -267,16 +267,16 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			;
 		} else {
 			fprintf(stderr,
-				"Couldn't parse v4 address %s\n", arg);
+			        "Couldn't parse v4 address %s\n", arg);
 			return FALSE;
 		}
 		currentchunk = grow_chunk(pack, currentchunk,
-			sizeof(sctp_ipv4addr_param_t), (void *)&v4param);
-		}
-		break;
+		                          sizeof(sctp_ipv4addr_param_t), (void *)&v4param);
+	}
+	break;
 
 	case '6':	/* IPv6 address parameter */
-		{
+	{
 		sctp_ipv6addr_param_t v6param;
 
 		v6param.param_hdr.type = SCTP_PARAM_IPV6_ADDRESS;
@@ -285,29 +285,29 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			;
 		} else {
 			fprintf(stderr,
-				"Couldn't parse v6 address %s\n", arg);
+			        "Couldn't parse v6 address %s\n", arg);
 			return FALSE;
 		}
 		currentchunk = grow_chunk(pack, currentchunk,
-			sizeof(sctp_ipv6addr_param_t), (void *)&v6param);
-		}
-		break;
+		                          sizeof(sctp_ipv6addr_param_t), (void *)&v6param);
+	}
+	break;
 	case 'C':	/* Cookie preservative */
-		{
+	{
 		sctp_cookie_preserve_param_t cookieparam;
 
 		cookieparam.param_hdr.type = SCTP_PARAM_STATE_COOKIE;
 		cookieparam.param_hdr.length =
-			htons(sizeof(sctp_cookie_preserve_param_t));
+		    htons(sizeof(sctp_cookie_preserve_param_t));
 		lvalue = strtoul(arg, (char **)NULL, 0);
 		cookieparam.lifespan_increment = htonl(lvalue);
 		currentchunk = grow_chunk(pack, currentchunk,
-			sizeof(sctp_cookie_preserve_param_t),
-				(void *)&cookieparam);
-		}
-		break;
+		                          sizeof(sctp_cookie_preserve_param_t),
+		                          (void *)&cookieparam);
+	}
+	break;
 	case 'H':	/* Host name address */
-		{
+	{
 		sctp_hostname_param_t hostnameparam;
 
 		/* From RFC 4960: "At least one null terminator is included
@@ -317,18 +317,18 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 */
 		hostnameparam.param_hdr.type = SCTP_PARAM_HOST_NAME_ADDRESS;
 		hostnameparam.param_hdr.length =
-			htons(sizeof(sctp_hostname_param_t)
-				+ strlen(arg)+1);
+		    htons(sizeof(sctp_hostname_param_t)
+		          + strlen(arg)+1);
 		currentchunk = grow_chunk(pack, currentchunk,
-			sizeof(sctp_hostname_param_t),
-				(void *)&hostnameparam);
+		                          sizeof(sctp_hostname_param_t),
+		                          (void *)&hostnameparam);
 		currentchunk = grow_chunk_round4(pack, currentchunk,
-			strlen(arg)+1, (void *)arg);
-		}
-		break;
+		                                 strlen(arg)+1, (void *)arg);
+	}
+	break;
 
 	case 'A':	/* Supported address types */
-		{
+	{
 		/* The supported address type parameter is, somewhat
 		 * clumsily, an array of 16-bit ints, rather than,
 		 * say, a bitmask. But considering there are only three
@@ -342,24 +342,24 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		int naddrs, i;
 
 		supportedaddrs.param_hdr.type =
-			SCTP_PARAM_SUPPORTED_ADDRESS_TYPES;
+		    SCTP_PARAM_SUPPORTED_ADDRESS_TYPES;
 		naddrs = parsenargs(arg, straddrs, MAXSUPPORTEDADDRS, " ,:.");
 		for (i=0; i < naddrs; ++i)
 			addrs[i] = htons(atoi(straddrs[i]));
 		addrs[i] = 0;
 		supportedaddrs.param_hdr.length =
-			htons(sizeof(sctp_supported_addrs_param_t)
-				+ 2*naddrs);
+		    htons(sizeof(sctp_supported_addrs_param_t)
+		          + 2*naddrs);
 		currentchunk = grow_chunk(pack, currentchunk,
-			sizeof(sctp_supported_addrs_param_t),
-				(void *)&supportedaddrs);
+		                          sizeof(sctp_supported_addrs_param_t),
+		                          (void *)&supportedaddrs);
 		currentchunk = grow_chunk(pack, currentchunk,
-				2*round2(naddrs), addrs);
+		                          2*round2(naddrs), addrs);
 		break;
-		}
+	}
 
 	case 'E':	/* ECN capable */
-		{
+	{
 		sctp_ecn_capable_param_t ecncapable;
 
 		/* So far as I can tell with this one, just it being
@@ -368,15 +368,15 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 */
 		ecncapable.param_hdr.type = SCTP_PARAM_ECN_CAPABLE;
 		ecncapable.param_hdr.length =
-			htons(sizeof(sctp_ecn_capable_param_t));
+		    htons(sizeof(sctp_ecn_capable_param_t));
 		currentchunk = grow_chunk(pack, currentchunk,
-			sizeof(sctp_ecn_capable_param_t),
-				(void *)&ecncapable);
+		                          sizeof(sctp_ecn_capable_param_t),
+		                          (void *)&ecncapable);
 		break;
-		}
+	}
 
 	case 'W':	/* Forward TSN supported */
-		{
+	{
 		sctp_forward_tsn_param_t forward_tsn;
 
 		/* This seems to be like ECN capable - presence
@@ -384,14 +384,14 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 */
 		forward_tsn.param_hdr.type = SCTP_PARAM_FWD_TSN_SUPPORT;
 		forward_tsn.param_hdr.length =
-			htons(sizeof(sctp_forward_tsn_param_t));
+		    htons(sizeof(sctp_forward_tsn_param_t));
 		currentchunk = grow_chunk(pack, currentchunk,
-			sizeof(sctp_forward_tsn_param_t),
-				(void *)&forward_tsn);
+		                          sizeof(sctp_forward_tsn_param_t),
+		                          (void *)&forward_tsn);
 		break;
-		}
+	}
 	case 'Y':	/* Adaptation layer indication */
-		{
+	{
 		sctp_adaptation_ind_param_t adaptationparam;
 
 		/* I assume this is just some value that can be
@@ -400,23 +400,23 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 * specification of it.
 		 */
 		adaptationparam.param_hdr.type =
-			SCTP_PARAM_ADAPTATION_LAYER_IND;
+		    SCTP_PARAM_ADAPTATION_LAYER_IND;
 		adaptationparam.param_hdr.length =
-			htons(sizeof(sctp_adaptation_ind_param_t));
+		    htons(sizeof(sctp_adaptation_ind_param_t));
 		lvalue = strtoul(arg, (char **)NULL, 0);
 		adaptationparam.adaptation_ind = htonl(lvalue);
 		currentchunk = grow_chunk(pack, currentchunk,
-			sizeof(sctp_adaptation_ind_param_t),
-				(void *)&adaptationparam);
-		}
-		break;
+		                          sizeof(sctp_adaptation_ind_param_t),
+		                          (void *)&adaptationparam);
+	}
+	break;
 
 	}
 	return TRUE;
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack)
+              sendip_data *data, sendip_data *pack)
 {
 	sctp_header *sctp = (sctp_header *)pack->data;
 
@@ -424,14 +424,14 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		sctp->checksum = 0;
 
 		sctp->checksum = crc32(~((u_int32_t) 0), (void *)sctp,
-			pack->alloc_len);
+		                       pack->alloc_len);
 	}
 	return TRUE;
 }
 
 int num_opts()
 {
-	return sizeof(sctp_opts)/sizeof(sendip_option); 
+	return sizeof(sctp_opts)/sizeof(sendip_option);
 }
 
 sendip_option *get_opts()

@@ -38,7 +38,7 @@ cryptoinit(sendip_data *pack)
 	type = *(u_int32_t *) pack->private;
 	switch (type) {
 	case IPPROTO_AH:
-		{
+	{
 		/* Here we might determine and fill in the key:
 		 * ah_private *apriv = (ah_private *)pack->private;
 		 *
@@ -49,10 +49,10 @@ cryptoinit(sendip_data *pack)
 		 *	pack->private = apriv;
 		 *	pack->modified |= AH_MOD_KEY;
 		 */
-		}
-		break;
+	}
+	break;
 	case IPPROTO_ESP:
-		{
+	{
 		/* Here we might determine and fill in the key:
 		 * esp_private *epriv = (esp_private *)pack->private;
 		 *
@@ -63,8 +63,8 @@ cryptoinit(sendip_data *pack)
 		 *	pack->private = epriv;
 		 *	pack->modified |= ESP_MOD_KEY;
 		 */
-		}
-		break;
+	}
+	break;
 	default:
 		return FALSE;
 	}
@@ -78,9 +78,9 @@ cryptoinit(sendip_data *pack)
  */
 void
 xoricv(u_int8_t *key, u_int32_t keylen,
-	u_int8_t *icv, u_int32_t icvlen,
-	u_int8_t *data1, u_int32_t data1len,
-	u_int8_t *data2, u_int32_t data2len)
+       u_int8_t *icv, u_int32_t icvlen,
+       u_int8_t *data1, u_int32_t data1len,
+       u_int8_t *data2, u_int32_t data2len)
 {
 	int d, k, i;
 
@@ -94,11 +94,11 @@ xoricv(u_int8_t *key, u_int32_t keylen,
 	(void) memset((void *)icv, 0, icvlen);
 
 	for (d=0, k=0, i=0; d < data1len; ++d,
-			k = (k+1)%keylen, i = (i+1)%icvlen) {
+	        k = (k+1)%keylen, i = (i+1)%icvlen) {
 		icv[i] ^= (key[k]^data1[d]);
 	}
 	for (d=0, k=0, i=0; d < data2len; ++d,
-			k = (k+1)%keylen, i = (i+1)%icvlen) {
+	        k = (k+1)%keylen, i = (i+1)%icvlen) {
 		icv[i] ^= (key[k]^data2[d]);
 	}
 }
@@ -116,7 +116,7 @@ xoricv(u_int8_t *key, u_int32_t keylen,
 
 bool
 ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
-	sendip_data *data, sendip_data *pack)
+       sendip_data *data, sendip_data *pack)
 {
 	ip_header *realip = (ip_header *)ipack->data;
 	ip_header pseudoip;
@@ -137,7 +137,7 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 		pseudoip.header_len = realip->header_len;
 	if (!(ipack->modified & IP_MOD_TOTLEN)) {
 		pseudoip.tot_len = ipack->alloc_len +
-			pack->alloc_len + data->alloc_len;
+		                   pack->alloc_len + data->alloc_len;
 #ifndef __FreeBSD__
 #ifndef __FreeBSD
 		pseudoip.tot_len = htons(pseudoip.tot_len);
@@ -156,7 +156,7 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	} else
 		pseudoip.id = realip->id;
 	if (!(ipack->modified&IP_MOD_PROTOCOL)) {
-                /* New default: actual type of following header */
+		/* New default: actual type of following header */
 		pseudoip.protocol = header_type(hdrs[index+1]);
 	} else
 		pseudoip.protocol = realip->protocol;
@@ -188,14 +188,14 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	 */
 	authlen = pack->alloc_len - sizeof(ah_header);
 	xoricv(key, keylen, (u_int8_t *)ah->auth_data, authlen,
-		(u_int8_t *)&pseudoip, sizeof(pseudoip),
-		(u_int8_t *)data->data, data->alloc_len);
+	       (u_int8_t *)&pseudoip, sizeof(pseudoip),
+	       (u_int8_t *)data->data, data->alloc_len);
 	return TRUE;
 }
 
 bool
 ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
-	sendip_data *data, sendip_data *pack)
+       sendip_data *data, sendip_data *pack)
 {
 	ipv6_header *realip = (ipv6_header *)ipack->data;
 	ipv6_header pseudoip;
@@ -213,11 +213,11 @@ ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 		pseudoip.ip6_vfc = realip->ip6_vfc;
 	if (!(ipack->modified & IPV6_MOD_PLEN)) {
 		pseudoip.ip6_plen = htons(ipack->alloc_len + pack->alloc_len
-			+ data->alloc_len);
+		                          + data->alloc_len);
 	} else
 		pseudoip.ip6_plen = realip->ip6_plen;
 	if (!(ipack->modified&IPV6_MOD_NXT)) {
-                /* New default: actual type of following header */
+		/* New default: actual type of following header */
 		pseudoip.ip6_nxt = header_type(hdrs[index+1]);
 	} else
 		pseudoip.ip6_nxt = realip->ip6_nxt;
@@ -245,8 +245,8 @@ ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	 */
 	authlen = pack->alloc_len - sizeof(ah_header);
 	xoricv(key, keylen, (u_int8_t *)ah->auth_data, authlen,
-		(u_int8_t *)&pseudoip, sizeof(pseudoip),
-		(u_int8_t *)data->data, data->alloc_len);
+	       (u_int8_t *)&pseudoip, sizeof(pseudoip),
+	       (u_int8_t *)data->data, data->alloc_len);
 	return TRUE;
 }
 
@@ -257,7 +257,7 @@ ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
  */
 bool
 espip(esp_private *epriv, char *hdrs, int index, sendip_data *ipack,
-	sendip_data *data, sendip_data *pack)
+      sendip_data *data, sendip_data *pack)
 {
 	u_int32_t keylen;
 	u_int8_t *key;
@@ -277,14 +277,14 @@ espip(esp_private *epriv, char *hdrs, int index, sendip_data *ipack,
 	 * the routine is just sitting there ...
 	 */
 	xoricv(key, keylen, icv, epriv->icvlen,
-		(u_int8_t *)pack->data, pack->alloc_len,
-		(u_int8_t *)data->data, data->alloc_len - epriv->icvlen);
+	       (u_int8_t *)pack->data, pack->alloc_len,
+	       (u_int8_t *)data->data, data->alloc_len - epriv->icvlen);
 	return TRUE;
 }
 
-bool 
+bool
 cryptomod(void *priv, char *hdrs, sendip_data *headers[],
-	int index, sendip_data *data, sendip_data *pack)
+          int index, sendip_data *data, sendip_data *pack)
 {
 	u_int32_t type;
 	int i;
@@ -301,11 +301,11 @@ cryptomod(void *priv, char *hdrs, sendip_data *headers[],
 		switch (hdrs[i]) {
 		case 'i':	/* IPv4 */
 			return ahipv4((ah_private *)priv, hdrs, index, ipack,
-				data, pack);
+			              data, pack);
 			break;
 		case '6':	/* IPv6 */
 			return ahipv6((ah_private *)priv, hdrs, index, ipack,
-				data, pack);
+			              data, pack);
 			break;
 		default:
 			return FALSE;
@@ -314,7 +314,7 @@ cryptomod(void *priv, char *hdrs, sendip_data *headers[],
 	case IPPROTO_ESP:
 		/* No need to differentiate between IPv4 and IPv6 */
 		return espip((esp_private *)priv, hdrs, index, ipack,
-			data, pack);
+		             data, pack);
 		break;
 	default:
 		return FALSE;

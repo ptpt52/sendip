@@ -49,7 +49,7 @@ cryptoinit(sendip_data *pack)
  */
 void
 xorcrypto(u_int8_t *key, u_int32_t keylen,
-	u_int8_t *data, u_int32_t datalen)
+          u_int8_t *data, u_int32_t datalen)
 {
 	int d, k;
 
@@ -74,16 +74,16 @@ espcrypto(esp_private *epriv, sendip_data *data, sendip_data *pack)
 		keylen = epriv->keylen;
 	}
 	/* Encrypt everything past the ESP header */
-	xorcrypto(key, keylen, 
-		(u_int8_t *)esp->enc_data,
-			pack->alloc_len + data->alloc_len -
-				sizeof(struct ip_esp_hdr));
+	xorcrypto(key, keylen,
+	          (u_int8_t *)esp->enc_data,
+	          pack->alloc_len + data->alloc_len -
+	          sizeof(struct ip_esp_hdr));
 	return TRUE;
 }
 
-bool 
+bool
 cryptomod(void *priv, char *hdrs, sendip_data *headers[],
-	int index, sendip_data *data, sendip_data *pack)
+          int index, sendip_data *data, sendip_data *pack)
 {
 	if (!pack || !priv || !data) return FALSE; /* don't mess with me! */
 

@@ -39,14 +39,14 @@ typedef struct ip_wesp_phdr {
 	 */
 #if defined(__LITTLE_ENDIAN_BITFIELD)
 	u_int8_t	reserved:4,
-			padded:1,
-			encrypted:1,
-			version:2;
+	            padded:1,
+	            encrypted:1,
+	            version:2;
 #elif defined(__BIG_ENDIAN_BITFIELD)
 	u_int8_t 	version:2,
-			encrypted:1,
-			padded:1,
-			reserved:4;
+	            encrypted:1,
+	            padded:1,
+	            reserved:4;
 #else
 #error  "Please fix <asm/byteorder.h>"
 #endif

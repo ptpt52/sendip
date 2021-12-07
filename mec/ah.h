@@ -33,16 +33,18 @@ typedef struct ip_ah_private {         /* keep track of things privately */
 sendip_option ah_opts[] = {
 	{"s",1,"AH Security Parameters Index","1"},
 	{"q",1,"AH Sequence Number","1"},
-	{"d",1,"AH Authentication Data"
-"  Variable length authentication data, can be a user-provided string "
-"(in hex, octal, decimal, or raw), zN for N nul (zero) bytes "
-"or rN for N random bytes.",
-"0"},
+	{	"d",1,"AH Authentication Data"
+		"  Variable length authentication data, can be a user-provided string "
+		"(in hex, octal, decimal, or raw), zN for N nul (zero) bytes "
+		"or rN for N random bytes.",
+		"0"
+	},
 	{"n",1,"AH Next Header","Correct"},
-	{"k",1,"AH Key (string, zN for N nul bytes, or rN for N random bytes)"
-"  Not transmitted in the packet, but passed to the authentication "
-"module, if any.",
-"none"},
+	{	"k",1,"AH Key (string, zN for N nul bytes, or rN for N random bytes)"
+		"  Not transmitted in the packet, but passed to the authentication "
+		"module, if any.",
+		"none"
+	},
 	{"m",1,"AH Authentication Module","none"},
 };
 #endif

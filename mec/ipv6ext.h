@@ -146,7 +146,7 @@ struct ip_auth_hdr {
 	u_int8_t  auth_data[0];	/* Variable len but >=4. Mind the 64 bit alignment! */
 #define	icv	auth_data	/* rfc 4302 name */
 	/* TBD - high-order sequence number */
-	
+
 };
 
 /*

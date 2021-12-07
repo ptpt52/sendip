@@ -157,7 +157,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 		}
 
 		hopt = (struct ipv6_hopopt *)
-			malloc(svalue);
+		       malloc(svalue);
 		hopt->hopt_type = IPV6_TLV_PADN;
 		hopt->hopt_len = svalue-2;
 		memset(hopt->hopt_data, 0, svalue-2);
@@ -169,7 +169,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= HOP_MOD_RA;
 		svalue = integerargument(arg, 2);
 		hopt = (struct ipv6_hopopt *)
-			malloc(sizeof(struct ipv6_hopopt) + 2);
+		       malloc(sizeof(struct ipv6_hopopt) + 2);
 		hopt->hopt_type = IPV6_TLV_ROUTERALERT;
 		hopt->hopt_len = 2;
 		memcpy(hopt->hopt_data, &svalue, 2);
@@ -181,7 +181,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= HOP_MOD_JUMBO;
 		value = integerargument(arg, 4);
 		hopt = (struct ipv6_hopopt *)
-			malloc(sizeof(struct ipv6_hopopt) + 4);
+		       malloc(sizeof(struct ipv6_hopopt) + 4);
 		hopt->hopt_type = IPV6_TLV_JUMBO;
 		hopt->hopt_len = 4;
 		memcpy(hopt->hopt_data, &value, 4);
@@ -193,8 +193,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 		if (inet_pton(AF_INET6, arg, &addr)) {
 			pack->modified |= HOP_MOD_HAO;
 			hopt = (struct ipv6_hopopt *)
-				malloc(sizeof(struct ipv6_hopopt)
-					+ sizeof(struct in6_addr));
+			       malloc(sizeof(struct ipv6_hopopt)
+			              + sizeof(struct in6_addr));
 			hopt->hopt_type = IPV6_TLV_HAO;
 			hopt->hopt_len = sizeof(struct in6_addr);
 			memcpy(hopt->hopt_data, &addr, sizeof(struct in6_addr));
@@ -203,7 +203,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 			free((void *)hopt);
 		} else {
 			fprintf(stderr, "Couldn't parse home address %s\n",
-				arg);
+			        arg);
 			return FALSE;
 		}
 		break;
@@ -243,7 +243,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 			temp = NULL;
 		}
 		hopt = (struct ipv6_hopopt *)
-			malloc(sizeof(struct ipv6_hopopt) + length);
+		       malloc(sizeof(struct ipv6_hopopt) + length);
 		hopt->hopt_type = type;
 		hopt->hopt_len = svalue;
 		if (length) {
@@ -259,7 +259,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack)
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack)
+              sendip_data *data, sendip_data *pack)
 {
 	hop_header *hop = (hop_header *)pack->data;
 	int alloclen = pack->alloc_len;
@@ -289,7 +289,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 
 int num_opts(void)
 {
-	return sizeof(hop_opts)/sizeof(sendip_option); 
+	return sizeof(hop_opts)/sizeof(sendip_option);
 }
 
 sendip_option *get_opts(void)

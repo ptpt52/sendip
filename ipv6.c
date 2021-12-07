@@ -110,7 +110,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-		sendip_data *data, sendip_data *pack) {
+              sendip_data *data, sendip_data *pack) {
 	ipv6_header *ipv6 = (ipv6_header *)pack->data;
 
 	if(!(pack->modified&IPV6_MOD_VERSION)) {
@@ -133,7 +133,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 }
 
 int num_opts() {
-	return sizeof(ipv6_opts)/sizeof(sendip_option); 
+	return sizeof(ipv6_opts)/sizeof(sendip_option);
 }
 sendip_option *get_opts() {
 	return ipv6_opts;

@@ -49,7 +49,7 @@ readaddrs(char *arg, sendip_data *pack)
 
 	count = parsenargs(arg, addrs, ADDRMAX, ", ");
 	pack->data = realloc(pack->data,
-		sizeof(struct rt0_hdr)+count*sizeof(struct in6_addr));
+	                     sizeof(struct rt0_hdr)+count*sizeof(struct in6_addr));
 	rt = (struct rt0_hdr *)pack->data;
 	pack->alloc_len = sizeof(struct rt0_hdr)+count*sizeof(struct in6_addr);
 	for (i=0; i < count; ++i) {
@@ -110,7 +110,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack)
+              sendip_data *data, sendip_data *pack)
 {
 	route_header *route = (route_header *)pack->data;
 
@@ -121,7 +121,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 
 int num_opts()
 {
-	return sizeof(route_opts)/sizeof(sendip_option); 
+	return sizeof(route_opts)/sizeof(sendip_option);
 }
 
 sendip_option *get_opts()

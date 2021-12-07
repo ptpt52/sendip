@@ -71,15 +71,17 @@ sendip_option hop_opts[] = {
 	{"0",0,"Option pad 0 (1 byte padding)"},
 	{"p",1,"Option pad N bytes","2"},
 	{"r",1,"Option router alert","0"},
-	{"j",1,"Option jumbo frame length"
-" Note: actual production of jumbo frames requires interface support.",
-					"0"},
+	{	"j",1,"Option jumbo frame length"
+		" Note: actual production of jumbo frames requires interface support.",
+		"0"
+	},
 	{"h",1,"(Destination) option home address","::1"},
-	{"t",1,"Option arbitrary t.l.v option"
-" The fields are type.length.value. Each field can be specified "
-"in the usual way as hex, octal, decimal, literal, zN for N zero bytes "
-"or rN for N random bytes.",
-					"0.0.0"},
+	{	"t",1,"Option arbitrary t.l.v option"
+		" The fields are type.length.value. Each field can be specified "
+		"in the usual way as hex, octal, decimal, literal, zN for N zero bytes "
+		"or rN for N random bytes.",
+		"0.0.0"
+	},
 };
 
 #endif  /* _SENDIP_HOP_H */

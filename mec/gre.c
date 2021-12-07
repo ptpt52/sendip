@@ -142,7 +142,7 @@ gre_resize(sendip_data *pack, u_int16_t flags, u_int16_t addflag)
 	endspot = (size-sizeof(gre_header))/sizeof(u_int32_t);
 	while (--endspot > ourspot) {
 		gre->gre_info.thirtytwo[endspot] =
-			gre->gre_info.thirtytwo[endspot-1];
+		    gre->gre_info.thirtytwo[endspot-1];
 	}
 	/* Zero out the new option just for fun */
 	gre->gre_info.thirtytwo[ourspot] = 0;
@@ -165,7 +165,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		gre->gre_flag |= GRE_CSUM;
 		/* There's only one place for the checksum field to go! */
 		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] =
-			htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		    htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
 		pack->modified |= GRE_MOD_CHECKSUM;
 		break;
 	case 'C':
@@ -183,21 +183,21 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	case 'r':
 		gre = gre_resize(pack, gre->gre_flag, GRE_ROUTING);
 		gre->gre_info.thirtytwo[gre_where(gre->gre_flag, GRE_ROUTING)] =
-			htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
+		    htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
 		gre->gre_flag |= GRE_ROUTING;
 		pack->modified |= GRE_MOD_ROUTING;
 		break;
 	case 'k':
 		gre = gre_resize(pack, gre->gre_flag, GRE_KEY);
 		gre->gre_info.thirtytwo[gre_where(gre->gre_flag, GRE_KEY)] =
-			htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
+		    htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
 		gre->gre_flag |= GRE_KEY;
 		pack->modified |= GRE_MOD_KEY;
 		break;
 	case 's':
 		gre = gre_resize(pack, gre->gre_flag, GRE_SEQ);
 		gre->gre_info.thirtytwo[gre_where(gre->gre_flag, GRE_SEQ)] =
-			htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
+		    htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
 		gre->gre_flag |= GRE_SEQ;
 		pack->modified |= GRE_MOD_SEQUENCE;
 		break;
@@ -244,7 +244,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		gre = gre_resize(pack, gre->gre_flag, GRE_CSUM);
 		/* There's only one place for the offset field to go! */
 		gre->gre_info.sixteen[GRE_OFFSET_FIELD] =
-			htonl((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		    htonl((u_int16_t)strtoul(arg, (char **)NULL, 0));
 		pack->modified |= GRE_MOD_OFFSET;
 		break;
 	}
@@ -254,7 +254,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 bool
 finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
-				  sendip_data *pack)
+         sendip_data *pack)
 {
 	gre_header *gre = (gre_header *)pack->data;
 
@@ -276,9 +276,12 @@ finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
 		u_int16_t *vec[3];
 		int lens[3];
 
-		vec[0] = pack->data; lens[0] = pack->alloc_len;
-		vec[1] = data->data; lens[1] = data->alloc_len;
-		vec[2] = NULL; lens[2] = 0;
+		vec[0] = pack->data;
+		lens[0] = pack->alloc_len;
+		vec[1] = data->data;
+		lens[1] = data->alloc_len;
+		vec[2] = NULL;
+		lens[2] = 0;
 		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] = csumv(vec, lens);
 	}
 	return TRUE;
@@ -286,7 +289,7 @@ finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
 }
 
 int num_opts() {
-	return sizeof(gre_opts)/sizeof(sendip_option); 
+	return sizeof(gre_opts)/sizeof(sendip_option);
 }
 sendip_option *get_opts() {
 	return gre_opts;

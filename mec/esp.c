@@ -95,7 +95,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		/* Check if we have an ICV we have to shove down */
 		if (priv->icvlen)
 			memmove(&esp->tail.ivicv[priv->ivlen],
-				&esp->tail.ivicv[0], priv->icvlen);
+			        &esp->tail.ivicv[0], priv->icvlen);
 		memcpy(&esp->tail.ivicv[0], temp, priv->ivlen);
 		pack->modified |= ESP_MOD_IV;
 		break;
@@ -116,7 +116,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		length = stringargument(arg, &temp);
 		priv->keylen = length;
 		priv = (esp_private *)realloc(priv,
-				sizeof(esp_private) + length);
+		                              sizeof(esp_private) + length);
 		memcpy(priv->key, temp, priv->keylen);
 		pack->private = priv;
 		pack->modified |= ESP_MOD_KEY;
@@ -150,7 +150,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 bool
 finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack)
+         sendip_data *data, sendip_data *pack)
 {
 	esp_header *esp = (esp_header *)pack->data;
 	esp_private *priv = (esp_private *)pack->private;
@@ -166,14 +166,14 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 		/* We need to pad out IV+packet data length
 		 * to be equal to 2 mod 4. I'll subtract it
 		 * from 6 rather than 2 to keep signs positive.
-		 * 
+		 *
 		 * 0->2  (6-0) -> 2
-		 * 1->1	 (6-1) -> 1 
+		 * 1->1	 (6-1) -> 1
 		 * 2->0	 (6-2) -> 0
 		 * 3->3  (6-3) -> 3
 		 */
-		esp->tail.padlen = 
-			(6 - ((data->alloc_len + priv->ivlen)&03))&03;
+		esp->tail.padlen =
+		    (6 - ((data->alloc_len + priv->ivlen)&03))&03;
 		/* We preallocated 4 bytes for padding above,
 		 * so we will actually be trimming a little bit.
 		 */
@@ -263,12 +263,12 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	 */
 	if (authesp && authesp->cryptomod) {
 		ret = (*authesp->cryptomod)(priv, hdrs, headers, index,
-			data, pack);
+		                            data, pack);
 	}
 	if (ret == TRUE) {
 		if (cryptoesp && cryptoesp->cryptomod) {
 			ret = (*cryptoesp->cryptomod)(priv, hdrs, headers,
-				index, data, pack);
+			                              index, data, pack);
 		}
 	}
 
@@ -281,7 +281,7 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 int
 num_opts(void)
 {
-	return sizeof(esp_opts)/sizeof(sendip_option); 
+	return sizeof(esp_opts)/sizeof(sendip_option);
 }
 
 sendip_option *

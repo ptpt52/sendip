@@ -72,30 +72,37 @@ typedef enum {
  * Options
  */
 sendip_option bgp_opts[] = {
-	{ "m", TRUE, "BGP Marker field (format is <hex byte>:<hex byte>:...)", 
-	  "FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF" },
+	{	"m", TRUE, "BGP Marker field (format is <hex byte>:<hex byte>:...)",
+		"FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF"
+	},
 	{ "l", TRUE, "Packet length", "Correct" },
-	{ "t", TRUE, "Message Type (1 OPEN, 2 UPDATE, 3 NOTIFICATION, 4 "
-	  "KEEPALIVE)",
-	  "4 (KEEPALIVE)" },
-	{ "o", TRUE, "Open message.  Format is <version>:<AS number>:"
-	  "<Hold time>:<BGP Identifier>:<Options length>", 
-	  "4:1:90:127.0.0.1:Correct (Any parameter can be omitted to get "
-	  "the default)" },
-	{ "oo", TRUE, "Optional OPEN parameter.  Format is <Type>:<Length>:"
-	  "<Value> - value is in hex bytes separated by :s", 
-	  "None, though length may be omitted to get correct value" },
+	{	"t", TRUE, "Message Type (1 OPEN, 2 UPDATE, 3 NOTIFICATION, 4 "
+		"KEEPALIVE)",
+		"4 (KEEPALIVE)"
+	},
+	{	"o", TRUE, "Open message.  Format is <version>:<AS number>:"
+		"<Hold time>:<BGP Identifier>:<Options length>",
+		"4:1:90:127.0.0.1:Correct (Any parameter can be omitted to get "
+		"the default)"
+	},
+	{	"oo", TRUE, "Optional OPEN parameter.  Format is <Type>:<Length>:"
+		"<Value> - value is in hex bytes separated by :s",
+		"None, though length may be omitted to get correct value"
+	},
 	{ "ul", TRUE, "Withdrawn routes length", "Correct" },
-	{ "uw", TRUE, "Withdrawn route.  Format is x.x.x.x/n:<bytes "
-	  "for prefix>", 
-	  "Bytes field may be omitted to use the correct number" },
+	{	"uw", TRUE, "Withdrawn route.  Format is x.x.x.x/n:<bytes "
+		"for prefix>",
+		"Bytes field may be omitted to use the correct number"
+	},
 	{ "us", TRUE, "Attributes length", "Correct" },
-	{ "ua", TRUE, "Attribute.  Format is <flags>:<type>:"
-	  "<length length (1 or 2):<length>:<data>", 
-	  "The length fields may be omitted to use the correct value" },
+	{	"ua", TRUE, "Attribute.  Format is <flags>:<type>:"
+		"<length length (1 or 2):<length>:<data>",
+		"The length fields may be omitted to use the correct value"
+	},
 	{ "un", TRUE, "NLRI Prefix.  Format is as for -buw", "As for -buw" },
-	{ "n", TRUE, "Notification.  Format is <code>:<subcode>:<data>", 
-	  "Data may be omitted for no data" },
+	{	"n", TRUE, "Notification.  Format is <code>:<subcode>:<data>",
+		"Data may be omitted for no data"
+	},
 };
 
 /*
@@ -120,9 +127,9 @@ sendip_data *initialize (void)
 {
 	sendip_data *data = NULL;
 	u_int8_t    *ptr;
-	
+
 	data = malloc(sizeof(sendip_data));
-	
+
 	if (data != NULL) {
 		memset(data, 0, sizeof(sendip_data));
 		data->data = malloc(BGP_BUFLEN);
@@ -131,21 +138,21 @@ sendip_data *initialize (void)
 			data = NULL;
 		}
 	}
-	
+
 	if (data != NULL) {
 		memset(data->data, 0, BGP_BUFLEN);
 		ptr = data->data;
-		
+
 		memset(data->data, 0xFF, 16);
 		ptr += 16;
 		bgp_len_ptr = ptr;
 		PUTSHORT(ptr, 19);
 		ptr += 2;
 		*ptr++ = 4;
-		
+
 		data->alloc_len = ptr - (u_int8_t *)data->data;
 		bgp_prev_part = BGP_HEADER;
-	} 
+	}
 	return (data);
 }
 
@@ -159,7 +166,7 @@ static u_int32_t bgp_parse_bytes (u_int8_t   *buf,
 {
 	u_int8_t *ptr = buf;
 	char     *arg_ptr = arg;
-	
+
 	while (*arg_ptr != '\0' && *arg_ptr != stopc && limit > 0) {
 		*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, base);
 		if (*arg_ptr != '\0' && *arg_ptr != stopc) {
@@ -167,11 +174,11 @@ static u_int32_t bgp_parse_bytes (u_int8_t   *buf,
 		}
 		limit--;
 	}
-	
+
 	if (new_arg != NULL) {
 		*new_arg = arg_ptr;
 	}
-	
+
 	return (ptr - buf);
 }
 
@@ -183,7 +190,7 @@ static u_int32_t bgp_parse_nlri (u_int8_t *buf,
 	char     *arg_ptr = arg;
 	char     *new_arg_ptr;
 	u_int8_t  bytes;
-	
+
 	ptr++;
 	(void)bgp_parse_bytes(ptr, arg_ptr, &arg_ptr, 4, 10, '\0');
 	*buf = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 10);
@@ -241,7 +248,7 @@ bool do_opt (char        *optstring,
 					*ptr = 4;
 				}
 				ptr++;
-				
+
 				arg_ptr = new_arg_ptr;
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
@@ -251,7 +258,7 @@ bool do_opt (char        *optstring,
 					PUTSHORT(ptr, 1);
 				}
 				ptr += 2;
-				
+
 				arg_ptr = new_arg_ptr;
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
@@ -261,7 +268,7 @@ bool do_opt (char        *optstring,
 					PUTSHORT(ptr, 90);
 				}
 				ptr += 2;
-				
+
 				arg_ptr = new_arg_ptr;
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
@@ -271,7 +278,7 @@ bool do_opt (char        *optstring,
 					PUTLONG(ptr, 0x7F000001);
 				}
 				ptr += 4;
-				
+
 				arg_ptr = new_arg_ptr;
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
@@ -284,14 +291,14 @@ bool do_opt (char        *optstring,
 				}
 				bgp_opt_len_ptr = ptr;
 				ptr++;
-				
+
 				bgp_prev_part = BGP_OPEN;
 			}
 			break;
-		
+
 		case 'o':
-			if (bgp_prev_part != BGP_OPEN && 
-			    bgp_prev_part != BGP_OPEN_OPT) {
+			if (bgp_prev_part != BGP_OPEN &&
+			        bgp_prev_part != BGP_OPEN_OPT) {
 				usage_error("Open options must occur after open "
 				            "message\n");
 				rc = FALSE;
@@ -302,7 +309,7 @@ bool do_opt (char        *optstring,
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
 				}
-				
+
 				*ptr = (u_int8_t)strtoul(arg_ptr, &new_arg_ptr, 10);
 				if (arg_ptr == new_arg_ptr) {
 					*ptr = 0;
@@ -314,9 +321,9 @@ bool do_opt (char        *optstring,
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
 				}
-				
+
 				ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFF, 16, '\0');
-				
+
 				if (!len_mod) {
 					*(rem_ptr + 1) = ptr - rem_ptr;
 				}
@@ -326,14 +333,14 @@ bool do_opt (char        *optstring,
 				bgp_prev_part = BGP_OPEN_OPT;
 			}
 			break;
-		
+
 		default:
-			fprintf(stderr, "Unrecognised BGP OPEN option: %s\n", 
+			fprintf(stderr, "Unrecognised BGP OPEN option: %s\n",
 			        optstring);
 			rc = FALSE;
 		}
 		break;
-		
+
 	case 'u':
 		switch(optstring[2]) {
 		case 'l':
@@ -349,7 +356,7 @@ bool do_opt (char        *optstring,
 				bgp_prev_part = BGP_UPDATE_WDR_LEN;
 			}
 			break;
-		
+
 		case 'w':
 			if (bgp_prev_part == BGP_HEADER) {
 				bgp_wdr_len_ptr = ptr;
@@ -357,24 +364,24 @@ bool do_opt (char        *optstring,
 				ptr += 2;
 				bgp_prev_part = BGP_UPDATE_WDR_LEN;
 			}
-		
-			if (bgp_prev_part != BGP_UPDATE_WDR && 
-			    bgp_prev_part != BGP_UPDATE_WDR_LEN) {
+
+			if (bgp_prev_part != BGP_UPDATE_WDR &&
+			        bgp_prev_part != BGP_UPDATE_WDR_LEN) {
 				usage_error("Unfeasible routes must occur immediately "
 				            "after header or -bul\n");
 				rc = FALSE;
 			} else {
 				rem_ptr = ptr;
 				ptr += bgp_parse_nlri(ptr, optarg);
-				
+
 				if (!(pack->modified & BGP_MOD_WDR_LEN)) {
-					PUTSHORT(bgp_wdr_len_ptr, 
+					PUTSHORT(bgp_wdr_len_ptr,
 					         GETSHORT(bgp_wdr_len_ptr) + ptr - rem_ptr);
 				}
 				bgp_prev_part = BGP_UPDATE_WDR;
 			}
 			break;
-			
+
 		case 's':
 			if (bgp_prev_part == BGP_HEADER) {
 				bgp_wdr_len_ptr = ptr;
@@ -382,9 +389,9 @@ bool do_opt (char        *optstring,
 				ptr += 2;
 				bgp_prev_part = BGP_UPDATE_WDR_LEN;
 			}
-		
+
 			if (bgp_prev_part != BGP_UPDATE_WDR_LEN &&
-			    bgp_prev_part != BGP_UPDATE_WDR) {
+			        bgp_prev_part != BGP_UPDATE_WDR) {
 				usage_error("Path Attributes must come after "
 				            "unfeasible routes (if any), "
 				            "or after header\n");
@@ -397,7 +404,7 @@ bool do_opt (char        *optstring,
 				bgp_prev_part = BGP_UPDATE_ATTR_LEN;
 			}
 			break;
-			
+
 		case 'a':
 			if (bgp_prev_part == BGP_HEADER) {
 				bgp_wdr_len_ptr = ptr;
@@ -405,17 +412,17 @@ bool do_opt (char        *optstring,
 				ptr += 2;
 				bgp_prev_part = BGP_UPDATE_WDR_LEN;
 			}
-			
-			if (bgp_prev_part == BGP_UPDATE_WDR_LEN || 
-			    bgp_prev_part == BGP_UPDATE_WDR) {
+
+			if (bgp_prev_part == BGP_UPDATE_WDR_LEN ||
+			        bgp_prev_part == BGP_UPDATE_WDR) {
 				bgp_attr_len_ptr = ptr;
 				PUTSHORT(ptr, 0);
 				ptr += 2;
 				bgp_prev_part = BGP_UPDATE_ATTR_LEN;
 			}
-			
+
 			if (bgp_prev_part != BGP_UPDATE_ATTR_LEN &&
-			    bgp_prev_part != BGP_UPDATE_ATTR) {
+			        bgp_prev_part != BGP_UPDATE_ATTR) {
 				usage_error("Path Attributes must come after "
 				            "unfeasible routes (if any), "
 				            "or after header\n");
@@ -423,17 +430,17 @@ bool do_opt (char        *optstring,
 			} else {
 				rem_ptr = ptr;
 				arg_ptr = optarg;
-				
+
 				*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 16);
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
 				}
-				
+
 				*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 10);
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
 				}
-				
+
 				bytes = (u_int8_t)strtoul(arg_ptr, &new_arg_ptr, 10);
 				if (arg_ptr != new_arg_ptr) {
 					if (bytes <= 1) {
@@ -452,7 +459,7 @@ bool do_opt (char        *optstring,
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
 				}
-				
+
 				if (bytes == 1) {
 					*ptr++ = (u_int8_t)strtoul(arg_ptr, &new_arg_ptr, 10);
 				} else {
@@ -470,10 +477,10 @@ bool do_opt (char        *optstring,
 				if (bytes == 1) {
 					ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFF, 16, '\0');
 				} else {
-					ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFFFF, 16, 
+					ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFFFF, 16,
 					                       '\0');
 				}
-				
+
 				if (!len_mod) {
 					if (bytes == 1) {
 						*(rem_ptr + 2) = ptr - rem_ptr - 3;
@@ -481,15 +488,15 @@ bool do_opt (char        *optstring,
 						PUTSHORT(rem_ptr + 2, ptr - rem_ptr - 4);
 					}
 				}
-				
+
 				if (!(pack->modified & BGP_MOD_ATTR_LEN)) {
-					PUTSHORT(bgp_attr_len_ptr, 
+					PUTSHORT(bgp_attr_len_ptr,
 					         GETSHORT(bgp_attr_len_ptr) + ptr - rem_ptr);
 				}
 				bgp_prev_part = BGP_UPDATE_ATTR;
 			}
 			break;
-			
+
 		case 'n':
 			if (bgp_prev_part == BGP_HEADER) {
 				bgp_wdr_len_ptr = ptr;
@@ -497,9 +504,9 @@ bool do_opt (char        *optstring,
 				ptr += 2;
 				bgp_prev_part = BGP_UPDATE_WDR_LEN;
 			}
-			
+
 			if (bgp_prev_part == BGP_UPDATE_WDR_LEN ||
-			    bgp_prev_part == BGP_UPDATE_WDR) {
+			        bgp_prev_part == BGP_UPDATE_WDR) {
 				bgp_attr_len_ptr = ptr;
 				PUTSHORT(ptr, 0);
 				ptr += 2;
@@ -507,25 +514,25 @@ bool do_opt (char        *optstring,
 			}
 
 			if (bgp_prev_part != BGP_UPDATE_ATTR_LEN &&
-			    bgp_prev_part != BGP_UPDATE_ATTR &&
-			    bgp_prev_part != BGP_UPDATE_NLRI) {
+			        bgp_prev_part != BGP_UPDATE_ATTR &&
+			        bgp_prev_part != BGP_UPDATE_NLRI) {
 				usage_error("NLRI must come after Unfeasible routes and "
 				            "attributes, if any, or after header\n");
 				rc = FALSE;
 			} else {
 				rem_ptr = ptr;
 				ptr += bgp_parse_nlri(ptr, optarg);
-				
+
 				bgp_prev_part = BGP_UPDATE_NLRI;
 			}
 			break;
-			
+
 		default:
 			fprintf(stderr, "Unrecognised BGP UPDATE option: %s\n", optstring);
 			rc = FALSE;
 		}
 		break;
-		
+
 	case 'n':
 		if (bgp_prev_part != BGP_HEADER) {
 			usage_error("Notification must come immediately after header\n");
@@ -536,37 +543,37 @@ bool do_opt (char        *optstring,
 			if (*arg_ptr != '\0') {
 				arg_ptr++;
 			}
-			
+
 			*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 10);
 			if (*arg_ptr != '\0') {
 				arg_ptr++;
 			}
-			
+
 			ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFFFF, 16, '\0');
-			
+
 			bgp_prev_part = BGP_NOTFN;
 		}
 		break;
-		
+
 	default:
 		fprintf(stderr, "Unrecognised BGP option: %s", optstring);
 		rc = FALSE;
 	}
-	
+
 	if (rc) {
 		pack->alloc_len = ptr - (u_int8_t *)pack->data;
 		if (!(pack->modified & BGP_MOD_LENGTH)) {
 			PUTSHORT(bgp_len_ptr, pack->alloc_len);
 		}
 	}
-	
+
 	return (rc);
 }
 
 
 bool finalize (char        *hdrs,
                sendip_data *headers[],
-	       int index,
+               int index,
                sendip_data *data,
                sendip_data *pack)
 {

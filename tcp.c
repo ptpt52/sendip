@@ -29,7 +29,7 @@
 const char opt_char='t';
 
 static void tcpcsum(sendip_data *ip_hdr, sendip_data *tcp_hdr,
-						  sendip_data *data) {
+                    sendip_data *data) {
 	tcp_header *tcp = (tcp_header *)tcp_hdr->data;
 	ip_header  *ip  = (ip_header *)ip_hdr->data;
 	u_int16_t *buf = malloc(12+tcp_hdr->alloc_len+data->alloc_len);
@@ -55,7 +55,7 @@ static void tcpcsum(sendip_data *ip_hdr, sendip_data *tcp_hdr,
 }
 
 static void tcp6csum(sendip_data *ipv6_hdr, sendip_data *tcp_hdr,
-							sendip_data *data) {
+                     sendip_data *data) {
 	tcp_header *tcp = (tcp_header *)tcp_hdr->data;
 	ipv6_header  *ipv6  = (ipv6_header *)ipv6_hdr->data;
 	struct ipv6_pseudo_hdr phdr;
@@ -73,7 +73,7 @@ static void tcp6csum(sendip_data *ipv6_hdr, sendip_data *tcp_hdr,
 	memcpy(&phdr.source,&ipv6->ip6_src,sizeof(struct in6_addr));
 	memcpy(&phdr.destination,&ipv6->ip6_dst,sizeof(struct in6_addr));
 	phdr.ulp_length=IPPROTO_TCP;
-	
+
 	memcpy(tempbuf,&phdr,sizeof(phdr));
 
 	/* Copy the TCP header and data */
@@ -86,7 +86,7 @@ static void tcp6csum(sendip_data *ipv6_hdr, sendip_data *tcp_hdr,
 }
 
 static void addoption(u_int8_t opt, u_int8_t len, u_int8_t *data,
-							 sendip_data *pack) {
+                      sendip_data *pack) {
 	pack->data = realloc(pack->data, pack->alloc_len + len);
 	*((u_int8_t *)pack->data+pack->alloc_len) = opt;
 	if(len > 1)
@@ -238,7 +238,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			/* Selective Acknowledge permitted rfc1323 */
 			addoption(4,2,NULL,pack);
 		} else if (!strcmp(opt+2, "sack")) {
-		   /* Selective Acknowledge rfc1323 */
+			/* Selective Acknowledge rfc1323 */
 			char *next;
 			u_int32_t le, re;
 			u_int8_t *comb, *c;
@@ -251,19 +251,19 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				count++;
 				if(next) next++;
 			}
-			
+
 			comb = malloc(count*8);
 			c = comb;
-			
+
 			next=arg;
-			while(*next) { 
+			while(*next) {
 				/* get left edge */
 				next=strchr(arg, ':');
-				if (!next) { 
-					fprintf(stderr, 
-							  "Value in tcp sack option incorrect. Usage: \n");
-					fprintf(stderr, 
-							  " -tosack left:right[,left:right...]\n");
+				if (!next) {
+					fprintf(stderr,
+					        "Value in tcp sack option incorrect. Usage: \n");
+					fprintf(stderr,
+					        " -tosack left:right[,left:right...]\n");
 					return FALSE;
 				}
 				*next++=0;
@@ -271,13 +271,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				arg=next;
 				/* get right edge */
 				next=strchr(arg, ',');
-				if (!next) 
-					next=arg-1; /* Finito - next points to \0 */ 
+				if (!next)
+					next=arg-1; /* Finito - next points to \0 */
 				else
 					*next++=0;
 				re=atoi(arg);
 				arg=next;
-				
+
 				le=htonl(le);
 				re=htonl(re);
 				memcpy(c, &le, 4);
@@ -291,10 +291,10 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			u_int32_t tsval=0, tsecr=0;
 			u_int8_t comb[8];
 			if (2!=sscanf(arg, "%d:%d", &tsval, &tsecr)) {
-				fprintf(stderr, 
-						  "Invalid value for tcp timestamp option.\n");
-				fprintf(stderr, 
-						  "Usage: -tots tsval:tsecr\n");
+				fprintf(stderr,
+				        "Invalid value for tcp timestamp option.\n");
+				fprintf(stderr,
+				        "Usage: -tots tsval:tsecr\n");
 				return FALSE;
 			}
 			tsval=htonl(tsval);
@@ -304,12 +304,12 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			addoption(8,10,comb,pack);
 		} else {
 			/* Unrecognized -to* */
-			fprintf(stderr, "unsupported TCP Option %s val %s\n", 
-					  opt, arg);
+			fprintf(stderr, "unsupported TCP Option %s val %s\n",
+			        opt, arg);
 			return FALSE;
-		} 
+		}
 		break;
-		
+
 	default:
 		usage_error("unknown TCP option\n");
 		return FALSE;
@@ -322,10 +322,10 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack) {
+              sendip_data *data, sendip_data *pack) {
 	tcp_header *tcp = (tcp_header *)pack->data;
 	int i;
-	
+
 	/* Set relevant fields */
 	if(!(pack->modified&TCP_MOD_SEQ)) {
 		tcp->seq = (u_int32_t)rand();
@@ -351,8 +351,8 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 			tcpcsum(headers[i],pack,data);
 		}
 	} else if(hdrs[i]=='6') {
-	   // @@ This is subsumed by my new code which determines the
-	   // next header type in the ipv6 module.
+		// @@ This is subsumed by my new code which determines the
+		// next header type in the ipv6 module.
 		//if(!(headers[i]->modified&IPV6_MOD_NXT)) {
 		//	((ipv6_header *)(headers[i]->data))->ip6_nxt=IPPROTO_TCP;
 		//	headers[i]->modified |= IPV6_MOD_NXT;
@@ -366,12 +366,12 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 			return FALSE;
 		}
 	}
-	
+
 	return TRUE;
 }
 
 int num_opts() {
-	return sizeof(tcp_opts)/sizeof(sendip_option); 
+	return sizeof(tcp_opts)/sizeof(sendip_option);
 }
 sendip_option *get_opts() {
 	return tcp_opts;

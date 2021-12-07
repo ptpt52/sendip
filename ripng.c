@@ -61,17 +61,17 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		rippack->res = htons((u_int16_t)strtoul(arg, (char **)0, 0));
 		pack->modified |= RIPNG_MOD_RESERVED;
 		break;
-		/*
+	/*
 	case 'a': / * authenticate * /
-		if(RIPNG_NUM_ENTRIES(pack) != 0) {
-			usage_error("Warning: a real RIP-2 packet only has authentication on the first entry.\n");
-		}
-		pack->modified |= RIP_IS_AUTH;
-		pack->data = realloc(pack->data,pack->alloc_len+strlen(arg));
-		strcpy(pack->data+pack->alloc_len,arg);
-		pack->alloc_len += strlen(arg);
-		break;
-		*/
+	if(RIPNG_NUM_ENTRIES(pack) != 0) {
+		usage_error("Warning: a real RIP-2 packet only has authentication on the first entry.\n");
+	}
+	pack->modified |= RIP_IS_AUTH;
+	pack->data = realloc(pack->data,pack->alloc_len+strlen(arg));
+	strcpy(pack->data+pack->alloc_len,arg);
+	pack->alloc_len += strlen(arg);
+	break;
+	*/
 	case 'e': /* rip entry */
 		RIPNG_ADD_ENTRY(pack);
 		ripopt = RIPNG_ENTRY(pack);
@@ -81,15 +81,18 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		*(--q)='\0';
 		ripopt->prefix = (p==q)?in6addr_any:inet6_addr(p);
 
-		p=++q; while(*(q++)!='/') /* do nothing */;
+		p=++q;
+		while(*(q++)!='/') /* do nothing */;
 		*(--q)='\0';
 		ripopt->tag=htons( (p==q)?0:(u_int16_t)strtoul(p, (char **)0,0));
 
-		p=++q; while(*(q++)!='/') /* do nothing */;
+		p=++q;
+		while(*(q++)!='/') /* do nothing */;
 		*(--q)='\0';
 		ripopt->len=(p==q)?(u_int8_t)128:(u_int8_t)strtoul(p, (char **)0,0);
 
-		p=++q; while(*(q++)!='\0') /* do nothing */;
+		p=++q;
+		while(*(q++)!='\0') /* do nothing */;
 		*(--q)='\0';
 		ripopt->metric=(p==q)?(u_int8_t)16:(u_int8_t)strtoul(p,(char **)0, 0);
 		break;
@@ -114,7 +117,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack) {
+              sendip_data *data, sendip_data *pack) {
 	if(hdrs[index-1] != 'u') {
 		usage_error("Warning: RIPng should be contained in a UDP packet\n");
 	}
@@ -123,7 +126,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 }
 
 int num_opts() {
-	return sizeof(rip_opts)/sizeof(sendip_option); 
+	return sizeof(rip_opts)/sizeof(sendip_option);
 }
 sendip_option *get_opts() {
 	return rip_opts;

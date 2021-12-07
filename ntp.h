@@ -12,8 +12,8 @@ typedef struct {
  */
 typedef struct {
 	/* TODO BYTEORDER!!! */
-	u_int8_t leap:2;     
-	u_int8_t status:6;  
+	u_int8_t leap:2;
+	u_int8_t status:6;
 	u_int8_t type;
 	/* END TODO */
 

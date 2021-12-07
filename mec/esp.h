@@ -57,10 +57,11 @@ sendip_option esp_opts[] = {
 	{"n",1,"ESP Next Header","Correct"},
 	{"i",1,"ESP IV (string, zN for N nul bytes, or rN for N random bytes)","None"},
 	{"I",1,"ESP ICV (string, zN for N nul bytes, or rN for N random bytes)","None"},
-	{"k",1,"ESP Key (string, zN for N nul bytes, or rN for N random bytes)"
-"  Not transmitted in the packet, but passed to the cryptographic "
-"module(s), if any.",
-"none"},
+	{	"k",1,"ESP Key (string, zN for N nul bytes, or rN for N random bytes)"
+		"  Not transmitted in the packet, but passed to the cryptographic "
+		"module(s), if any.",
+		"none"
+	},
 	{"a",1,"ESP authentication module", "none"},
 	{"c",1,"ESP cryptographic (encryption/privacy) module", "none"},
 };

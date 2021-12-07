@@ -84,9 +84,9 @@ main(int argc, char **argv)
 			printargs(args, n);
 		}
 	} else while (gets(buffer)) {
-		n = parseargs(buffer, args, NULL);
-		printargs(args, n);
-	}
+			n = parseargs(buffer, args, NULL);
+			printargs(args, n);
+		}
 }
 #endif
 

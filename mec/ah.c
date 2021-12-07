@@ -75,7 +75,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		length = stringargument(arg, &temp);
 		priv->keylen = length;
 		priv = (ah_private *)realloc(priv,
-				sizeof(ah_private) + length);
+		                             sizeof(ah_private) + length);
 		memcpy(priv->key, temp, priv->keylen);
 		pack->private = priv;
 		pack->modified |= AH_MOD_KEY;
@@ -100,7 +100,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 bool
 finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack)
+         sendip_data *data, sendip_data *pack)
 {
 	ah_header *ah = (ah_header *)pack->data;
 	ah_private *priv = (ah_private *) pack->private;
@@ -113,7 +113,7 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	 */
 	if (cryptoah && cryptoah->cryptomod) {
 		ret = (*cryptoah->cryptomod)(priv, hdrs, headers, index,
-			data, pack);
+		                             data, pack);
 	}
 	/* Free the private data as no longer required */
 	free((void *)priv);
@@ -124,7 +124,7 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 int
 num_opts(void)
 {
-	return sizeof(ah_opts)/sizeof(sendip_option); 
+	return sizeof(ah_opts)/sizeof(sendip_option);
 }
 
 sendip_option *

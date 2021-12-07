@@ -10,7 +10,7 @@ struct ipv6_pseudo_hdr {
 	struct in6_addr destination;
 	u_int32_t ulp_length;
 	u_int32_t  zero: 24,
-		nexthdr:  8;
+	           nexthdr:  8;
 };
 
 /* Header taken from glibc 2.2

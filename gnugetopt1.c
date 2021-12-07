@@ -68,9 +68,9 @@
 #endif
 
 int getopt_long (int argc, char *const *argv, const char *options,
-					  const struct option *long_options, int *opt_index)
+                 const struct option *long_options, int *opt_index)
 {
-  return _getopt_internal (argc, argv, options, long_options, opt_index, 0);
+	return _getopt_internal (argc, argv, options, long_options, opt_index, 0);
 }
 
 /* Like getopt_long, but '-' as well as '--' can indicate a long option.
@@ -80,9 +80,9 @@ int getopt_long (int argc, char *const *argv, const char *options,
 
 int
 getopt_long_only (int argc, char *const *argv, const char *options,
-						const struct option *long_options, int *opt_index)
+                  const struct option *long_options, int *opt_index)
 {
-  return _getopt_internal (argc, argv, options, long_options, opt_index, 1);
+	return _getopt_internal (argc, argv, options, long_options, opt_index, 1);
 }
 
 
@@ -94,90 +94,90 @@ getopt_long_only (int argc, char *const *argv, const char *options,
 
 int
 main (argc, argv)
-     int argc;
-     char **argv;
+int argc;
+char **argv;
 {
-  int c;
-  int digit_gnuoptind = 0;
+	int c;
+	int digit_gnuoptind = 0;
 
-  while (1)
-    {
-      int this_option_gnuoptind = gnuoptind ? gnuoptind : 1;
-      int option_index = 0;
-      static struct option long_options[] =
-      {
-	{"add", 1, 0, 0},
-	{"append", 0, 0, 0},
-	{"delete", 1, 0, 0},
-	{"verbose", 0, 0, 0},
-	{"create", 0, 0, 0},
-	{"file", 1, 0, 0},
-	{0, 0, 0, 0}
-      };
-
-      c = getopt_long (argc, argv, "abc:d:0123456789",
-		       long_options, &option_index);
-      if (c == -1)
-	break;
-
-      switch (c)
+	while (1)
 	{
-	case 0:
-	  printf ("option %s", long_options[option_index].name);
-	  if (gnuoptarg)
-	    printf (" with arg %s", gnuoptarg);
-	  printf ("\n");
-	  break;
+		int this_option_gnuoptind = gnuoptind ? gnuoptind : 1;
+		int option_index = 0;
+		static struct option long_options[] =
+		{
+			{"add", 1, 0, 0},
+			{"append", 0, 0, 0},
+			{"delete", 1, 0, 0},
+			{"verbose", 0, 0, 0},
+			{"create", 0, 0, 0},
+			{"file", 1, 0, 0},
+			{0, 0, 0, 0}
+		};
 
-	case '0':
-	case '1':
-	case '2':
-	case '3':
-	case '4':
-	case '5':
-	case '6':
-	case '7':
-	case '8':
-	case '9':
-	  if (digit_gnuoptind != 0 && digit_gnuoptind != this_option_gnuoptind)
-	    printf ("digits occur in two different argv-elements.\n");
-	  digit_gnuoptind = this_option_gnuoptind;
-	  printf ("option %c\n", c);
-	  break;
+		c = getopt_long (argc, argv, "abc:d:0123456789",
+		                 long_options, &option_index);
+		if (c == -1)
+			break;
 
-	case 'a':
-	  printf ("option a\n");
-	  break;
+		switch (c)
+		{
+		case 0:
+			printf ("option %s", long_options[option_index].name);
+			if (gnuoptarg)
+				printf (" with arg %s", gnuoptarg);
+			printf ("\n");
+			break;
 
-	case 'b':
-	  printf ("option b\n");
-	  break;
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			if (digit_gnuoptind != 0 && digit_gnuoptind != this_option_gnuoptind)
+				printf ("digits occur in two different argv-elements.\n");
+			digit_gnuoptind = this_option_gnuoptind;
+			printf ("option %c\n", c);
+			break;
 
-	case 'c':
-	  printf ("option c with value `%s'\n", gnuoptarg);
-	  break;
+		case 'a':
+			printf ("option a\n");
+			break;
 
-	case 'd':
-	  printf ("option d with value `%s'\n", gnuoptarg);
-	  break;
+		case 'b':
+			printf ("option b\n");
+			break;
 
-	case '?':
-	  break;
+		case 'c':
+			printf ("option c with value `%s'\n", gnuoptarg);
+			break;
 
-	default:
-	  printf ("?? getopt returned character code 0%o ??\n", c);
+		case 'd':
+			printf ("option d with value `%s'\n", gnuoptarg);
+			break;
+
+		case '?':
+			break;
+
+		default:
+			printf ("?? getopt returned character code 0%o ??\n", c);
+		}
 	}
-    }
 
-  if (gnuoptind < argc)
-    {
-      printf ("non-option ARGV-elements: ");
-      while (gnuoptind < argc)
-	printf ("%s ", argv[gnuoptind++]);
-      printf ("\n");
-    }
+	if (gnuoptind < argc)
+	{
+		printf ("non-option ARGV-elements: ");
+		while (gnuoptind < argc)
+			printf ("%s ", argv[gnuoptind++]);
+		printf ("\n");
+	}
 
-  exit (0);
+	exit (0);
 }
 
 #endif /* TEST */

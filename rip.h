@@ -32,8 +32,9 @@ typedef struct {
  */
 sendip_option rip_opts[] = {
 	{"v",1,"RIP version","2"},
-	{"c",1,
-	 "RIP command (1=request, 2=response, 3=traceon (obsolete), 4=traceoff (obsolete), 5=poll (undocumented), 6=poll entry (undocumented)","1"},
+	{	"c",1,
+		"RIP command (1=request, 2=response, 3=traceon (obsolete), 4=traceoff (obsolete), 5=poll (undocumented), 6=poll entry (undocumented)","1"
+	},
 	{"e",1,"Add a RIP entry.  Format is: Address family:route tag:address:subnet mask:next hop:metric","2:0:0.0.0.0:255.255.255.0:0.0.0.0:16, any option my be left out to use the default"},
 	{"a",1,"RIP authenticate packet, argument is the password; do not use any other RIP options on this RIP header",NULL},
 	{"d",0,"RIP default request - get router's entire routing table; do not use any other RIP options on this RIP header",NULL}

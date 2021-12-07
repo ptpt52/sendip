@@ -129,7 +129,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack)
+              sendip_data *data, sendip_data *pack)
 {
 	frag_header *frag = (frag_header *)pack->data;
 
@@ -140,7 +140,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 
 int num_opts()
 {
-	return sizeof(frag_opts)/sizeof(sendip_option); 
+	return sizeof(frag_opts)/sizeof(sendip_option);
 }
 
 sendip_option *get_opts()

@@ -125,7 +125,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
-			sendip_data *data, sendip_data *pack)
+              sendip_data *data, sendip_data *pack)
 {
 	wesp_header *wesp = (wesp_header *)pack->data;
 	/* Sanity check - if the user is doing something funky and
@@ -152,19 +152,19 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		if (wesp->encrypted)
 			wesp->hdrlen = 0;
 		else {
-		/* hdrlen is the length from the start of WESP header to
-		 * the start of the post-IV payload.
-		 */
+			/* hdrlen is the length from the start of WESP header to
+			 * the start of the post-IV payload.
+			 */
 			wesp->hdrlen = pack->alloc_len +
-					sizeof(struct ip_esp_hdr) +
-						priv->ivlen;
+			               sizeof(struct ip_esp_hdr) +
+			               priv->ivlen;
 		}
 	}
 	if (!(pack->modified&WESP_MOD_TRLRLEN)) {
 		if (wesp->encrypted)
 			wesp->trlrlen = 0;
 		else {
-		/* trlrlen is just the ICV length */
+			/* trlrlen is just the ICV length */
 			wesp->trlrlen = priv->icvlen;
 		}
 	}
@@ -173,7 +173,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 
 int num_opts()
 {
-	return sizeof(wesp_opts)/sizeof(sendip_option); 
+	return sizeof(wesp_opts)/sizeof(sendip_option);
 }
 
 sendip_option *get_opts()
