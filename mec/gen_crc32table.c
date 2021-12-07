@@ -54,8 +54,11 @@ static void output_table(uint32_t table[], int len, const char *trans)
 
 	for (i = 0; i < len - 1; i++) {
 		if (i % ENTRIES_PER_LINE == 0)
-			printf("\n");
-		printf("%s(0x%8.8xL), ", trans, table[i]);
+			printf("\n\t");
+		if ((i + 1) % ENTRIES_PER_LINE == 0)
+			printf("%s(0x%8.8xL),", trans, table[i]);
+		else
+			printf("%s(0x%8.8xL), ", trans, table[i]);
 	}
 	printf("%s(0x%8.8xL)\n", trans, table[len - 1]);
 }
