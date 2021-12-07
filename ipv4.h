@@ -2,6 +2,11 @@
  */
 #ifndef _SENDIP_IP_H
 #define _SENDIP_IP_H
+#if defined(__APPLE__)
+#ifndef __FreeBSD__
+#define __FreeBSD__
+#endif
+#endif
 
 /* IP HEADER
  * Taken from glibc 2.2, and modified
