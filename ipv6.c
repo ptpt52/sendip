@@ -51,37 +51,29 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 	switch(opt[1]) {
 	case 'f':
-		/* TODO : This looks byte-order dependent */
-		/*@@ hdr->ip6_flow |= htonl((u_int32_t)strtoul(arg, (char **)NULL, 0) & 0xFFF00000);*/
-		hdr->ip6_flow |= (integerargument(arg, 4) & 0xFFF00000);
+		hdr->ip6_flow |= htonl(hostintegerargument(arg, 4) & 0x000FFFFF);
 		pack->modified |= IPV6_MOD_FLOW;
 		break;
 	case 't':
-		/* TODO : This looks byte-order dependent */
-		/*@@ hdr->ip6_flow |= htonl(((u_int32_t)strtoul(arg, (char **)NULL, 0) << 20) & 0x0F000000);*/
-		hdr->ip6_flow |= (htonl(hostintegerargument(arg, 4) << 20) & 0x0F000000);
+		hdr->ip6_flow |= htonl((hostintegerargument(arg, 4) << 20) & 0x00F00000);
 		pack->modified |= IPV6_MOD_FLOW;
 		break;
 	case 'v':
 		hdr->ip6_vfc &= 0x0F;
-		/*@@ hdr->ip6_vfc |= (u_int8_t)(strtoul(arg, (char **)NULL, 0) &0x0F) << 4;*/
-		hdr->ip6_vfc |= (u_int8_t)((integerargument(arg,1) &0x0F) << 4);
+		hdr->ip6_vfc |= (u_int8_t)((hostintegerargument(arg,1) & 0x0F) << 4);
 		pack->modified |= IPV6_MOD_VERSION;
 		break;
 	case 'p':
 		hdr->ip6_vfc &= 0xF0;
-		/*@@ hdr->ip6_vfc |= (u_int8_t)strtoul(arg, (char **)NULL, 0) & 0x0F;*/
-		hdr->ip6_vfc |= (u_int8_t)(integerargument(arg, 1) & 0x0F);
+		hdr->ip6_vfc |= (u_int8_t)(hostintegerargument(arg, 1) & 0x0F);
 		pack->modified |= IPV6_MOD_PRIORITY;
 		break;
 	case 'l':
-		/*@@ hdr->ip6_plen = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
 		hdr->ip6_plen = integerargument(arg, 2);
 		pack->modified |= IPV6_MOD_PLEN;
 		break;
 	case 'h':
-		/*@@ hdr->ip6_hlim = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
-		hdr->ip6_hlim = integerargument(arg, 1);
+		hdr->ip6_hlim = hostintegerargument(arg, 1);
 		pack->modified |= IPV6_MOD_HLIM;
 		break;
 	case 'n':
