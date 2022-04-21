@@ -326,13 +326,13 @@ static bool load_module(char *modname) {
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
-	printf("Usage: %s [-v] [-l loopcount] [-t time] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
+	printf("Usage: %s [-v] [-l loopcount] [-T time] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
 	printf(" -d data\tadd this data as a string to the end of the packet\n");
 	printf(" -f datafile\tread packet data from file\n");
 	printf(" -h\t\thelp (this message)\n");
 	printf(" -l loopcount\trun loopcount times (0 means indefinitely)\n");
 	printf(" -p module\tload the specified module (see below)\n");
-	printf(" -t time\twait time seconds between each loop run (0 means as fast as possible)\n");
+	printf(" -T time\twait time seconds between each loop run (0 means as fast as possible)\n");
 	printf(" -v\t\tbe verbose\n");
 
 	printf("\n\nPacket data, and argument values for many header fields, may\n");
@@ -443,7 +443,7 @@ int main(int argc, char *const argv[]) {
 	/* First, get all the builtin options, and load the modules */
 	gnuopterr=0;
 	gnuoptind=0;
-	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:l:t:vd:hf:")))) {
+	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:l:T:vd:hf:")))) {
 		switch(optc) {
 		case 'p':
 			if(load_module(gnuoptarg))
@@ -452,7 +452,7 @@ int main(int argc, char *const argv[]) {
 		case 'l':
 			loopcount = atoi(gnuoptarg);
 			break;
-		case 't':
+		case 'T':
 			delaytime = atoi(gnuoptarg);
 			break;
 		case 'v':
@@ -559,7 +559,7 @@ int main(int argc, char *const argv[]) {
 		 * packets.
 		 */
 		currentmod = NULL;
-		while(EOF != (optc=getopt_long_only(argc,argv,"p:l:t:vd:hf:",opts,&longindex))) {
+		while(EOF != (optc=getopt_long_only(argc,argv,"p:l:T:vd:hf:",opts,&longindex))) {
 
 			switch(optc) {
 			case 'p':
@@ -574,7 +574,7 @@ int main(int argc, char *const argv[]) {
 			case 'f':
 			case 'h':
 			case 'l':/*@@*/
-			case 't':/*@@*/
+			case 'T':/*@@*/
 				/* Processed above */
 				break;
 			case ':':
