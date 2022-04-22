@@ -23,7 +23,17 @@ typedef struct {
 			uint8_t  ip6_un1_nxt;    /* next header */
 			uint8_t  ip6_un1_hlim;   /* hop limit */
 		} ip6_un1;
-		uint8_t ip6_un2_vfc;       /* 4 bits version, 4 bits priority */
+		struct ip6_hdr_vfc {
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+			uint8_t priority:4;
+			uint8_t version:4;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+			uint8_t version:4;
+			uint8_t priority:4;
+#else
+#  error "Please fix <bits/endian.h>"
+#endif
+		} ip6_un2_vfc;
 	} ip6_ctlun;
 	struct in6_addr ip6_src;      /* source address */
 	struct in6_addr ip6_dst;      /* destination address */

@@ -61,13 +61,11 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified |= IPV6_MOD_FLOW;
 		break;
 	case 'v':
-		hdr->ip6_vfc &= 0x0F;
-		hdr->ip6_vfc |= (u_int8_t)((hostintegerargument(arg,1) & 0x0F) << 4);
+		hdr->ip6_vfc.version |= (u_int8_t)(hostintegerargument(arg,1) & 0x0F);
 		pack->modified |= IPV6_MOD_VERSION;
 		break;
 	case 'p':
-		hdr->ip6_vfc &= 0xF0;
-		hdr->ip6_vfc |= (u_int8_t)(hostintegerargument(arg, 1) & 0x0F);
+		hdr->ip6_vfc.priority |= (u_int8_t)(hostintegerargument(arg, 1) & 0x0F);
 		pack->modified |= IPV6_MOD_PRIORITY;
 		break;
 	case 'l':
@@ -108,8 +106,8 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	ipv6_header *ipv6 = (ipv6_header *)pack->data;
 
 	if(!(pack->modified&IPV6_MOD_VERSION)) {
-		ipv6->ip6_vfc &= 0x0F;
-		ipv6->ip6_vfc |= (6 << 4);
+		ipv6->ip6_vfc.priority = 0;
+		ipv6->ip6_vfc.version = 6;
 	}
 	if(!(pack->modified&IPV6_MOD_PLEN)) {
 		ipv6->ip6_plen = htons(data->alloc_len);

@@ -207,8 +207,7 @@ ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 
 	(void) memset(&pseudoip, 0, sizeof(pseudoip));
 	if (!(ipack->modified & IPV6_MOD_VERSION)) {
-		pseudoip.ip6_vfc &= 0x0F;
-		pseudoip.ip6_vfc |= (6 << 4);
+		pseudoip.ip6_vfc.version |= 6;
 	} else
 		pseudoip.ip6_vfc = realip->ip6_vfc;
 	if (!(ipack->modified & IPV6_MOD_PLEN)) {
