@@ -106,8 +106,14 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	ipv6_header *ipv6 = (ipv6_header *)pack->data;
 
 	if(!(pack->modified&IPV6_MOD_VERSION)) {
-		ipv6->ip6_vfc.priority = 0;
 		ipv6->ip6_vfc.version = 6;
+	}
+	if(!(pack->modified&IPV6_MOD_PRIORITY)) {
+		if (!((pack->modified&IPV6_MOD_FLOW) && (ipv6->ip6_vfc.priority&0xF)))
+			ipv6->ip6_vfc.priority = 0;
+	}
+	if(!(pack->modified&IPV6_MOD_FLOW)) {
+		ipv6->ip6_flow &= htonl(~0x00FFFFFF);
 	}
 	if(!(pack->modified&IPV6_MOD_PLEN)) {
 		ipv6->ip6_plen = htons(data->alloc_len);
