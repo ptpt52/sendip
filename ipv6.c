@@ -56,8 +56,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified |= IPV6_MOD_FLOW;
 		break;
 	case 't':
-		hdr->ip6_flow &= htonl(0x00F00000);
-		hdr->ip6_flow |= htonl((hostintegerargument(arg, 4) << 20) & 0x00F00000);
+		hdr->ip6_flow &= htonl(0x0FF00000);
+		hdr->ip6_flow |= htonl((hostintegerargument(arg, 4) << 20) & 0x0FF00000);
 		pack->modified |= IPV6_MOD_FLOW;
 		break;
 	case 'v':
