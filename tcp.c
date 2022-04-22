@@ -72,7 +72,7 @@ static void tcp6csum(sendip_data *ipv6_hdr, sendip_data *tcp_hdr,
 	memset(&phdr,0,sizeof(phdr));
 	memcpy(&phdr.source,&ipv6->ip6_src,sizeof(struct in6_addr));
 	memcpy(&phdr.destination,&ipv6->ip6_dst,sizeof(struct in6_addr));
-	phdr.ulp_length=htobe32(tcp_hdr->alloc_len+data->alloc_len);
+	phdr.ulp_length=htonl(tcp_hdr->alloc_len+data->alloc_len);
 	phdr.nexthdr=IPPROTO_TCP;
 
 	memcpy(tempbuf,&phdr,sizeof(phdr));

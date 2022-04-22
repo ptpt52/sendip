@@ -65,7 +65,7 @@ static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
 	memset(&phdr,0,sizeof(phdr));
 	memcpy(&phdr.source,&ipv6->ip6_src,sizeof(struct in6_addr));
 	memcpy(&phdr.destination,&ipv6->ip6_dst,sizeof(struct in6_addr));
-	phdr.ulp_length=htobe32(udp_hdr->alloc_len+data->alloc_len);
+	phdr.ulp_length=htonl(udp_hdr->alloc_len+data->alloc_len);
 	phdr.nexthdr=IPPROTO_UDP;
 
 	memcpy(tempbuf,&phdr,sizeof(phdr));
