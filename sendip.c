@@ -125,16 +125,16 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 
 	if(verbose) {
 		int i, j;
-		printf("Final packet data:\n");
+		fprintf(stderr, "Final packet data:\n");
 		for(i=0; i<data->alloc_len; ) {
 			for(j=0; j<4 && i+j<data->alloc_len; j++)
-				printf("%02X ", ((unsigned char *)(data->data))[i+j]);
-			printf("  ");
+				fprintf(stderr, "%02X ", ((unsigned char *)(data->data))[i+j]);
+			fprintf(stderr, "  ");
 			for(j=0; j<4 && i+j<data->alloc_len; j++) {
 				int c=(int) ((unsigned char *)(data->data))[i+j];
-				printf("%c", isprint(c)?((char *)(data->data))[i+j]:'.');
+				fprintf(stderr, "%c", isprint(c)?((char *)(data->data))[i+j]:'.');
 			}
-			printf("\n");
+			fprintf(stderr, "\n");
 			i+=j;
 		}
 	}
@@ -169,7 +169,7 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 		int optlen = iphdr->header_len*4-20;
 
 		if(verbose)
-			printf("Solaris workaround enabled for %d IP option bytes\n", optlen);
+			fprintf(stderr, "Solaris workaround enabled for %d IP option bytes\n", optlen);
 
 		iphdr->tot_len = htons(ntohs(iphdr->tot_len)-optlen);
 
@@ -186,7 +186,7 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 	/* Send the packet */
 	sent = sendto(s, (char *)data->data, data->alloc_len, 0, (void *)to, tolen);
 	if (sent == data->alloc_len) {
-		if(verbose) printf("Sent %d bytes to %s\n",sent,hostname);
+		if(verbose) fprintf(stderr, "Sent %d bytes to %s\n",sent,hostname);
 	} else {
 		if (sent < 0)
 			perror("sendto");
@@ -204,7 +204,7 @@ static void unload_modules(bool freeit, int verbosity) {
 	sendip_module *mod, *p;
 	p = NULL;
 	for(mod=first; mod!=NULL; mod=mod->next) {
-		if(verbosity) printf("Freeing module %s\n",mod->name);
+		if(verbosity) fprintf(stderr, "Freeing module %s\n",mod->name);
 		if(p) free(p);
 		p = mod;
 		free(mod->name);
@@ -326,77 +326,77 @@ static bool load_module(char *modname) {
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
-	printf("Usage: %s [-v] [-l loopcount] [-T time] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
-	printf(" -d data\tadd this data as a string to the end of the packet\n");
-	printf(" -f datafile\tread packet data from file\n");
-	printf(" -h\t\thelp (this message)\n");
-	printf(" -l loopcount\trun loopcount times (0 means indefinitely)\n");
-	printf(" -p module\tload the specified module (see below)\n");
-	printf(" -T time\twait time seconds between each loop run (0 means as fast as possible)\n");
-	printf(" -v\t\tbe verbose\n");
+	fprintf(stderr, "Usage: %s [-v] [-l loopcount] [-T time] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
+	fprintf(stderr, " -d data\tadd this data as a string to the end of the packet\n");
+	fprintf(stderr, " -f datafile\tread packet data from file\n");
+	fprintf(stderr, " -h\t\thelp (this message)\n");
+	fprintf(stderr, " -l loopcount\trun loopcount times (0 means indefinitely)\n");
+	fprintf(stderr, " -p module\tload the specified module (see below)\n");
+	fprintf(stderr, " -T time\twait time seconds between each loop run (0 means as fast as possible)\n");
+	fprintf(stderr, " -v\t\tbe verbose\n");
 
-	printf("\n\nPacket data, and argument values for many header fields, may\n");
-	printf("specified as\n");
-	printf(" rN\tto generate N random(ish) data bytes;\n");
-	printf(" zN\tto generate N nul (zero) data bytes;\n");
-	printf(" tN\tto generate a timestamp (16 bytes) padded with N-16 nul (zero) bytes;\n");
-	printf(" fF\tto read values from file F;\n");
-	printf(" 0x or 0X\tfollowed by hex digits;\n");
-	printf(" 0\tfollowed by octal digits;\n");
-	printf(" 1-9\tfollowed by decimal number for decimal digits;\n");
-	printf("Any other stream of bytes is taken literally.\n");
-	printf("\nIPv4 addresses may be specified by the methods above,\n");
-	printf("or by CIDR-style notation to indicate a random host address\n");
-	printf("within a subnet.\n");
+	fprintf(stderr, "\n\nPacket data, and argument values for many header fields, may\n");
+	fprintf(stderr, "specified as\n");
+	fprintf(stderr, " rN\tto generate N random(ish) data bytes;\n");
+	fprintf(stderr, " zN\tto generate N nul (zero) data bytes;\n");
+	fprintf(stderr, " tN\tto generate a timestamp (16 bytes) padded with N-16 nul (zero) bytes;\n");
+	fprintf(stderr, " fF\tto read values from file F;\n");
+	fprintf(stderr, " 0x or 0X\tfollowed by hex digits;\n");
+	fprintf(stderr, " 0\tfollowed by octal digits;\n");
+	fprintf(stderr, " 1-9\tfollowed by decimal number for decimal digits;\n");
+	fprintf(stderr, "Any other stream of bytes is taken literally.\n");
+	fprintf(stderr, "\nIPv4 addresses may be specified by the methods above,\n");
+	fprintf(stderr, "or by CIDR-style notation to indicate a random host address\n");
+	fprintf(stderr, "within a subnet.\n");
 
-	printf("\nFor example, the arguments\n\t-p ipv4 -is 10.1.1.0/24 -p udp -us r2\n");
-	printf("generate a random 10.1.1.xx source address and random udp source port.\n\n");
+	fprintf(stderr, "\nFor example, the arguments\n\t-p ipv4 -is 10.1.1.0/24 -p udp -us r2\n");
+	fprintf(stderr, "generate a random 10.1.1.xx source address and random udp source port.\n\n");
 
-	printf("sendip may be run repeatedly by using the -l (loop) argument.\n");
-	printf("Each packet sent will be identical unless random (rN) or\n");
-	printf("file (fF) arguments are used.\n");
-	printf("When looping, sendip will send packets as quickly as possible\n");
-	printf("unless a time delay (-t) argument is specified.\n");
-	printf("\nFile arguments are read line by line, with the contents of\n");
-	printf("the line then substituted for the corresponding argument.\n");
-	printf("For example, assume the file F contains the four lines:\n");
-	printf("\n\t10.1.1.1\n");
-	printf("\n\t1000\n");
-	printf("\n\t10.1.1.2\n");
-	printf("\n\t2000\n");
-	printf("\nThen the arguments\n\n\t-l 2 -p ipv4 -id fF -p udp -ud fF\n");
-	printf("\nwould produce two UDP packets, one to 10.1.1.1:1000 and\n");
-	printf("one to 10.1.1.2:2000\n");
-	printf("When the lines in the file are exhausted, it is rewound\n");
-	printf("and read from the beginning again.\n");
+	fprintf(stderr, "sendip may be run repeatedly by using the -l (loop) argument.\n");
+	fprintf(stderr, "Each packet sent will be identical unless random (rN) or\n");
+	fprintf(stderr, "file (fF) arguments are used.\n");
+	fprintf(stderr, "When looping, sendip will send packets as quickly as possible\n");
+	fprintf(stderr, "unless a time delay (-t) argument is specified.\n");
+	fprintf(stderr, "\nFile arguments are read line by line, with the contents of\n");
+	fprintf(stderr, "the line then substituted for the corresponding argument.\n");
+	fprintf(stderr, "For example, assume the file F contains the four lines:\n");
+	fprintf(stderr, "\n\t10.1.1.1\n");
+	fprintf(stderr, "\n\t1000\n");
+	fprintf(stderr, "\n\t10.1.1.2\n");
+	fprintf(stderr, "\n\t2000\n");
+	fprintf(stderr, "\nThen the arguments\n\n\t-l 2 -p ipv4 -id fF -p udp -ud fF\n");
+	fprintf(stderr, "\nwould produce two UDP packets, one to 10.1.1.1:1000 and\n");
+	fprintf(stderr, "one to 10.1.1.2:2000\n");
+	fprintf(stderr, "When the lines in the file are exhausted, it is rewound\n");
+	fprintf(stderr, "and read from the beginning again.\n");
 
-	printf("\n\nModules are loaded in the order the -p option appears.  The headers from\n");
-	printf("each module are put immediately inside the headers from the previous module in\n");
-	printf("the final packet.  For example, to embed bgp inside tcp inside ipv4, do\n");
-	printf("sendip -p ipv4 -p tcp -p bgp ....\n");
+	fprintf(stderr, "\n\nModules are loaded in the order the -p option appears.  The headers from\n");
+	fprintf(stderr, "each module are put immediately inside the headers from the previous module in\n");
+	fprintf(stderr, "the final packet.  For example, to embed bgp inside tcp inside ipv4, do\n");
+	fprintf(stderr, "sendip -p ipv4 -p tcp -p bgp ....\n");
 
-	printf("\n\nModules may be repeated to create multiple instances of a given header\n");
-	printf("type. For example, to create an ipip tunneled packet (ipv4 inside ipv4), do\n");
-	printf("sendip -p ipv4 <outer header arguments> -p ipv4 <inner header arguments> ....\n");
-	printf("In the case of repeated modules, arguments are applied to the closest matching\n");
-	printf("module in the command line.\n");
+	fprintf(stderr, "\n\nModules may be repeated to create multiple instances of a given header\n");
+	fprintf(stderr, "type. For example, to create an ipip tunneled packet (ipv4 inside ipv4), do\n");
+	fprintf(stderr, "sendip -p ipv4 <outer header arguments> -p ipv4 <inner header arguments> ....\n");
+	fprintf(stderr, "In the case of repeated modules, arguments are applied to the closest matching\n");
+	fprintf(stderr, "module in the command line.\n");
 
 
-	printf("\n\nModules available at compile time:\n");
-	printf("\tipv4 ipv6 icmp tcp udp bgp rip ripng ntp\n");
-	printf("\tah dest esp frag gre hop route sctp wesp.\n\n");
+	fprintf(stderr, "\n\nModules available at compile time:\n");
+	fprintf(stderr, "\tipv4 ipv6 icmp tcp udp bgp rip ripng ntp\n");
+	fprintf(stderr, "\tah dest esp frag gre hop route sctp wesp.\n\n");
 	for(mod=first; mod!=NULL; mod=mod->next) {
 		char *shortname = strrchr(mod->name, '/');
 
 		if (!shortname) shortname = mod->name;
 		else ++shortname;
-		printf("\n\nArguments for module %s:\n",shortname);
+		fprintf(stderr, "\n\nArguments for module %s:\n",shortname);
 		for(i=0; i<mod->num_opts; i++) {
-			printf("   -%c%s %c\t%s\n",mod->optchar,
+			fprintf(stderr, "   -%c%s %c\t%s\n",mod->optchar,
 			       mod->opts[i].optname,mod->opts[i].arg?'x':' ',
 			       mod->opts[i].description);
-			if(mod->opts[i].def) printf("   \t\t  Default: %s\n",
-				                            mod->opts[i].def);
+			if(mod->opts[i].def) fprintf(stderr, "   \t\t  Default: %s\n",
+				                             mod->opts[i].def);
 		}
 	}
 
@@ -540,11 +540,11 @@ int main(int argc, char *const argv[]) {
 				i++;
 			}
 		}
-		if(verbosity) printf("Added %d options\n",num_opts);
+		if(verbosity) fprintf(stderr, "Added %d options\n",num_opts);
 
 		/* Initialize all */
 		for(mod=first; mod!=NULL; mod=mod->next) {
-			if(verbosity) printf("Initializing module %s\n",mod->name);
+			if(verbosity) fprintf(stderr, "Initializing module %s\n",mod->name);
 			/*@@ if looping, check if reloading */
 			/*@@*/if (mod->pack) free(mod->pack);
 			mod->pack=mod->initialize();
@@ -696,7 +696,7 @@ int main(int argc, char *const argv[]) {
 
 			for(i=num_modules-1,mod=last; mod!=NULL; mod=mod->prev,i--) {
 
-				if(verbosity) printf("Finalizing module %s\n",mod->name);
+				if(verbosity) fprintf(stderr, "Finalizing module %s\n",mod->name);
 				/* Remove this header from enclosing list */
 				/* @@ Don't erase the header type, so that
 				 * it's available to upper-level headers where

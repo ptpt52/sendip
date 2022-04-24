@@ -435,7 +435,7 @@ buf_dump(char const *prefix, unsigned char const *buf, size_t len)
 	fputs(prefix, stdout);
 	while (len--)
 		printf(" %02x", *buf++);
-	putchar('\n');
+	fputc('\n', stderr);
 
 }
 #endif

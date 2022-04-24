@@ -63,8 +63,8 @@ printargs(char *args[], int n)
 	int i;
 
 	for (i=0; i < n; ++i)
-		printf("%d %s ", i, args[i]);
-	printf("\n");
+		fprintf(stderr, "%d %s ", i, args[i]);
+	fprintf(stderr, "\n");
 }
 
 main(int argc, char **argv)

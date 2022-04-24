@@ -361,15 +361,15 @@ main()
 
 	fa_init();
 	while (1) {
-		printf("file? ");
+		fprintf(stderr, "file? ");
 		fgets(arg, BUFSIZ, stdin);
 		arg[strlen(arg)-1] = '\0';
 		if (!arg[0]) break;
 		line = filearg(arg);
 		if (line) {
-			printf("%s: %s\n", arg, line);
+			fprintf(stderr, "%s: %s\n", arg, line);
 		} else {
-			printf("%s: not found\n", arg);
+			fprintf(stderr, "%s: not found\n", arg);
 		}
 	}
 	fa_close();

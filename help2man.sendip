@@ -175,7 +175,7 @@ setlocale LC_TIME, 'C';
 
 my $mods = `echo ./*.so ./*/*.so`;
 $mods =~ s/\.\//-p \.\//g;
-my $command = "./sendip 2>/dev/null -h $mods";
+my $command = "./sendip 2>&1 -h $mods";
 
 my $help_text = join '', map { s/ +$//; expand $_ } `$command`
 	 or die "$this_program: can't get `-$_' info from ./sendip\n";
