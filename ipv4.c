@@ -32,12 +32,13 @@ static void ipcsum(sendip_data *ip_hdr) {
 }
 
 /* This builds a source route format option from an argument */
-static u_int8_t buildroute(char *data) {
+static u_int8_t buildroute(char *data, sendip_data *pack) {
 	char *data_out = data;
 	char *data_in = data;
 	char *next;
-	u_int8_t p='0';
 	int i;
+	u_int8_t p='0';
+	u_int8_t hit_p = 0;
 	/* First, the first 2 bytes give us the pointer */
 	for(i=0; i<2; i++) {
 		p<<=4;
@@ -72,6 +73,11 @@ static u_int8_t buildroute(char *data) {
 		ip=ipv4argument(data_in, strlen(data_in));
 		memcpy(data_out,&ip,4);
 		data_out+=4;
+		hit_p+=4;
+		if (pack && !(pack->modified & IP_MOD_ROUTE_DADDR) && hit_p == p) {
+			pack->modified |= IP_MOD_ROUTE_DADDR;
+			pack->route_daddr = ip;
+		}
 		data_in = next;
 	}
 
@@ -255,7 +261,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				fprintf(stderr,"Out of memory!\n");
 				return FALSE;
 			}
-			len = buildroute(data);
+			len = buildroute(data, NULL);
 			if(len==0) {
 				free(data);
 				return FALSE;
@@ -398,7 +404,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				fprintf(stderr,"Out of memory!\n");
 				return FALSE;
 			}
-			len = buildroute(data);
+			len = buildroute(data, pack);
 			if(len==0) {
 				free(data);
 				return FALSE;
@@ -421,7 +427,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				fprintf(stderr,"Out of memory!\n");
 				return FALSE;
 			}
-			len = buildroute(data);
+			len = buildroute(data, pack);
 			if(len==0) {
 				free(data);
 				return FALSE;

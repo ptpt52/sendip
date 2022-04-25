@@ -74,6 +74,7 @@ typedef struct {
 #define IP_MOD_CHECK      (1<<11)
 #define IP_MOD_SADDR      (1<<12)
 #define IP_MOD_DADDR      (1<<13)
+#define IP_MOD_ROUTE_DADDR      (1<<14)
 
 /* Options
  */

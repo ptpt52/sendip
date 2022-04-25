@@ -130,12 +130,22 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	/* Find enclosing IP header and do the checksum */
 	i = outer_header(hdrs, index, "i6");/*@@*/
 	if(hdrs[i]=='i') {
+		unsigned int old_daddr = 0;
 		if(!(headers[i]->modified&IP_MOD_PROTOCOL)) {
 			((ip_header *)(headers[i]->data))->protocol=IPPROTO_UDP;
 			headers[i]->modified |= IP_MOD_PROTOCOL;
 		}
+		//replace ip daddr
+		if((headers[i]->modified & IP_MOD_ROUTE_DADDR)) {
+			old_daddr=((ip_header *)(headers[i]->data))->daddr;
+			((ip_header *)(headers[i]->data))->daddr=headers[i]->route_daddr;
+		}
 		if(!(pack->modified&UDP_MOD_CHECK)) {
 			udpcsum(headers[i],pack,data);
+		}
+		//restore ip daddr
+		if((headers[i]->modified & IP_MOD_ROUTE_DADDR)) {
+			((ip_header *)(headers[i]->data))->daddr=old_daddr;
 		}
 	} else if(hdrs[i]=='6') {
 		// @@ This is subsumed by my new code which determines the

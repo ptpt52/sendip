@@ -24,6 +24,7 @@ typedef struct {
 	void *data;
 	int alloc_len;
 	unsigned int modified;
+	unsigned int route_daddr;
 	void *private;		/* @@ Untouched by sendip main */
 } sendip_data;
 
