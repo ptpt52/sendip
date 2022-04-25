@@ -444,6 +444,12 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 }
 
+bool do_pad(sendip_data *pack) {
+	while ((pack->alloc_len+3)/4 != (pack->alloc_len)/4)
+		addoption(0,0,0,1,NULL,pack);
+	return TRUE;
+}
+
 bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	ip_header *iph = (ip_header *)pack->data;

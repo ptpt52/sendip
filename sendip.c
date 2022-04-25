@@ -52,6 +52,7 @@ typedef struct _s_m {
 	sendip_data * (*initialize)(void);
 	bool (*do_opt)(const char *optstring, const char *optarg,
 	               sendip_data *pack);
+	bool (*do_pad)(sendip_data *pack);
 	bool (*set_addr)(char *hostname, sendip_data *pack);
 	bool (*finalize)(char *hdrs, sendip_data *headers[], int index,
 	                 sendip_data *data, sendip_data *pack);
@@ -278,6 +279,7 @@ static bool load_module(char *modname) {
 		free(newmod);
 		return FALSE;
 	}
+	newmod->do_pad=dlsym(newmod->handle,"do_pad");
 	newmod->set_addr=dlsym(newmod->handle,"set_addr"); // don't care if fails
 	if(NULL==(newmod->finalize=dlsym(newmod->handle,"finalize"))) {
 		fprintf(stderr,"%s\n",dlerror());
@@ -656,6 +658,10 @@ int main(int argc, char *const argv[]) {
 			return 0;
 		}
 
+		for(mod=first; mod!=NULL; mod=mod->next) {
+			if (mod->do_pad)
+				mod->do_pad(mod->pack);
+		}
 
 		/* EVIL EVIL EVIL! */
 		/* Stick all the bits together.  This means that finalize better not
