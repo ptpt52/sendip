@@ -435,6 +435,8 @@ cidrargument(const char *input, char *slashpoint, int length)
 	struct in_addr cidrarg;
 	int slash;
 
+	(void)length;
+
 	strncpy(ipv4space, input, slashpoint-input);
 	ipv4space[slashpoint-input] = '\0';
 	inet_pton(AF_INET, ipv4space, &cidrarg);

@@ -130,7 +130,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				  */
 		if('0'<=*arg&&*arg<='9') {
 			/* either a number or an IP */
-			if((ntp->reference.ipaddr=inet_addr(arg))==-1) {
+			if((ntp->reference.ipaddr=inet_addr(arg))==INADDR_NONE) {
 				/* Not a valid IP, or really want 255.255.255.255 */
 				if(strcmp(arg,"255.255.255.255")) {
 					ntp->reference.ipaddr=htonl(strtol(arg,(char **)NULL,0));

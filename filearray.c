@@ -275,7 +275,7 @@ fa_create(const char *name)
 {
 	FILE *fp;
 	Filearray *answer;
-	int linelimit=0;
+	unsigned int linelimit=0;
 	struct stat statbuf;
 	char line[BUFSIZ];
 

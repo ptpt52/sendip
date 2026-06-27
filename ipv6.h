@@ -62,7 +62,7 @@ typedef struct {
 sendip_option ipv6_opts[] = {
 	{"f",1,"IPv6 flow ID","32"},
 	{"t",1,"IPv6 traffic class","0"},	/* also in flow label*/
-	{"v",1,"IP version (you probably don't want to change this)"},
+	{"v",1,"IP version (you probably don't want to change this)","6"},
 	{"p",1,"IPv6 priority","0"},
 	{"l",1,"IPv6 payload length","Correct"},
 	{"h",1,"IPv6 hop limit","32"},

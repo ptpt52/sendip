@@ -460,6 +460,8 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	ip_header *iph = (ip_header *)pack->data;
 
+	(void)headers;
+
 	if(!(pack->modified & IP_MOD_VERSION)) {
 		iph->version=4;
 	}

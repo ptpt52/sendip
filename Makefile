@@ -8,7 +8,7 @@ INSTALL ?= install
 #For Solaris, you may need
 #INSTALL=/usr/ucb/install
 
-CFLAGS +=	-fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
+CFLAGS +=	-fPIC -fsigned-char -pipe -Wall -Wextra -Wno-unused-parameter -Wpointer-arith -Wwrite-strings \
 			-Wstrict-prototypes -Wnested-externs -Winline -Werror \
 			-Wcast-align -O3 \
 			-DSENDIP_LIBS=\"$(LIBDIR)\"
@@ -50,7 +50,7 @@ fi"
 libsendipaux.a: $(LIBOBJS)
 	$(AR) vr $@ $?
 
-subdirs:
+subdirs: $(LIBS)
 	for subdir in $(SUBDIRS) ; do \
 		cd $$subdir ;\
 		make  ;\

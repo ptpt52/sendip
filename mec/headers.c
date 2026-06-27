@@ -24,9 +24,9 @@ struct sendip_headers sendip_headers[] = {
 	{'w', IPPROTO_WESP},
 	{0, IPPROTO_NONE},
 	/* These are placeholders */
-	{'n'},		/* ntp */
-	{'r'},		/* rip */
-	{'R'},		/* ripng */
+	{'n', 0},		/* ntp */
+	{'r', 0},		/* rip */
+	{'R', 0},		/* ripng */
 	/* These are base flags and can't be used for headers:
 	 * d f h p v
 	 */
