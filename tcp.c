@@ -208,13 +208,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		/* TCP OPTIONS */
 		if(!strcmp(opt+2, "num")) {
 			/* Other options (auto length) */
-			u_int8_t *data = malloc(strlen(arg)+2);
+			u_int8_t *data = malloc(strlen(arg)+3);
 			int len;
 			if(!data) {
 				fprintf(stderr,"Out of memory!\n");
 				return FALSE;
 			}
-			sprintf((char *)data,"0x%s",arg);
+			snprintf((char *)data, strlen(arg)+3, "0x%s",arg);
 			len = compact_string((char *)data);
 			if(len==1)
 				addoption(*data,1,NULL,pack);

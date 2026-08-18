@@ -68,7 +68,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	}
 	pack->modified |= RIP_IS_AUTH;
 	pack->data = realloc(pack->data,pack->alloc_len+strlen(arg));
-	strcpy(pack->data+pack->alloc_len,arg);
+	memcpy((char *)pack->data+pack->alloc_len,arg,strlen(arg));
 	pack->alloc_len += strlen(arg);
 	break;
 	*/

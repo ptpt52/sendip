@@ -233,12 +233,12 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		if(!strcmp(opt+2, "num")) {
 			/* Other options (auto length) */
 			u_int8_t cp, cls, num, len;
-			u_int8_t *data = malloc(strlen(arg)+2);
+			u_int8_t *data = malloc(strlen(arg)+3);
 			if(!data) {
 				fprintf(stderr,"Out of memory!\n");
 				return FALSE;
 			}
-			sprintf((char *)data,"0x%s",arg);
+			snprintf((char *)data, strlen(arg)+3, "0x%s",arg);
 			len = compact_string((char *)data);
 			cp=(*data&0x80)>>7;
 			cls=(*data&0x60)>>5;

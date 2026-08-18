@@ -238,22 +238,28 @@ static bool load_module(char *modname) {
 			}
 		}
 	@@*/
-	newmod->name=malloc(strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+2);
-	strcpy(newmod->name,modname);
+	newmod->name=malloc(strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6);
+	if (newmod->name == NULL) {
+		fprintf(stderr, "Out of memory!\n");
+		free(newmod);
+		return FALSE;
+	}
+	snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "%s", modname);
 	if(NULL==(newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
 		char *error0=strdup(dlerror());
-		sprintf(newmod->name,"./%s.so",modname);
+		snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "./%s.so",modname);
 		if(NULL==(newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
 			char *error1=strdup(dlerror());
-			sprintf(newmod->name,"%s/%s.so",SENDIP_LIBS,modname);
+			snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "%s/%s.so",SENDIP_LIBS,modname);
 			if(NULL==(newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
 				char *error2=strdup(dlerror());
-				sprintf(newmod->name,"%s/%s",SENDIP_LIBS,modname);
+				snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "%s/%s",SENDIP_LIBS,modname);
 				if(NULL==(newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
 					char *error3=strdup(dlerror());
 					fprintf(stderr,"Couldn't open module %s, tried:\n",modname);
 					fprintf(stderr,"  %s\n  %s\n  %s\n  %s\n", error0, error1,
 					        error2, error3);
+					free(newmod->name);
 					free(newmod);
 					free(error3);
 					return FALSE;
@@ -264,7 +270,7 @@ static bool load_module(char *modname) {
 		}
 		free(error0);
 	}
-	strcpy(newmod->name,modname);
+	snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "%s", modname);
 	if(NULL==(newmod->initialize=dlsym(newmod->handle,"initialize"))) {
 		fprintf(stderr,"%s doesn't have an initialize function: %s\n",modname,
 		        dlerror());

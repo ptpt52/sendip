@@ -83,7 +83,8 @@ main(int argc, char **argv)
 			n = parseargs(argv[1], args, NULL);
 			printargs(args, n);
 		}
-	} else while (gets(buffer)) {
+	} else while (fgets(buffer, sizeof(buffer), stdin)) {
+			buffer[strcspn(buffer, "\n")] = '\0';
 			n = parseargs(buffer, args, NULL);
 			printargs(args, n);
 		}

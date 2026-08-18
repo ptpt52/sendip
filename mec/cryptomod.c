@@ -68,13 +68,13 @@ load_crypto_module(char *modname)
 	memset(newmod, 0, sizeof(crypto_module));
 
 	newmod->name = (char *)
-	               malloc(strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+2);
+	               malloc(strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6);
 	for (i=0; namepats[i].pattern; ++i) {
 		if (namepats[i].dirarg) {
-			sprintf(newmod->name, namepats[i].pattern,
+			snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, namepats[i].pattern,
 			        namepats[i].dirarg, modname);
 		} else {
-			sprintf(newmod->name, namepats[i].pattern, modname);
+			snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, namepats[i].pattern, modname);
 		}
 		if ((newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
 			break;
