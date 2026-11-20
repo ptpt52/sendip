@@ -126,7 +126,6 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	u_int32_t parsed;
 	sctp_header *sctp = (sctp_header *)pack->data;
 	unsigned long svalue;
-	u_int32_t lvalue;
 	char *temp;
 	int length;
 	sctp_state *state=pack->private;
@@ -136,17 +135,16 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	switch(opt[1]) {
 	/* Overall header arguments are lowercase; chunk args are upper */
 	case 's':	/* SCTP source port (16 bits) */
-		pack->modified |= SCTP_MOD_SOURCE;
 		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
 		sctp->source = parsed;
+		pack->modified |= SCTP_MOD_SOURCE;
 		break;
 	case 'd':	/* SCTP destination port (16 bits) */
-		pack->modified |= SCTP_MOD_DEST;
 		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
 		sctp->dest = parsed;
+		pack->modified |= SCTP_MOD_DEST;
 		break;
 	case 'v':	/* SCTP vtag (32 bits) */
-		pack->modified |= SCTP_MOD_VTAG;
 		/* While the value should be 32 bits, let them specify
 		 * whatever they want. We only try to fit four bytes,
 		 * however.
@@ -159,11 +157,12 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		} else {
 			memcpy((void *)&sctp->vtag, temp, sizeof(u_int32_t));
 		}
+		pack->modified |= SCTP_MOD_VTAG;
 		break;
 	case 'c':	/* SCTP checksum (32 bits) */
-		pack->modified |= SCTP_MOD_CHECKSUM;
 		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
 		sctp->checksum = parsed;
+		pack->modified |= SCTP_MOD_CHECKSUM;
 		break;
 
 	case 'T':	/* SCTP chunk type (8 bits) */
@@ -218,8 +217,6 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		char *strargs[INITFIELDS+1];
 		int nargs;
 
-		currentchunk = add_chunk(pack, SCTP_CID_INIT);
-		if (!currentchunk) return FALSE;
 		/* set up defaults first, then overwrite with any others */
 		init.init_tag = htonl(1);
 		init.a_rwnd = htonl(0x1000);
@@ -248,6 +245,8 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			init.init_tag = parsed;
 		}
 
+		currentchunk = add_chunk(pack, SCTP_CID_INIT);
+		if (!currentchunk) return FALSE;
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_inithdr_t), (void *)&init);
 		if (!currentchunk) return FALSE;
@@ -298,8 +297,8 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		cookieparam.param_hdr.type = SCTP_PARAM_COOKIE_PRESERVATIVE;
 		cookieparam.param_hdr.length =
 		    htons(sizeof(sctp_cookie_preserve_param_t));
-		lvalue = strtoul(arg, (char **)NULL, 0);
-		cookieparam.lifespan_increment = htonl(lvalue);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		cookieparam.lifespan_increment = parsed;
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_cookie_preserve_param_t),
 		                          (void *)&cookieparam);
@@ -416,8 +415,8 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		    SCTP_PARAM_ADAPTATION_LAYER_IND;
 		adaptationparam.param_hdr.length =
 		    htons(sizeof(sctp_adaptation_ind_param_t));
-		lvalue = strtoul(arg, (char **)NULL, 0);
-		adaptationparam.adaptation_ind = htonl(lvalue);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		adaptationparam.adaptation_ind = parsed;
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_adaptation_ind_param_t),
 		                          (void *)&adaptationparam);
