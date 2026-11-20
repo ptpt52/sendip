@@ -16,12 +16,12 @@
 /*
  * Roughly stolen from arpa/nameser.h
  */
-#define GETSHORT(ptr) (ntohs(                              \
+#define GETSHORT(ptr) ((                              \
     ((u_int16_t)((u_int8_t *)(ptr))[0] << 8) |             \
     ((u_int16_t)((u_int8_t *)(ptr))[1])                    \
 ))
 
-#define GETLONG(ptr) (ntohl(                               \
+#define GETLONG(ptr) ((                               \
     ((u_int32_t)((u_int8_t *)(ptr))[0] << 24) |            \
     ((u_int32_t)((u_int8_t *)(ptr))[1] << 16) |            \
     ((u_int32_t)((u_int8_t *)(ptr))[2] << 8)  |            \
@@ -29,13 +29,13 @@
 ))
 
 #define PUTSHORT(ptr, s) {                                 \
-    u_int16_t v = htons((u_int16_t)(s));                   \
+    u_int16_t v = (u_int16_t)(s);                   \
     *((u_int8_t *)(ptr)) = v >> 8;                         \
     *(((u_int8_t *)(ptr)) + 1) = v;                        \
 }
 
 #define PUTLONG(ptr, l) {                                  \
-    u_int32_t v = htonl((u_int32_t)(l));                    \
+    u_int32_t v = (u_int32_t)(l);                    \
     *((u_int8_t *)(ptr)) = v >> 24;                        \
     *(((u_int8_t *)(ptr)) + 1) = v >> 16;                  \
     *(((u_int8_t *)(ptr)) + 2) = v >> 8;                   \
@@ -577,7 +577,7 @@ bool finalize (char        *hdrs,
                sendip_data *data,
                sendip_data *pack)
 {
-	if (hdrs[index - 1] != 't') {
+	if (index<1 || hdrs[index - 1] != 't') {
 		usage_error("WARNING: BGP should be carried over TCP\n");
 	}
 	return TRUE;
