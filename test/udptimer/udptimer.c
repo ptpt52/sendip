@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -145,11 +146,11 @@ storetimentry(Timentry **t, int delaytime)
 void
 storetime(struct in_addr *from, int delaytime)
 {
-	char dst[INET_ADDRSTRLEN];
 	Timentry **t;
 
 	/* from->s_addr is 32-bit address */
 #ifdef DEBUG
+	char dst[INET_ADDRSTRLEN];
 	printf("store %s %d\n",
 	       inet_ntop(AF_INET, from,
 	                 dst, INET_ADDRSTRLEN), delaytime);
@@ -262,10 +263,10 @@ printtimes(void)
 
 int main(int argc, char **argv)
 {
-	int sock, length;
+	int sock;
 	struct sockaddr_in name, from;
 	struct timeval t, now;
-	int cc, pnum, lastpnum;
+	int pnum, lastpnum;
 	fd_set dset;
 	uint16_t port;
 
@@ -287,8 +288,6 @@ int main(int argc, char **argv)
 		perror("binding datagram socket");
 		exit(1);
 	}
-	length = sizeof(struct sockaddr_in);
-
 	/* We sit in a loop, waiting for datagrams. Every ten seconds,
 	 * we wake up and print out statistics.
 	 */
@@ -305,13 +304,23 @@ int main(int argc, char **argv)
 			/* Read from the socket. We expect a timestamp in the
 			* initial data portion
 			*/
-			cc = recvfrom(sock, (void *)&t, sizeof(t), 0,
-			              (struct sockaddr *)&from, &length);
-			if (cc <= 0) {
+			socklen_t length = sizeof(from);
+			ssize_t received = recvfrom(sock, &t, sizeof(t), 0,
+			                            (struct sockaddr *)&from, &length);
+			if (received < 0) {
+				if (errno == EINTR)
+					continue;
 				perror("receiving datagram packet");
-				break;
+				close(sock);
+				return EXIT_FAILURE;
 			}
-			gettimeofday(&now, NULL);
+			if (received < (ssize_t)sizeof(t) || length < sizeof(from) ||
+			    from.sin_family != AF_INET)
+				continue;
+			if (gettimeofday(&now, NULL) != 0) {
+				perror("reading current time");
+				continue;
+			}
 			storetime(&from.sin_addr,
 			          1000000*(now.tv_sec-t.tv_sec)+now.tv_usec-t.tv_usec);
 			++pnum;
@@ -322,5 +331,4 @@ int main(int argc, char **argv)
 			lastpnum = pnum;
 		}
 	}
-	close(sock);
 }
