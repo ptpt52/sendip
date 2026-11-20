@@ -91,7 +91,11 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->data = ah;
 		pack->alloc_len = sizeof(ah_header)+length;
 		ah = (ah_header *)pack->data;
-		memcpy(ah->auth_data, temp, length);
+		/* Authentication bytes follow the fixed header in the allocation.
+		 * Deriving this write from the zero-length auth_data member makes
+		 * object-size analysis treat every nonempty value as an overflow.
+		 */
+		memcpy((u_int8_t *)ah+sizeof(*ah), temp, length);
 		pack->modified |= AH_MOD_AUTHDATA;
 		break;
 	case 'k':       /* Key */
