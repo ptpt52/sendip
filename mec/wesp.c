@@ -86,6 +86,9 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		if (svalue && pack->alloc_len==(int)sizeof(*wesp)) {
 			if (!addpadding(pack)) return FALSE;
 			wesp = pack->data;
+		} else if (!svalue) {
+			/* Clearing the flag also removes the corresponding wire bytes. */
+			pack->alloc_len=sizeof(*wesp);
 		}
 		pack->modified |= WESP_MOD_PADDED;
 		wesp->padded = svalue;
