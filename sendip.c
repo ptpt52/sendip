@@ -645,14 +645,20 @@ int main(int argc, char *const argv[]) {
 			fprintf(stderr,"No hostname specified, assuming -D (dump to stdout)\n");
 			dump = TRUE;
 			if(first && first->set_addr) {
-				first->set_addr((char*)"localhost",first->pack);
+				if (!first->set_addr((char*)"localhost",first->pack)) {
+					usage=TRUE;
+					status=1;
+				}
 			}
 		} else if(argc > gnuoptind+1) {
 			usage=TRUE;
 			fprintf(stderr,"More than one hostname specified\n");
 		} else {
 			if(first && first->set_addr) {
-				first->set_addr(argv[gnuoptind],first->pack);
+				if (!first->set_addr(argv[gnuoptind],first->pack)) {
+					usage=TRUE;
+					status=1;
+				}
 			}
 		}
 
@@ -663,8 +669,12 @@ int main(int argc, char *const argv[]) {
 		}
 
 		for(mod=first; mod!=NULL; mod=mod->next) {
-			if (mod->do_pad)
-				mod->do_pad(mod->pack);
+			if (mod->do_pad && !mod->do_pad(mod->pack)) {
+				fprintf(stderr, "Padding module %s failed\n", mod->name);
+				unload_modules(TRUE, verbosity);
+				status=1;
+				goto cleanup;
+			}
 		}
 
 		/* EVIL EVIL EVIL! */
@@ -732,7 +742,12 @@ int main(int argc, char *const argv[]) {
 				/*@@headers[i] = NULL;*/
 
 				/* @@ */
-				mod->finalize(hdrs, headers, i, &d, mod->pack);
+				if (!mod->finalize(hdrs, headers, i, &d, mod->pack)) {
+					fprintf(stderr, "Finalizing module %s failed\n", mod->name);
+					free(packet.data);
+					status=1;
+					goto cleanup;
+				}
 
 				/* Get everything ready for the next call */
 				d.data=(char *)d.data-mod->pack->alloc_len;
