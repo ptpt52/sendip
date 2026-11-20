@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <ctype.h>
 #include <netinet/in.h>
@@ -249,12 +250,31 @@ timestamp(int length)
  * may either be the transformed input or a static area.
  * The return value is the length of the output.
  */
+static const char *
+resolve_file_arguments(const char *input)
+{
+	for (int depth=0; input && *input=='f'; ++depth) {
+		if (depth == 32) {
+			usage_error("Too many nested file arguments\n");
+			return NULL;
+		}
+		input=fileargument(input+1);
+	}
+	return input;
+}
+
 int
-stringargument(char *input, char **output)
+stringargument(const char *input, char **output)
 {
 	int length=0;
+	static char *copy;
+	static size_t capacity;
+	size_t needed;
 
-	if (!input || !output) return 0;
+	if (!output) return 0;
+	*output=NULL;
+	input=resolve_file_arguments(input);
+	if (!input) return 0;
 	/* Special case for rN, zN, fN, tN strings */
 	switch (*input) {
 	case 'r':
@@ -273,8 +293,6 @@ stringargument(char *input, char **output)
 			return length;
 		}
 		break;
-	case 'f':
-		return stringargument(fileargument(input+1), output);
 	case 't':	/* timestamp */
 		if (isdigit(*(input+1))) {
 			length = atoi(input+1);
@@ -286,8 +304,20 @@ stringargument(char *input, char **output)
 	default:
 		break;
 	}
-	length = compact_string(input);
-	*output = input;
+	needed=strlen(input)+1;
+	if (needed > INT_MAX) {
+		usage_error("String argument too long\n");
+		return 0;
+	}
+	if (needed > capacity) {
+		char *grown=realloc(copy, needed);
+		if (!grown) return 0;
+		copy=grown;
+		capacity=needed;
+	}
+	memmove(copy, input, needed);
+	length = compact_string(copy);
+	*output = copy;
 	return length;
 }
 
@@ -306,6 +336,7 @@ integerargument(const char *input, int length)
 	int inputlength;
 	void *string;
 
+	input=resolve_file_arguments(input);
 	if (!input || !length) return 0;
 	/* Special case for rN, zN strings */
 	switch (*input) {
@@ -334,8 +365,6 @@ integerargument(const char *input, int length)
 	case 'z':
 		/* like I said, pointless ... */
 		return 0;
-	case 'f':
-		return integerargument(fileargument(input+1), length);
 	default:
 		break;
 	}
@@ -359,6 +388,7 @@ hostintegerargument(const char *input, int length)
 	int inputlength;
 	void *string;
 
+	input=resolve_file_arguments(input);
 	if (!input || !length) return 0;
 	/* Special case for rN, zN, fN strings */
 	switch (*input) {
@@ -384,8 +414,6 @@ hostintegerargument(const char *input, int length)
 	case 'z':
 		/* like I said, pointless ... */
 		return 0;
-	case 'f':
-		return hostintegerargument(fileargument(input+1), length);
 	default:
 		break;
 	}
@@ -474,13 +502,8 @@ ipv4argument(const char *input, int length)
 	u_int32_t a, b, c, d;
 	char *dotpoint, *slashpoint;
 
-	/* Special case for fN strings */
-	switch (*input) {
-	case 'f':
-		return ipv4argument(fileargument(input+1), length);
-	default:
-		break;
-	}
+	input=resolve_file_arguments(input);
+	if (!input) return INADDR_NONE;
 	/* Special case for CIDR notation */
 	if ((slashpoint=strchr(input, '/'))) {
 		return cidrargument(input, slashpoint, length);
