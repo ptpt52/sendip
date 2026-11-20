@@ -132,7 +132,7 @@ sendip.spec:	sendip.spec.in VERSION
 .PHONY:	all subdirs man clean veryclean install FORCE_LIBDIR
 
 clean:
-			rm -f *.o *.o.d *.so.d *~ *.so $(PROTOS) $(PROGS) $(LIBS) $(LIBDIR_STAMP) core gmon.out
+			rm -f $(DEP_TARGETS) $(addsuffix .d,$(DEP_TARGETS)) $(PROGS) $(LIBS) $(LIBDIR_STAMP) core gmon.out
 			for subdir in $(SUBDIRS) ; do \
 				$(MAKE) -C "$$subdir" clean || exit $$?;\
 				done
@@ -157,4 +157,4 @@ $(DEP_TARGETS): %: %.d
 %.o.d: ;
 %.so.d: ;
 
--include $(wildcard *.o.d *.so.d)
+-include $(wildcard $(addsuffix .d,$(DEP_TARGETS)))

@@ -24,10 +24,11 @@ DEPFLAGS = -MMD -MP -MF $@.d -MT $@
 include modules.mk
 PROTOS= $(MEC_PROTOS)
 CRYPTOS= $(MEC_CRYPTOS)
+MODULES= $(PROTOS) $(CRYPTOS)
 
 LIBS= ../libsendipaux.a
 
-all:	$(PROTOS) $(CRYPTOS)
+all:	$(MODULES)
 
 %.so: %.c $(LIBS)
 			$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
@@ -41,7 +42,7 @@ dest.so: hop.c $(LIBS)
 .PHONY:	all clean veryclean install
 
 clean:
-			rm -f *.o *.o.d *.so.d *~ *.so $(PROTOS) $(CRYPTOS) $(PROGS) core gmon.out
+			rm -f $(MODULES) $(addsuffix .d,$(MODULES)) core gmon.out
 
 veryclean:
 			$(MAKE) clean
@@ -49,9 +50,9 @@ veryclean:
 
 install:		all
 			mkdir -p "$(DESTDIR)$(LIBDIR)"
-			$(INSTALL) -m 755 $(PROTOS) $(CRYPTOS) "$(DESTDIR)$(LIBDIR)/"
+			$(INSTALL) -m 755 $(MODULES) "$(DESTDIR)$(LIBDIR)/"
 
-$(PROTOS) $(CRYPTOS): %: %.d
+$(MODULES): %: %.d
 %.so.d: ;
 
--include $(wildcard *.so.d)
+-include $(wildcard $(addsuffix .d,$(MODULES)))
