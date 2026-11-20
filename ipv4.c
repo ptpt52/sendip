@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <errno.h>
 #include <ctype.h>
 #include <string.h>
 #include "sendip_module.h"
@@ -56,6 +57,15 @@ static int buildroute(char *input, u_int8_t *output, sendip_data *pack) {
 	return used;
 }
 
+/* Timestamp overflow and flag are decimal nibbles, not unchecked ints. */
+static bool timestamp_nibble(const char *input, unsigned long *value) {
+	char *end;
+	if (!isdigit((unsigned char)*input)) return FALSE;
+	errno=0;
+	*value=strtoul(input, &end, 10);
+	return !errno && !*end && *value<=15;
+}
+
 static int buildtimestamp(char *input, u_int8_t *output) {
 	char *remaining=input;
 	char *pointer=strsep(&remaining, ":");
@@ -64,8 +74,9 @@ static int buildtimestamp(char *input, u_int8_t *output) {
 	if (!pointer || strlen(pointer)!=2 || !overflow || !flag || !remaining ||
 	    !isxdigit((unsigned char)pointer[0]) || !isxdigit((unsigned char)pointer[1]))
 		return 0;
-	int over=atoi(overflow), flags=atoi(flag);
-	if (over<0 || over>15 || flags<0 || flags>15) return 0;
+	unsigned long over, flags;
+	if (!timestamp_nibble(overflow, &over) || !timestamp_nibble(flag, &flags))
+		return 0;
 	output[0]=strtoul(pointer, NULL, 16);
 	output[1]=(over<<4)|flags;
 	int used=2;
