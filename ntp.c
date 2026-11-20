@@ -130,13 +130,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			}
 		} else {
 			/* Hopefully a 4 byte or less string */
-			ntp->reference.ipaddr = 0;
-			if(strlen(arg)<=4) {
-				memcpy(ntp->reference.id,arg,strlen(arg));
-			} else {
+			size_t length=strlen(arg);
+			if(length>4) {
 				usage_error("NTP reference clock ID must be IP addr, 32 bit integer, or 4 byte string\n");
 				return FALSE;
 			}
+			ntp->reference.ipaddr = 0;
+			memcpy(ntp->reference.id,arg,length);
 		}
 		pack->modified|=NTP_MOD_REF;
 		break;
