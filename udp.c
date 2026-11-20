@@ -129,6 +129,11 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 
 	/* Find enclosing IP header and do the checksum */
 	i = outer_header(hdrs, index, "i6");/*@@*/
+	if (i < 0) {
+		if (pack->modified&UDP_MOD_CHECK) return TRUE;
+		usage_error("UDP checksum not defined when UDP is not embedded in IP\n");
+		return FALSE;
+	}
 	if(hdrs[i]=='i') {
 		unsigned int old_daddr = 0;
 		if(!(headers[i]->modified&IP_MOD_PROTOCOL)) {
