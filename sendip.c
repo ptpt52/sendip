@@ -55,6 +55,7 @@ typedef struct _s_m {
 	bool (*do_opt)(char *optstring, char *optarg,
 	               sendip_data *pack);
 	bool (*do_pad)(sendip_data *pack);
+	void (*destroy)(sendip_data *pack);
 	bool (*set_addr)(char *hostname, sendip_data *pack);
 	bool (*finalize)(char *hdrs, sendip_data *headers[], int index,
 	                 sendip_data *data, sendip_data *pack);
@@ -259,6 +260,7 @@ static void unload_modules(bool freeit, int verbosity) {
 		p = mod;
 		free(mod->name);
 		if (mod->pack) {
+			if (mod->destroy) mod->destroy(mod->pack);
 			if(freeit) free(mod->pack->data);
 			free(mod->pack);
 		}
@@ -315,6 +317,7 @@ static bool load_module(char *modname) {
 	}
 	newmod->do_pad=dlsym(newmod->handle, "do_pad");
 	newmod->set_addr=dlsym(newmod->handle, "set_addr");
+	newmod->destroy=dlsym(newmod->handle, "destroy");
 	newmod->num_opts=n_opts();
 	newmod->optchar=get_optchar();
 	newmod->opts=get_opts();
@@ -619,6 +622,7 @@ int main(int argc, char *const argv[]) {
 
 		/* Discard all previous packet views before any initializer can fail. */
 		for (mod=first; mod; mod=mod->next) {
+			if (mod->pack && mod->destroy) mod->destroy(mod->pack);
 			free(mod->pack);
 			mod->pack=NULL;
 		}

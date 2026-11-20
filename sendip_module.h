@@ -25,12 +25,14 @@ typedef struct {
 	int alloc_len;
 	unsigned int modified;
 	unsigned int route_daddr;
-	void *private;		/* @@ Untouched by sendip main */
+	void *private;		/* Owned by the module; released by optional destroy(). */
 } sendip_data;
 
 /* Prototypes */
 #ifndef _SENDIP_MAIN
 sendip_data *initialize(void);
+/* Optional: release module-owned state; do not free pack or pack->data. */
+void destroy(sendip_data *pack);
 bool do_opt(char *optstring, char *optarg, sendip_data *pack);
 bool set_addr(char *hostname, sendip_data *pack);
 bool finalize(char *hdrs, sendip_data *headers[], int index,
