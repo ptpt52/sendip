@@ -18,6 +18,8 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <errno.h>
+#include <ctype.h>
 #include <netinet/in.h>
 #include <string.h>
 #include "sendip_module.h"
@@ -28,6 +30,15 @@
 /* Character that identifies our options
  */
 const char opt_char='t';
+
+static bool decimal32(const char *input, char **end, u_int32_t *value) {
+	if (!isdigit((unsigned char)*input)) return FALSE;
+	errno=0;
+	unsigned long parsed=strtoul(input, end, 10);
+	if (errno || *end==input || parsed>UINT32_MAX) return FALSE;
+	*value=parsed;
+	return TRUE;
+}
 
 static void tcpcsum(sendip_data *ip_hdr, sendip_data *tcp_hdr,
                     sendip_data *data) {
@@ -209,11 +220,11 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			added=addoption(1,1,NULL,pack);
 		} else if (!strcmp(opt+2, "mss")) {
 			/* Maximum segment size RFC 793 kind 2 */
-			u_int16_t mss=htons(atoi(arg));
+			u_int16_t mss=integerargument(arg, 2);
 			added=addoption(2,4,(u_int8_t *)&mss,pack);
 		} else if (!strcmp(opt+2, "wscale")) {
 			/* Window scale rfc1323 */
-			u_int8_t wscale=atoi(arg);
+			u_int8_t wscale=hostintegerargument(arg, 1);
 			added=addoption(3,3,&wscale,pack);
 		} else if (!strcmp(opt+2, "sackok")) {
 			/* Selective Acknowledge permitted rfc1323 */
@@ -228,10 +239,11 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				if (!right || right==block || count==31 || !right[1]) return FALSE;
 				*right++='\0';
 				char *end;
-				u_int32_t left=htonl(strtoul(block, &end, 10));
-				if (*end) return FALSE;
-				u_int32_t last=htonl(strtoul(right, &end, 10));
-				if (*end) return FALSE;
+				u_int32_t left, last;
+				if (!decimal32(block, &end, &left) || *end ||
+				    !decimal32(right, &end, &last) || *end) return FALSE;
+				left=htonl(left);
+				last=htonl(last);
 				memcpy(blocks+count*8, &left, 4);
 				memcpy(blocks+count*8+4, &last, 4);
 				++count;
@@ -241,7 +253,9 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			/* Timestamp rfc1323 */
 			u_int32_t tsval=0, tsecr=0;
 			u_int8_t comb[8];
-			if (2!=sscanf(arg, "%u:%u", &tsval, &tsecr)) {
+			char *end;
+			if (!decimal32(arg, &end, &tsval) || *end!=':' ||
+			    !decimal32(end+1, &end, &tsecr) || *end) {
 				fprintf(stderr,
 				        "Invalid value for tcp timestamp option.\n");
 				fprintf(stderr,
