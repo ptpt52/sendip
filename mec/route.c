@@ -63,7 +63,12 @@ readaddrs(char *arg, sendip_data *pack)
 	if (!rt) return FALSE;
 	memcpy(rt, pack->data, sizeof(*rt));
 	for (i=0; i<count; ++i) {
-		if (inet_pton(AF_INET6, addrs[i], &rt->addr[i])!=1) {
+		/* Addresses occupy the allocation after the fixed type-0 header.
+		 * Avoid presenting the zero-length addr member as the destination.
+		 */
+		void *destination=(u_int8_t *)rt+sizeof(*rt)+
+		                  (size_t)i*sizeof(struct in6_addr);
+		if (inet_pton(AF_INET6, addrs[i], destination)!=1) {
 			free(rt);
 			usage_error("Can't parse address\n");
 			return FALSE;
