@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <poll.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -276,7 +277,6 @@ int main(int argc, char **argv)
 	struct sockaddr_in name = {0}, from;
 	struct timeval t, now;
 	int pnum, lastpnum;
-	fd_set dset;
 	uint16_t port = 5000;
 
 	if (argc > 2) {
@@ -312,16 +312,22 @@ int main(int argc, char **argv)
 	/* We sit in a loop, waiting for datagrams. Every ten seconds,
 	 * we wake up and print out statistics.
 	 */
+	struct pollfd descriptor = { .fd = sock, .events = POLLIN };
 	lastpnum=1;
 	for (pnum=1; ;) {
-		struct timeval waittime = { .tv_sec = 10, .tv_usec = 0 };
-		FD_ZERO(&dset);
-		FD_SET(sock, &dset);
-		if (select(sock+1, &dset, 0, 0, &waittime) < 0) {
-			perror("select");
-			continue;
+		int ready = poll(&descriptor, 1, 10000);
+		if (ready < 0) {
+			if (errno == EINTR)
+				continue;
+			perror("polling datagram socket");
+			break;
 		}
-		if (FD_ISSET(sock, &dset)) {
+		if (ready && !(descriptor.revents & POLLIN)) {
+			fprintf(stderr, "Unexpected UDP socket events: 0x%x\n",
+			        (unsigned int)descriptor.revents);
+			break;
+		}
+		if (ready) {
 			/* Read from the socket. We expect a timestamp in the
 			* initial data portion
 			*/
@@ -332,8 +338,7 @@ int main(int argc, char **argv)
 				if (errno == EINTR)
 					continue;
 				perror("receiving datagram packet");
-				close(sock);
-				return EXIT_FAILURE;
+				break;
 			}
 			if (received < (ssize_t)sizeof(t) || length < sizeof(from) ||
 			    from.sin_family != AF_INET || t.tv_usec < 0 || t.tv_usec >= 1000000)
@@ -355,4 +360,6 @@ int main(int argc, char **argv)
 			lastpnum = pnum;
 		}
 	}
+	close(sock);
+	return EXIT_FAILURE;
 }
