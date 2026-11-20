@@ -21,6 +21,12 @@ including on option and finalization failures. The callback must leave `pack` an
 `pack->data` to the caller, and must not depend on packet data still being live.
 Modules without this optional entry point remain supported.
 
+Protocol modules may also export `uint32_t randomize_arg(const char *option,
+uint32_t value)` to constrain a generated bare-`r` argument to the selected field's
+range. SendIP still passes a decimal string to `do_opt`; explicit arguments
+retain their normal validation. Modules without this callback keep the legacy
+32-bit random value.
+
 ### Enhancements
 
 This version adds the ability to dump packets to `stdout` rather than sending them to their

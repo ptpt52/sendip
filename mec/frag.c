@@ -152,3 +152,13 @@ char get_optchar(void)
 {
 	return opt_char;
 }
+
+/* Keep bare-r generation in range without weakening explicit validation. */
+u_int32_t randomize_arg(const char *option, u_int32_t value) {
+	switch (option[1]) {
+	case 'r': return value & OCTET_MAX;
+	case 'o': return value & IPV6_FRAG_MAXOFFSET;
+	case 'f': return value & IPV6_FRAG_FLAGS;
+	default: return value;
+	}
+}

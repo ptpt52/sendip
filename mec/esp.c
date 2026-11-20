@@ -321,3 +321,8 @@ get_optchar(void)
 {
 	return opt_char;
 }
+
+/* Explicit padding is an eight-bit count; constrain generated bare-r input. */
+u_int32_t randomize_arg(const char *option, u_int32_t value) {
+	return option[1]=='p' ? value & OCTET_MAX : value;
+}

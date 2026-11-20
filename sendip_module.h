@@ -49,6 +49,8 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 int num_opts(void);
 sendip_option *get_opts(void);
 char get_optchar(void);
+/* Optional: constrain the legacy bare-r value to a field's valid range. */
+u_int32_t randomize_arg(const char *option, u_int32_t value);
 
 #endif  /* _SENDIP_MAIN */
 

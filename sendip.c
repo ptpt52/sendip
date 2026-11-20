@@ -55,6 +55,7 @@ typedef struct _s_m {
 	bool (*do_opt)(char *optstring, char *optarg,
 	               sendip_data *pack);
 	bool (*do_pad)(sendip_data *pack);
+	u_int32_t (*randomize_arg)(const char *option, u_int32_t value);
 	void (*destroy)(sendip_data *pack);
 	bool (*set_addr)(char *hostname, sendip_data *pack);
 	bool (*finalize)(char *hdrs, sendip_data *headers[], int index,
@@ -265,6 +266,7 @@ static bool load_module(char *modname) {
 		goto fail;
 	}
 	newmod->do_pad=dlsym(newmod->handle, "do_pad");
+	newmod->randomize_arg=dlsym(newmod->handle, "randomize_arg");
 	newmod->set_addr=dlsym(newmod->handle, "set_addr");
 	newmod->destroy=dlsym(newmod->handle, "destroy");
 	newmod->num_opts=n_opts();
@@ -660,6 +662,8 @@ int main(int argc, char *const argv[]) {
 						nonnegative so only 31bits - we simply repeat one */
 					unsigned long r = (unsigned long)random()<<1;
 					r+=(r&0x00000040)>>6;
+					if (mod->randomize_arg)
+						r=mod->randomize_arg(opts[longindex].name, (u_int32_t)r);
 					sprintf(rbuff,"%lu",r);
 					gnuoptarg = rbuff;
 				}

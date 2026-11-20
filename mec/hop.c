@@ -177,3 +177,8 @@ char get_optchar(void)
 {
 	return opt_char;
 }
+
+/* PadN occupies between two and 257 bytes including its type and length. */
+u_int32_t randomize_arg(const char *option, u_int32_t value) {
+	return option[1]=='p' ? (value & UINT8_MAX)+2 : value;
+}
