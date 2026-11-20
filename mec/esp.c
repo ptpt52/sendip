@@ -254,7 +254,12 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	}
 
 	/* Now fill out the packet */
-	where = esp->hdr.enc_data;
+	/* This is a byte offset into the assembled packet, not an object stored
+	 * in the zero-length enc_data member. Deriving the pointer from that
+	 * member makes object-size analysis treat every following write as an
+	 * overflow of a zero-byte object.
+	 */
+	where = (u_int8_t *)pack->data + sizeof(struct ip_esp_hdr);
 	/* This can't overwrite the packet data, as the iv space was already
 	 * in the original oversized "header."
 	 */
