@@ -310,6 +310,14 @@ static void unload_modules(bool owns_data, int verbosity) {
 	num_opts=0;
 }
 
+static bool conflicting_option_arity(const sendip_option *option,
+                                     const sendip_option *options, int count) {
+	for (int i=0; i<count; ++i)
+		if (option->arg!=options[i].arg && !strcmp(option->optname, options[i].optname))
+			return true;
+	return false;
+}
+
 static bool load_module(char *modname) {
 	static const char *patterns[]={"%s", "./%s.so", "%s/%s.so", "%s/%s"};
 	char *errors[4]={NULL};
@@ -367,9 +375,18 @@ static bool load_module(char *modname) {
 		goto fail;
 	}
 	for (int i=0; i<newmod->num_opts; ++i) {
-		if (!newmod->opts[i].optname || !*newmod->opts[i].optname ||
-		    !newmod->opts[i].description) {
+		const sendip_option *option=&newmod->opts[i];
+		if (!option->optname || !*option->optname || !option->description) {
 			fprintf(stderr, "Module %s returned invalid option metadata\n", modname);
+			goto fail;
+		}
+		bool conflict=conflicting_option_arity(option, newmod->opts, i);
+		for (sendip_module *mod=first; mod && !conflict; mod=mod->next)
+			if (mod->optchar==newmod->optchar && mod->opts!=newmod->opts)
+				conflict=conflicting_option_arity(option, mod->opts, mod->num_opts);
+		if (conflict) {
+			fprintf(stderr, "Module %s has conflicting argument rules for -%c%s\n",
+			        modname, newmod->optchar, option->optname);
 			goto fail;
 		}
 	}
