@@ -3,17 +3,6 @@
 #ifndef _SENDIP_WESP_H
 #define _SENDIP_WESP_H
 
-#if defined(__APPLE_CC__)
-#include <libkern/OSByteOrder.h>
-#if defined(__BIG_ENDIAN__)
-#define __BIG_ENDIAN_BITFIELD
-#else
-#define __LITTLE_ENDIAN_BITFIELD
-#endif
-#else
-#include <asm/byteorder.h>
-#endif
-
 /*
  * wrapped esp header
  *
@@ -37,18 +26,18 @@ typedef struct SENDIP_PACKED ip_wesp_phdr {
 	 * the Linux standard now seems to be going straight to
 	 * the bitfields.
 	 */
-#if defined(__LITTLE_ENDIAN_BITFIELD)
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 	u_int8_t	reserved:4,
 	            padded:1,
 	            encrypted:1,
 	            version:2;
-#elif defined(__BIG_ENDIAN_BITFIELD)
+#elif __BYTE_ORDER == __BIG_ENDIAN
 	u_int8_t 	version:2,
 	            encrypted:1,
 	            padded:1,
 	            reserved:4;
 #else
-#error  "Please fix <asm/byteorder.h>"
+#error "Unsupported byte order"
 #endif
 	u_int32_t padding[0];
 } wesp_header;

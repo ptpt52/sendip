@@ -217,11 +217,11 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		currentchunk = add_chunk(pack, SCTP_CID_INIT);
 		if (!currentchunk) return FALSE;
 		/* set up defaults first, then overwrite with any others */
-		init.init_tag = __constant_htonl(1);
-		init.a_rwnd = __constant_htonl(0x1000);
-		init.num_outbound_streams = __constant_htons(1);
-		init.num_inbound_streams = __constant_htons(1);
-		init.initial_tsn = __constant_htonl(1);
+		init.init_tag = htonl(1);
+		init.a_rwnd = htonl(0x1000);
+		init.num_outbound_streams = htons(1);
+		init.num_inbound_streams = htons(1);
+		init.initial_tsn = htonl(1);
 
 		nargs = parsenargs(arg, strargs, INITFIELDS, " ,:.");
 		if (nargs<0) return FALSE;

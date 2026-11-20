@@ -100,4 +100,12 @@ extern int inet_pton (int af, const char *cp, void *buf);
 #endif  /* not BYTE_ORDER */
 #endif  /* not __BYTE_ORDER */
 
+/* Constant expression for network-order enum values and switch labels. */
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define SENDIP_HTONS_CONST(value) ((uint16_t)((((uint16_t)(value)&0xffU)<<8)| \
+                                             ((uint16_t)(value)>>8)))
+#else
+#define SENDIP_HTONS_CONST(value) ((uint16_t)(value))
+#endif
+
 #endif  /* _SENDIP_TYPES_H */

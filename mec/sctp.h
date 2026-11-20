@@ -9,14 +9,6 @@
 #ifndef _SENDIP_SCTP_H
 #define _SENDIP_SCTP_H
 
-#if defined(__APPLE_CC__)
-#include <libkern/OSByteOrder.h>
-#define __constant_htons OSSwapHostToBigConstInt16
-#define __constant_htonl OSSwapHostToBigConstInt32
-#else
-#include <asm/byteorder.h>
-#endif
-
 /*
  * Overall header
  */
@@ -103,35 +95,35 @@ typedef struct SENDIP_PACKED sctp_datahdr {
 typedef enum {
 
 	/* RFC 2960 Section 3.3.5 */
-	SCTP_PARAM_HEARTBEAT_INFO               = __constant_htons(1),
+	SCTP_PARAM_HEARTBEAT_INFO               = SENDIP_HTONS_CONST(1),
 	/* RFC 2960 Section 3.3.2.1 */
-	SCTP_PARAM_IPV4_ADDRESS                 = __constant_htons(5),
-	SCTP_PARAM_IPV6_ADDRESS                 = __constant_htons(6),
-	SCTP_PARAM_STATE_COOKIE                 = __constant_htons(7),
-	SCTP_PARAM_UNRECOGNIZED_PARAMETERS      = __constant_htons(8),
-	SCTP_PARAM_COOKIE_PRESERVATIVE          = __constant_htons(9),
-	SCTP_PARAM_HOST_NAME_ADDRESS            = __constant_htons(11),
-	SCTP_PARAM_SUPPORTED_ADDRESS_TYPES      = __constant_htons(12),
-	SCTP_PARAM_ECN_CAPABLE                  = __constant_htons(0x8000),
+	SCTP_PARAM_IPV4_ADDRESS                 = SENDIP_HTONS_CONST(5),
+	SCTP_PARAM_IPV6_ADDRESS                 = SENDIP_HTONS_CONST(6),
+	SCTP_PARAM_STATE_COOKIE                 = SENDIP_HTONS_CONST(7),
+	SCTP_PARAM_UNRECOGNIZED_PARAMETERS      = SENDIP_HTONS_CONST(8),
+	SCTP_PARAM_COOKIE_PRESERVATIVE          = SENDIP_HTONS_CONST(9),
+	SCTP_PARAM_HOST_NAME_ADDRESS            = SENDIP_HTONS_CONST(11),
+	SCTP_PARAM_SUPPORTED_ADDRESS_TYPES      = SENDIP_HTONS_CONST(12),
+	SCTP_PARAM_ECN_CAPABLE                  = SENDIP_HTONS_CONST(0x8000),
 
 	/* AUTH Extension Section 3 */
-	SCTP_PARAM_RANDOM                       = __constant_htons(0x8002),
-	SCTP_PARAM_CHUNKS                       = __constant_htons(0x8003),
-	SCTP_PARAM_HMAC_ALGO                    = __constant_htons(0x8004),
+	SCTP_PARAM_RANDOM                       = SENDIP_HTONS_CONST(0x8002),
+	SCTP_PARAM_CHUNKS                       = SENDIP_HTONS_CONST(0x8003),
+	SCTP_PARAM_HMAC_ALGO                    = SENDIP_HTONS_CONST(0x8004),
 
 	/* Add-IP: Supported Extensions, Section 4.2 */
-	SCTP_PARAM_SUPPORTED_EXT        = __constant_htons(0x8008),
+	SCTP_PARAM_SUPPORTED_EXT        = SENDIP_HTONS_CONST(0x8008),
 
 	/* PR-SCTP Sec 3.1 */
-	SCTP_PARAM_FWD_TSN_SUPPORT      = __constant_htons(0xc000),
+	SCTP_PARAM_FWD_TSN_SUPPORT      = SENDIP_HTONS_CONST(0xc000),
 
 	/* Add-IP Extension. Section 3.2 */
-	SCTP_PARAM_ADD_IP               = __constant_htons(0xc001),
-	SCTP_PARAM_DEL_IP               = __constant_htons(0xc002),
-	SCTP_PARAM_ERR_CAUSE            = __constant_htons(0xc003),
-	SCTP_PARAM_SET_PRIMARY          = __constant_htons(0xc004),
-	SCTP_PARAM_SUCCESS_REPORT       = __constant_htons(0xc005),
-	SCTP_PARAM_ADAPTATION_LAYER_IND = __constant_htons(0xc006),
+	SCTP_PARAM_ADD_IP               = SENDIP_HTONS_CONST(0xc001),
+	SCTP_PARAM_DEL_IP               = SENDIP_HTONS_CONST(0xc002),
+	SCTP_PARAM_ERR_CAUSE            = SENDIP_HTONS_CONST(0xc003),
+	SCTP_PARAM_SET_PRIMARY          = SENDIP_HTONS_CONST(0xc004),
+	SCTP_PARAM_SUCCESS_REPORT       = SENDIP_HTONS_CONST(0xc005),
+	SCTP_PARAM_ADAPTATION_LAYER_IND = SENDIP_HTONS_CONST(0xc006),
 
 } sctp_param_t; /* enum */
 

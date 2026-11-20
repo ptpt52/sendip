@@ -27,14 +27,14 @@ typedef struct SENDIP_PACKED {
  */
 
 /* Taken from Linux headers, GRE flag/field defines */
-#define GRE_CSUM        __constant_htons(0x8000)
-#define GRE_ROUTING     __constant_htons(0x4000)
-#define GRE_KEY         __constant_htons(0x2000)
-#define GRE_SEQ         __constant_htons(0x1000)
-#define GRE_STRICT      __constant_htons(0x0800)
-#define GRE_REC         __constant_htons(0x0700)
-#define GRE_FLAGS       __constant_htons(0x00F8)
-#define GRE_VERSION     __constant_htons(0x0007)
+#define GRE_CSUM        SENDIP_HTONS_CONST(0x8000)
+#define GRE_ROUTING     SENDIP_HTONS_CONST(0x4000)
+#define GRE_KEY         SENDIP_HTONS_CONST(0x2000)
+#define GRE_SEQ         SENDIP_HTONS_CONST(0x1000)
+#define GRE_STRICT      SENDIP_HTONS_CONST(0x0800)
+#define GRE_REC         SENDIP_HTONS_CONST(0x0700)
+#define GRE_FLAGS       SENDIP_HTONS_CONST(0x00F8)
+#define GRE_VERSION     SENDIP_HTONS_CONST(0x0007)
 
 #define GRE_MAX_REC	7	/* three-bit value */
 #define GRE_MAX_VERSION	7	/* three-bit value */
