@@ -172,7 +172,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 */
 		length = stringargument(arg, &temp);
 		if (!temp) return FALSE;
-		if (length < sizeof(u_int32_t)) {
+		if ((size_t)length < sizeof(u_int32_t)) {
 			sctp->vtag = 0;
 			memcpy((void *)&sctp->vtag, temp, length);
 		} else {
@@ -243,20 +243,23 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 		nargs = parsenargs(arg, strargs, INITFIELDS, " ,:.");
 		if (nargs<0) return FALSE;
-		/* Note the cheesy reverse fallthrough */
 		switch (nargs) {
 		case 5:
 			if (!integerargument_checked(strargs[4], sizeof(init.initial_tsn), &parsed)) return FALSE;
 			init.initial_tsn = parsed;
+			/* fall through */
 		case 4:
 			if (!integerargument_checked(strargs[3], sizeof(init.num_inbound_streams), &parsed)) return FALSE;
 			init.num_inbound_streams = parsed;
+			/* fall through */
 		case 3:
 			if (!integerargument_checked(strargs[2], sizeof(init.num_outbound_streams), &parsed)) return FALSE;
 			init.num_outbound_streams = parsed;
+			/* fall through */
 		case 2:
 			if (!integerargument_checked(strargs[1], sizeof(init.a_rwnd), &parsed)) return FALSE;
 			init.a_rwnd = parsed;
+			/* fall through */
 		case 1:
 			if (!integerargument_checked(strargs[0], sizeof(init.init_tag), &parsed)) return FALSE;
 			init.init_tag = parsed;
