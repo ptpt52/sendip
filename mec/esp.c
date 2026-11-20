@@ -69,10 +69,15 @@ initialize(void)
 /* Rebuild the variable region before releasing the old buffer. This also
  * makes repeated IV/ICV options replace the previous value without gaps.
  */
-static bool replace_components(sendip_data *pack, const void *iv, int ivlen,
-                               const void *icv, int icvlen, int padding) {
-	size_t size=ESP_WORK_HEADER_LEN+(size_t)ivlen+icvlen+padding;
-	if (ivlen<0 || icvlen<0 || padding<0 || size>INT_MAX) return FALSE;
+static bool replace_components(sendip_data *pack, const void *iv, size_t ivlen,
+                               const void *icv, size_t icvlen, size_t padding) {
+	size_t available=INT_MAX-ESP_WORK_HEADER_LEN;
+	if (ivlen>available || icvlen>available-ivlen ||
+	    padding>available-ivlen-icvlen) {
+		usage_error("ESP components exceed the header size limit\n");
+		return FALSE;
+	}
+	size_t size=ESP_WORK_HEADER_LEN+ivlen+icvlen+padding;
 	esp_header *replacement=calloc(1, size);
 	if (!replacement) return FALSE;
 	memcpy(replacement, pack->data, ESP_WORK_HEADER_LEN);
