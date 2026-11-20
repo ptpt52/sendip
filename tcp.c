@@ -303,7 +303,11 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		tcp->seq = (u_int32_t)rand();
 	}
 	if(!(pack->modified&TCP_MOD_OFF)) {
-		tcp->off = (u_int16_t)((pack->alloc_len+3)/4) & 0x0F;
+		if (pack->alloc_len>60) {
+			usage_error("TCP header exceeds the automatic Data Offset field\n");
+			return FALSE;
+		}
+		tcp->off = pack->alloc_len/4;
 	}
 	if(!(pack->modified&TCP_MOD_SYN)) {
 		tcp->syn=1;
