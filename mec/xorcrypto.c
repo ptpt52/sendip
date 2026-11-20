@@ -29,6 +29,10 @@ bool
 cryptoinit(sendip_data *pack)
 {
 	if (!pack || !pack->private) return FALSE; /* don't mess with me! */
+	if (*(u_int32_t *)pack->private!=IPPROTO_ESP) {
+		usage_error("xorcrypto requires an ESP header\n");
+		return FALSE;
+	}
 	/* Here we might determine and fill in the key:
 	 * esp_private *epriv = (esp_private *)pack->private;
 	 *
@@ -87,6 +91,7 @@ cryptomod(void *priv, char *hdrs, sendip_data *headers[],
           int index, sendip_data *data, sendip_data *pack)
 {
 	if (!pack || !priv || !data) return FALSE; /* don't mess with me! */
+	if (*(u_int32_t *)priv!=IPPROTO_ESP) return FALSE;
 
 	return espcrypto((esp_private *)priv, data, pack);
 }
