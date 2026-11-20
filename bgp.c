@@ -111,22 +111,28 @@ sendip_option bgp_opts[] = {
 const char bgp_opt_char = 'b';
 
 
-/*
- * Gaping buffer overrun - make sure this is long enough :)
- */
-const u_int32_t  BGP_BUFLEN = 1400;
+/* A BGP message length is a 16-bit wire field. */
+#define BGP_BUFLEN 65535U
 
-/*static*/ bgp_msg_part  bgp_prev_part;
-/*static*/ u_int8_t     *bgp_len_ptr = NULL;
-/*static*/ u_int8_t     *bgp_opt_len_ptr = NULL;
-/*static*/ u_int8_t     *bgp_wdr_len_ptr = NULL;
-/*static*/ u_int8_t     *bgp_attr_len_ptr = NULL;
+typedef struct {
+	bgp_msg_part prev_part;
+	u_int8_t *len_ptr;
+	u_int8_t *opt_len_ptr;
+	u_int8_t *wdr_len_ptr;
+	u_int8_t *attr_len_ptr;
+} bgp_state;
+
+void destroy(sendip_data *pack) {
+	free(pack->private);
+	pack->private=NULL;
+}
 
 
 sendip_data *initialize (void)
 {
 	sendip_data *data = NULL;
 	u_int8_t    *ptr;
+	bgp_state *state;
 
 	data = malloc(sizeof(sendip_data));
 
@@ -140,18 +146,25 @@ sendip_data *initialize (void)
 	}
 
 	if (data != NULL) {
+		data->private=calloc(1, sizeof(bgp_state));
+		if (!data->private) {
+			free(data->data);
+			free(data);
+			return NULL;
+		}
+		state=data->private;
 		memset(data->data, 0, BGP_BUFLEN);
 		ptr = data->data;
 
 		memset(data->data, 0xFF, 16);
 		ptr += 16;
-		bgp_len_ptr = ptr;
+		state->len_ptr = ptr;
 		PUTSHORT(ptr, 19);
 		ptr += 2;
 		*ptr++ = 4;
 
 		data->alloc_len = ptr - (u_int8_t *)data->data;
-		bgp_prev_part = BGP_HEADER;
+		state->prev_part = BGP_HEADER;
 	}
 	return (data);
 }
@@ -219,6 +232,21 @@ bool do_opt (char        *optstring,
 	bool	  rc = TRUE;
 	bool	  len_mod = FALSE;
 	u_int8_t  bytes;
+	bgp_state *state=pack->private;
+
+	/* Each parsed byte consumes input; reserve fixed fields as well. NLRI
+	 * explicitly allows a claimed prefix width of up to 255 bytes.
+	 */
+	if (optstring[1]=='o' || optstring[1]=='u' || optstring[1]=='n') {
+		size_t needed=strnlen(optarg, BGP_BUFLEN)+16;
+		if (optstring[1]=='u' && (optstring[2]=='w' || optstring[2]=='n') && needed<256)
+			needed=256;
+		if (pack->alloc_len<0 || (unsigned int)pack->alloc_len>BGP_BUFLEN ||
+		    needed>BGP_BUFLEN-(unsigned int)pack->alloc_len) {
+			usage_error("BGP message is too large\n");
+			return FALSE;
+		}
+	}
 
 	switch (optstring[1]) {
 	case 'm':
@@ -237,7 +265,7 @@ bool do_opt (char        *optstring,
 	case 'o':
 		switch (optstring[2]) {
 		case '\0':
-			if (bgp_prev_part != BGP_HEADER) {
+			if (state->prev_part != BGP_HEADER) {
 				usage_error("Open message must come immediately "
 				            "after header\n");
 				rc = FALSE;
@@ -289,16 +317,16 @@ bool do_opt (char        *optstring,
 				} else {
 					pack->modified |= BGP_MOD_OPT_LEN;
 				}
-				bgp_opt_len_ptr = ptr;
+				state->opt_len_ptr = ptr;
 				ptr++;
 
-				bgp_prev_part = BGP_OPEN;
+				state->prev_part = BGP_OPEN;
 			}
 			break;
 
 		case 'o':
-			if (bgp_prev_part != BGP_OPEN &&
-			        bgp_prev_part != BGP_OPEN_OPT) {
+			if (state->prev_part != BGP_OPEN &&
+			        state->prev_part != BGP_OPEN_OPT) {
 				usage_error("Open options must occur after open "
 				            "message\n");
 				rc = FALSE;
@@ -328,9 +356,9 @@ bool do_opt (char        *optstring,
 					*(rem_ptr + 1) = ptr - rem_ptr;
 				}
 				if (!(pack->modified & BGP_MOD_OPT_LEN)) {
-					*bgp_opt_len_ptr += ptr - rem_ptr;
+					*state->opt_len_ptr += ptr - rem_ptr;
 				}
-				bgp_prev_part = BGP_OPEN_OPT;
+				state->prev_part = BGP_OPEN_OPT;
 			}
 			break;
 
@@ -344,29 +372,29 @@ bool do_opt (char        *optstring,
 	case 'u':
 		switch(optstring[2]) {
 		case 'l':
-			if (bgp_prev_part != BGP_HEADER) {
+			if (state->prev_part != BGP_HEADER) {
 				usage_error("Update message must come immediately "
 				            "after header\n");
 				rc = FALSE;
 			} else {
-				bgp_wdr_len_ptr = ptr;
+				state->wdr_len_ptr = ptr;
 				PUTSHORT(ptr, (u_int16_t)strtoul(optarg, NULL, 10));
 				ptr += 2;
 				pack->modified |= BGP_MOD_WDR_LEN;
-				bgp_prev_part = BGP_UPDATE_WDR_LEN;
+				state->prev_part = BGP_UPDATE_WDR_LEN;
 			}
 			break;
 
 		case 'w':
-			if (bgp_prev_part == BGP_HEADER) {
-				bgp_wdr_len_ptr = ptr;
+			if (state->prev_part == BGP_HEADER) {
+				state->wdr_len_ptr = ptr;
 				PUTSHORT(ptr, 0);
 				ptr += 2;
-				bgp_prev_part = BGP_UPDATE_WDR_LEN;
+				state->prev_part = BGP_UPDATE_WDR_LEN;
 			}
 
-			if (bgp_prev_part != BGP_UPDATE_WDR &&
-			        bgp_prev_part != BGP_UPDATE_WDR_LEN) {
+			if (state->prev_part != BGP_UPDATE_WDR &&
+			        state->prev_part != BGP_UPDATE_WDR_LEN) {
 				usage_error("Unfeasible routes must occur immediately "
 				            "after header or -bul\n");
 				rc = FALSE;
@@ -375,54 +403,54 @@ bool do_opt (char        *optstring,
 				ptr += bgp_parse_nlri(ptr, optarg);
 
 				if (!(pack->modified & BGP_MOD_WDR_LEN)) {
-					PUTSHORT(bgp_wdr_len_ptr,
-					         GETSHORT(bgp_wdr_len_ptr) + ptr - rem_ptr);
+					PUTSHORT(state->wdr_len_ptr,
+					         GETSHORT(state->wdr_len_ptr) + ptr - rem_ptr);
 				}
-				bgp_prev_part = BGP_UPDATE_WDR;
+				state->prev_part = BGP_UPDATE_WDR;
 			}
 			break;
 
 		case 's':
-			if (bgp_prev_part == BGP_HEADER) {
-				bgp_wdr_len_ptr = ptr;
+			if (state->prev_part == BGP_HEADER) {
+				state->wdr_len_ptr = ptr;
 				PUTSHORT(ptr, 0);
 				ptr += 2;
-				bgp_prev_part = BGP_UPDATE_WDR_LEN;
+				state->prev_part = BGP_UPDATE_WDR_LEN;
 			}
 
-			if (bgp_prev_part != BGP_UPDATE_WDR_LEN &&
-			        bgp_prev_part != BGP_UPDATE_WDR) {
+			if (state->prev_part != BGP_UPDATE_WDR_LEN &&
+			        state->prev_part != BGP_UPDATE_WDR) {
 				usage_error("Path Attributes must come after "
 				            "unfeasible routes (if any), "
 				            "or after header\n");
 				rc = FALSE;
 			} else {
-				bgp_attr_len_ptr = ptr;
+				state->attr_len_ptr = ptr;
 				PUTSHORT(ptr, (u_int16_t)strtoul(optarg, NULL, 10));
 				ptr += 2;
 				pack->modified |= BGP_MOD_ATTR_LEN;
-				bgp_prev_part = BGP_UPDATE_ATTR_LEN;
+				state->prev_part = BGP_UPDATE_ATTR_LEN;
 			}
 			break;
 
 		case 'a':
-			if (bgp_prev_part == BGP_HEADER) {
-				bgp_wdr_len_ptr = ptr;
+			if (state->prev_part == BGP_HEADER) {
+				state->wdr_len_ptr = ptr;
 				PUTSHORT(ptr, 0);
 				ptr += 2;
-				bgp_prev_part = BGP_UPDATE_WDR_LEN;
+				state->prev_part = BGP_UPDATE_WDR_LEN;
 			}
 
-			if (bgp_prev_part == BGP_UPDATE_WDR_LEN ||
-			        bgp_prev_part == BGP_UPDATE_WDR) {
-				bgp_attr_len_ptr = ptr;
+			if (state->prev_part == BGP_UPDATE_WDR_LEN ||
+			        state->prev_part == BGP_UPDATE_WDR) {
+				state->attr_len_ptr = ptr;
 				PUTSHORT(ptr, 0);
 				ptr += 2;
-				bgp_prev_part = BGP_UPDATE_ATTR_LEN;
+				state->prev_part = BGP_UPDATE_ATTR_LEN;
 			}
 
-			if (bgp_prev_part != BGP_UPDATE_ATTR_LEN &&
-			        bgp_prev_part != BGP_UPDATE_ATTR) {
+			if (state->prev_part != BGP_UPDATE_ATTR_LEN &&
+			        state->prev_part != BGP_UPDATE_ATTR) {
 				usage_error("Path Attributes must come after "
 				            "unfeasible routes (if any), "
 				            "or after header\n");
@@ -490,32 +518,32 @@ bool do_opt (char        *optstring,
 				}
 
 				if (!(pack->modified & BGP_MOD_ATTR_LEN)) {
-					PUTSHORT(bgp_attr_len_ptr,
-					         GETSHORT(bgp_attr_len_ptr) + ptr - rem_ptr);
+					PUTSHORT(state->attr_len_ptr,
+					         GETSHORT(state->attr_len_ptr) + ptr - rem_ptr);
 				}
-				bgp_prev_part = BGP_UPDATE_ATTR;
+				state->prev_part = BGP_UPDATE_ATTR;
 			}
 			break;
 
 		case 'n':
-			if (bgp_prev_part == BGP_HEADER) {
-				bgp_wdr_len_ptr = ptr;
+			if (state->prev_part == BGP_HEADER) {
+				state->wdr_len_ptr = ptr;
 				PUTSHORT(ptr, 0);
 				ptr += 2;
-				bgp_prev_part = BGP_UPDATE_WDR_LEN;
+				state->prev_part = BGP_UPDATE_WDR_LEN;
 			}
 
-			if (bgp_prev_part == BGP_UPDATE_WDR_LEN ||
-			        bgp_prev_part == BGP_UPDATE_WDR) {
-				bgp_attr_len_ptr = ptr;
+			if (state->prev_part == BGP_UPDATE_WDR_LEN ||
+			        state->prev_part == BGP_UPDATE_WDR) {
+				state->attr_len_ptr = ptr;
 				PUTSHORT(ptr, 0);
 				ptr += 2;
-				bgp_prev_part = BGP_UPDATE_ATTR_LEN;
+				state->prev_part = BGP_UPDATE_ATTR_LEN;
 			}
 
-			if (bgp_prev_part != BGP_UPDATE_ATTR_LEN &&
-			        bgp_prev_part != BGP_UPDATE_ATTR &&
-			        bgp_prev_part != BGP_UPDATE_NLRI) {
+			if (state->prev_part != BGP_UPDATE_ATTR_LEN &&
+			        state->prev_part != BGP_UPDATE_ATTR &&
+			        state->prev_part != BGP_UPDATE_NLRI) {
 				usage_error("NLRI must come after Unfeasible routes and "
 				            "attributes, if any, or after header\n");
 				rc = FALSE;
@@ -523,7 +551,7 @@ bool do_opt (char        *optstring,
 				rem_ptr = ptr;
 				ptr += bgp_parse_nlri(ptr, optarg);
 
-				bgp_prev_part = BGP_UPDATE_NLRI;
+				state->prev_part = BGP_UPDATE_NLRI;
 			}
 			break;
 
@@ -534,7 +562,7 @@ bool do_opt (char        *optstring,
 		break;
 
 	case 'n':
-		if (bgp_prev_part != BGP_HEADER) {
+		if (state->prev_part != BGP_HEADER) {
 			usage_error("Notification must come immediately after header\n");
 			rc = FALSE;
 		} else {
@@ -551,7 +579,7 @@ bool do_opt (char        *optstring,
 
 			ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFFFF, 16, '\0');
 
-			bgp_prev_part = BGP_NOTFN;
+			state->prev_part = BGP_NOTFN;
 		}
 		break;
 
@@ -563,7 +591,7 @@ bool do_opt (char        *optstring,
 	if (rc) {
 		pack->alloc_len = ptr - (u_int8_t *)pack->data;
 		if (!(pack->modified & BGP_MOD_LENGTH)) {
-			PUTSHORT(bgp_len_ptr, pack->alloc_len);
+			PUTSHORT(state->len_ptr, pack->alloc_len);
 		}
 	}
 
