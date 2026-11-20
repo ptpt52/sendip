@@ -8,9 +8,11 @@ INSTALL ?= install
 #For Solaris, you may need
 #INSTALL=/usr/ucb/install
 
-CFLAGS +=	-I.. -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
-	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O3 -Wcast-align \
-	-DSENDIP_LIBS=\"$(LIBDIR)\"
+CFLAGS +=	-pipe -Wall -Wpointer-arith -Wwrite-strings \
+	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O3 -Wcast-align
+# Required flags remain present when callers supply CFLAGS/CPPFLAGS.
+SENDIP_CPPFLAGS = -I.. -DSENDIP_LIBS=\"$(LIBDIR)\"
+SENDIP_CFLAGS = -fPIC -fsigned-char
 #-Wcast-align causes problems on solaris, but not serious ones
 LDFLAGS ?=
 LDLIBS ?=
@@ -30,13 +32,13 @@ LIBS= ../libsendipaux.a
 all:	$(PROTOS) $(CRYPTOS)
 
 %.so: %.c $(LIBS)
-			$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
+			$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
 
 hop.so: hop.c $(LIBS)
-			$(CC) -DHOP_OPT $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
+			$(CC) -DHOP_OPT $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
 
 dest.so: hop.c $(LIBS)
-			$(CC) -DDEST_OPT $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
+			$(CC) -DDEST_OPT $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
 
 .PHONY:	all clean veryclean install
 

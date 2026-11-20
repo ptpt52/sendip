@@ -8,10 +8,12 @@ INSTALL ?= install
 #For Solaris, you may need
 #INSTALL=/usr/ucb/install
 
-CFLAGS +=	-fPIC -fsigned-char -pipe -Wall -Wextra -Wno-unused-parameter -Wpointer-arith -Wwrite-strings \
+CFLAGS +=	-pipe -Wall -Wextra -Wno-unused-parameter -Wpointer-arith -Wwrite-strings \
 			-Wstrict-prototypes -Wnested-externs -Winline -Werror \
-			-Wcast-align -O3 \
-			-DSENDIP_LIBS=\"$(LIBDIR)\"
+			-Wcast-align -O3
+# Required flags remain present when callers supply CFLAGS/CPPFLAGS.
+SENDIP_CPPFLAGS = -DSENDIP_LIBS=\"$(LIBDIR)\"
+SENDIP_CFLAGS = -fPIC -fsigned-char
 #-Wcast-align causes problems on solaris, but not serious ones
 LDFLAGS ?=
 LDLIBS ?=
@@ -48,7 +50,7 @@ sendip: sendip.o gnugetopt.o gnugetopt1.o compact.o filearray.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SENDIP_LDFLAGS) -o $@ $^ $(SENDIP_LDLIBS) $(LDLIBS)
 
 %.o: %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 libsendipaux.a: $(LIBOBJS)
 	$(AR) vr $@ $?
@@ -59,19 +61,19 @@ subdirs: $(LIBS)
 		done
 
 protoname.o:	mec/protoname.c
-	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $<
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $<
 
 headers.o:	mec/headers.c
-	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $<
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $<
 
 parseargs.o:	mec/parseargs.c
-	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $<
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $<
 
 cryptomod.o:	mec/cryptomod.c
-	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $<
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $<
 
 crc32.o: mec/crc32table.h mec/crc32.c
-	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) mec/crc32.c
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) mec/crc32.c
 
 #mec/crc32table.h: mec/gen_crc32table
 #	mec/gen_crc32table > mec/crc32table.h
@@ -92,7 +94,7 @@ sendip.spec:	sendip.spec.in VERSION
 			cat sendip.spec.in >>sendip.spec
 
 %.so: %.c $(LIBS)
-			$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
+			$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
 
 .PHONY:	all subdirs man clean veryclean install
 
