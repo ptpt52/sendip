@@ -49,20 +49,24 @@ static bool add_entry(sendip_data *pack) {
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
+	u_int32_t parsed;
 	ripng_header *rippack = (ripng_header *)pack->data;
 	ripng_entry *ripopt;
 	char *fields[4], *remaining;
 	switch(opt[1]) {
 	case 'v': /* version */
-		rippack->version = (u_int8_t)strtoul(arg, (char **)0, 0);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		rippack->version = parsed;
 		pack->modified |= RIPNG_MOD_VERSION;
 		break;
 	case 'c': /* command */
-		rippack->command = (u_int8_t)strtoul(arg, (char **)0, 0);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		rippack->command = parsed;
 		pack->modified |= RIPNG_MOD_COMMAND;
 		break;
 	case 'r': /* reserved */
-		rippack->res = htons((u_int16_t)strtoul(arg, (char **)0, 0));
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		rippack->res = parsed;
 		pack->modified |= RIPNG_MOD_RESERVED;
 		break;
 	/*
@@ -89,6 +93,11 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			usage_error("Too many fields in RIPNG entry\n");
 			return FALSE;
 		}
+		u_int32_t tag=0, prefix_length=128, metric=16;
+		if ((*fields[1] && !integerargument_checked(fields[1], 2, &tag)) ||
+		    (*fields[2] && !integerargument_checked(fields[2], 1, &prefix_length)) ||
+		    (*fields[3] && !integerargument_checked(fields[3], 1, &metric)))
+			return FALSE;
 		struct in6_addr prefix=in6addr_any;
 		if (*fields[0]) {
 			struct sockaddr_storage address;
@@ -99,9 +108,9 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		if (!add_entry(pack)) return FALSE;
 		ripopt=RIPNG_ENTRY(pack);
 		ripopt->prefix=prefix;
-		ripopt->tag=htons(*fields[1] ? strtoul(fields[1], NULL, 0) : 0);
-		ripopt->len=*fields[2] ? strtoul(fields[2], NULL, 0) : 128;
-		ripopt->metric=*fields[3] ? strtoul(fields[3], NULL, 0) : 16;
+		ripopt->tag=tag;
+		ripopt->len=prefix_length;
+		ripopt->metric=metric;
 		break;
 	case 'd': /* default request */
 		if(RIPNG_NUM_ENTRIES(pack) != 0) {

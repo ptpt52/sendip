@@ -94,6 +94,11 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			usage_error("Too many fields in RIP entry\n");
 			return FALSE;
 		}
+		u_int32_t family=htons(2), tag=0, metric=htonl(16);
+		if ((*fields[0] && !integerargument_checked(fields[0], 2, &family)) ||
+		    (*fields[1] && !integerargument_checked(fields[1], 2, &tag)) ||
+		    (*fields[5] && !integerargument_checked(fields[5], 4, &metric)))
+			return FALSE;
 		struct in_addr addresses[3];
 		const char *defaults[]={"0.0.0.0", "255.255.255.0", "0.0.0.0"};
 		for (size_t i=0; i<3; ++i) {
@@ -104,13 +109,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		}
 		if (!add_entry(pack)) return FALSE;
 		ripopt=RIP_OPTION(pack);
-		ripopt->addressFamily=htons(*fields[0] ? strtoul(fields[0], NULL, 0) : 2);
-		ripopt->routeTagOrAuthenticationType=htons(*fields[1] ? strtoul(fields[1], NULL, 0) : 0);
+		ripopt->addressFamily=family;
+		ripopt->routeTagOrAuthenticationType=tag;
 		pack->modified |= RIP_MOD_ADDRFAM|RIP_MOD_ROUTETAG;
 		ripopt->address=addresses[0].s_addr;
 		ripopt->subnetMask=addresses[1].s_addr;
 		ripopt->nextHop=addresses[2].s_addr;
-		ripopt->metric=htonl(*fields[5] ? strtoul(fields[5], NULL, 0) : 16);
+		ripopt->metric=metric;
 		break;
 	case 'd': /* default request */
 		if(RIP_NUM_ENTRIES(pack) != 0) {
