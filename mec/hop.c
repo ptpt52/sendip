@@ -100,6 +100,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	hop_header *hop=pack->data;
 	u_int8_t storage[2+255]={0};
 	struct ipv6_hopopt *hopt=(void *)storage;
+	u_int8_t *hopt_data=storage+sizeof(*hopt);
 	unsigned long value;
 	char *end, *temp;
 	int length;
@@ -123,7 +124,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		u_int16_t alert = parsed;
 		hopt->hopt_type=IPV6_TLV_ROUTERALERT;
 		hopt->hopt_len=sizeof(alert);
-		memcpy(hopt->hopt_data, &alert, sizeof(alert));
+		memcpy(hopt_data, &alert, sizeof(alert));
 		break;
 	}
 	case 'j': {
@@ -133,7 +134,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		u_int32_t jumbo = parsed;
 		hopt->hopt_type=IPV6_TLV_JUMBO;
 		hopt->hopt_len=sizeof(jumbo);
-		memcpy(hopt->hopt_data, &jumbo, sizeof(jumbo));
+		memcpy(hopt_data, &jumbo, sizeof(jumbo));
 		break;
 	}
 	case 'h': {
@@ -143,7 +144,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		if (inet_pton(AF_INET6, arg, &address)!=1) return FALSE;
 		hopt->hopt_type=IPV6_TLV_HAO;
 		hopt->hopt_len=sizeof(address);
-		memcpy(hopt->hopt_data, &address, sizeof(address));
+		memcpy(hopt_data, &address, sizeof(address));
 		break;
 	}
 	case 'a':
@@ -157,7 +158,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		if (!temp) return FALSE;
 		/* The declared length controls the TLV; pad or truncate its value. */
 		if (length>(int)value) length=value;
-		memcpy(hopt->hopt_data, temp, length);
+		memcpy(hopt_data, temp, length);
 		break;
 	default:
 		return FALSE;
