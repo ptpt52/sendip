@@ -294,6 +294,21 @@ fa_free(Filearray *fa)
 	free(fa);
 }
 
+/* File arguments are text values: validate their counted bytes before
+ * removing the line ending or caching a C string.
+ */
+static bool prepare_line(char *line, size_t length) {
+	if (memchr(line, '\0', length)) {
+		errno=EINVAL;
+		return FALSE;
+	}
+	if (length && line[length-1]=='\n') {
+		line[--length]='\0';
+		if (length && line[length-1]=='\r') line[--length]='\0';
+	}
+	return TRUE;
+}
+
 Filearray *
 fa_create(const char *name)
 {
@@ -315,6 +330,7 @@ fa_create(const char *name)
 	answer->next=NULL;
 	errno=0;
 	while ((length=getline(&line, &linecap, fp)) >= 0) {
+		if (!prepare_line(line, (size_t)length)) goto fail;
 		if (answer->length == linelimit) {
 			Filearray *grown;
 			if (linelimit > (SIZE_MAX-sizeof(*answer))/sizeof(answer->lines[0])/2) {
@@ -325,10 +341,6 @@ fa_create(const char *name)
 			grown = realloc(answer, sizeof(*answer)+linelimit*sizeof(answer->lines[0]));
 			if (!grown) goto fail;
 			answer=grown;
-		}
-		if (length && line[length-1]=='\n') {
-			line[--length]='\0';
-			if (length && line[length-1]=='\r') line[--length]='\0';
 		}
 		answer->lines[answer->length]=strdup(line);
 		if (!answer->lines[answer->length]) goto fail;

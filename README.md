@@ -31,6 +31,7 @@ retain their normal validation. Modules without this callback keep the legacy
 
 The `fF` argument form reads text values one line at a time. LF and CRLF line
 endings are removed; a carriage return elsewhere remains part of the value.
+Embedded NUL bytes are rejected; use hex or octal text to describe binary values.
 The `-f` packet-data option continues to read raw file bytes.
 
 ### IPv4 byte order
