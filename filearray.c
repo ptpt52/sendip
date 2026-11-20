@@ -321,15 +321,14 @@ fa_create(const char *name)
 
 	if (!(fp = fopen(name, "r"))) return NULL;
 	answer = malloc(sizeof(*answer)+linelimit*sizeof(answer->lines[0]));
-	if (!answer) {
-		fclose(fp);
-		return NULL;
-	}
+	if (!answer) goto fail;
 	answer->index=answer->length=0;
 	answer->name=NULL;
 	answer->next=NULL;
-	errno=0;
-	while ((length=getline(&line, &linecap, fp)) >= 0) {
+	for (;;) {
+		errno=0;
+		length=getline(&line, &linecap, fp);
+		if (length<0 || ferror(fp)) break;
 		if (!prepare_line(line, (size_t)length)) goto fail;
 		if (answer->length == linelimit) {
 			Filearray *grown;
@@ -346,9 +345,12 @@ fa_create(const char *name)
 		if (!answer->lines[answer->length]) goto fail;
 		++answer->length;
 	}
-	if (!feof(fp) || !answer->length) {
-		if (!answer->length && feof(fp)) errno=EINVAL;
-		else if (!errno) errno=EIO;
+	if (ferror(fp) || !feof(fp)) {
+		if (!errno) errno=EIO;
+		goto fail;
+	}
+	if (!answer->length) {
+		errno=EINVAL;
 		goto fail;
 	}
 	answer->name=strdup(name);
