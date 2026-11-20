@@ -9,11 +9,11 @@ typedef struct {
 	u_int8_t command;
 	u_int8_t version;
 	u_int16_t res;
-	u_int16_t addressFamily;
-	u_int16_t routeTagOrAuthenticationType;
 } rip_header;
 
 typedef struct {
+	u_int16_t addressFamily;
+	u_int16_t routeTagOrAuthenticationType;
 	u_int32_t address;
 	u_int32_t subnetMask;
 	u_int32_t nextHop;

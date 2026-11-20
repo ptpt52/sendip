@@ -85,10 +85,9 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			return FALSE;
 		}
 		if (!add_entry(pack)) return FALSE;
-		rippack=pack->data;
 		ripopt=RIP_OPTION(pack);
-		rippack->addressFamily=htons(*fields[0] ? strtoul(fields[0], NULL, 0) : 2);
-		rippack->routeTagOrAuthenticationType=htons(*fields[1] ? strtoul(fields[1], NULL, 0) : 0);
+		ripopt->addressFamily=htons(*fields[0] ? strtoul(fields[0], NULL, 0) : 2);
+		ripopt->routeTagOrAuthenticationType=htons(*fields[1] ? strtoul(fields[1], NULL, 0) : 0);
 		pack->modified |= RIP_MOD_ADDRFAM|RIP_MOD_ROUTETAG;
 		ripopt->address=inet_addr(*fields[2] ? fields[2] : "0.0.0.0");
 		ripopt->subnetMask=inet_addr(*fields[3] ? fields[3] : "255.255.255.0");
@@ -100,14 +99,12 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			usage_error("Warning: a real RIP-1 or -2 packet does not have any entries in a default request.\n");
 		}
 		rippack->command = (u_int8_t)1;
-		rippack->addressFamily = (u_int16_t)0;
-		rippack->routeTagOrAuthenticationType = (u_int16_t)0;
 		if (!add_entry(pack)) return FALSE;
 		ripopt=RIP_OPTION(pack);
 		ripopt->address=inet_addr("0.0.0.0");
 		ripopt->subnetMask=inet_addr("0.0.0.0");
 		ripopt->nextHop=inet_addr("0.0.0.0");
-		ripopt->metric=htons((u_int16_t)16);
+		ripopt->metric=htonl(16);
 		break;
 	}
 	return TRUE;

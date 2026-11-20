@@ -121,7 +121,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		ripopt->prefix=in6addr_any;
 		ripopt->tag=(u_int16_t)0;
 		ripopt->len=(u_int8_t)0;
-		ripopt->metric=(u_int8_t)htons((u_int16_t)16);
+		ripopt->metric=16;
 		break;
 	}
 	return TRUE;
