@@ -44,6 +44,8 @@ sendip_data *initialize(void);
 void destroy(sendip_data *pack);
 bool do_opt(char *optstring, char *optarg, sendip_data *pack);
 bool set_addr(char *hostname, sendip_data *pack);
+/* Optional: pad before assembly using the nearest enclosing IP type ('i'/'6'). */
+bool do_pad_ip(char outer_ip, sendip_data *pack);
 bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack);
 int num_opts(void);

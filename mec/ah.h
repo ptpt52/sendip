@@ -7,6 +7,8 @@
  */
 typedef struct ip_auth_hdr ah_header;
 
+#define AH_MAX_HEADER_LEN ((UINT8_MAX+2U)*4U)
+
 /* Defines for which parts have been modified
  */
 #define AH_MOD_SPI	(1)

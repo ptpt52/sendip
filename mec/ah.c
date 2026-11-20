@@ -77,15 +77,16 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 * or a user-provided string.
 		 */
 		length = stringargument(arg, &temp);
-		if (!temp) return FALSE;
+		if (!temp || length>(int)(AH_MAX_HEADER_LEN-sizeof(ah_header))) {
+			usage_error("AH authentication data exceeds the length field\n");
+			return FALSE;
+		}
 		ah = realloc(ah, sizeof(ah_header)+length);
 		if (!ah) return FALSE;
 		pack->data = ah;
 		pack->alloc_len = sizeof(ah_header)+length;
 		ah = (ah_header *)pack->data;
 		memcpy(ah->auth_data, temp, length);
-		/* as per RFC 4302 */
-		ah->hdrlen = 1 + length/4;
 		pack->modified |= AH_MOD_AUTHDATA;
 		break;
 	case 'k':       /* Key */
@@ -118,6 +119,28 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	}
 	return TRUE;
 
+}
+
+/* AH uses four-byte units for its length field, but IPv6 also requires
+ * the whole AH to occupy a multiple of eight bytes (RFC 4302).
+ */
+bool do_pad_ip(char outer_ip, sendip_data *pack) {
+	int alignment=outer_ip=='i' ? 4 : outer_ip=='6' ? 8 : 0;
+	if (!alignment || pack->alloc_len<(int)sizeof(ah_header)) return FALSE;
+	int padding=(alignment-pack->alloc_len%alignment)%alignment;
+	if ((unsigned int)pack->alloc_len>AH_MAX_HEADER_LEN-(unsigned int)padding) {
+		usage_error("Padded AH exceeds the length field\n");
+		return FALSE;
+	}
+	if (padding) {
+		void *replacement=realloc(pack->data, (size_t)pack->alloc_len+padding);
+		if (!replacement) return FALSE;
+		memset((char *)replacement+pack->alloc_len, 0, padding);
+		pack->data=replacement;
+		pack->alloc_len+=padding;
+	}
+	((ah_header *)pack->data)->hdrlen=pack->alloc_len/4-2;
+	return TRUE;
 }
 
 bool

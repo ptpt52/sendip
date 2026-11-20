@@ -83,6 +83,7 @@ typedef struct _s_m {
 	bool (*do_opt)(char *optstring, char *optarg,
 	               sendip_data *pack);
 	bool (*do_pad)(sendip_data *pack);
+	bool (*do_pad_ip)(char outer_ip, sendip_data *pack);
 	u_int32_t (*randomize_arg)(const char *option, u_int32_t value);
 	void (*destroy)(sendip_data *pack);
 	bool (*set_addr)(char *hostname, sendip_data *pack);
@@ -312,6 +313,7 @@ static bool load_module(char *modname) {
 		goto fail;
 	}
 	newmod->do_pad=dlsym(newmod->handle, "do_pad");
+	newmod->do_pad_ip=dlsym(newmod->handle, "do_pad_ip");
 	newmod->randomize_arg=dlsym(newmod->handle, "randomize_arg");
 	newmod->set_addr=dlsym(newmod->handle, "set_addr");
 	newmod->destroy=dlsym(newmod->handle, "destroy");
@@ -439,6 +441,19 @@ static void print_usage(void) {
 		}
 	}
 
+}
+
+static bool pad_modules(void) {
+	char outer_ip=0;
+	for (sendip_module *mod=first; mod; mod=mod->next) {
+		if (mod->optchar=='i' || mod->optchar=='6') outer_ip=mod->optchar;
+		if ((mod->do_pad && !mod->do_pad(mod->pack)) ||
+		    (mod->do_pad_ip && !mod->do_pad_ip(outer_ip, mod->pack))) {
+			fprintf(stderr, "Padding module %s failed\n", mod->name);
+			return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 extern u_int32_t randomcalls;
@@ -776,13 +791,10 @@ int main(int argc, char *const argv[]) {
 			goto cleanup;
 		}
 
-		for(mod=first; mod!=NULL; mod=mod->next) {
-			if (mod->do_pad && !mod->do_pad(mod->pack)) {
-				fprintf(stderr, "Padding module %s failed\n", mod->name);
-				unload_modules(TRUE, verbosity);
-				status=1;
-				goto cleanup;
-			}
+		if (!pad_modules()) {
+			unload_modules(TRUE, verbosity);
+			status=1;
+			goto cleanup;
 		}
 
 		/* EVIL EVIL EVIL! */

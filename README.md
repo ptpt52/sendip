@@ -27,6 +27,12 @@ range. SendIP still passes a decimal string to `do_opt`; explicit arguments
 retain their normal validation. Modules without this callback keep the legacy
 32-bit random value.
 
+Protocol modules may export `bool do_pad_ip(char outer_ip, sendip_data *pack)`
+to pad their header before assembly using the nearest enclosing IPv4 (`i`) or
+IPv6 (`6`) module. Existing `do_pad` callbacks run first and remain supported.
+AH uses this callback to add zero padding and compute a representable length for
+the enclosing IP version.
+
 ### File arguments
 
 The `fF` argument form reads text values one line at a time. LF and CRLF line
