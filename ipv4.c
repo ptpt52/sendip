@@ -49,10 +49,14 @@ static int buildroute(char *input, u_int8_t *output, sendip_data *pack) {
 		u_int32_t ip=ipv4argument(address, strlen(address));
 		memcpy(output+used, &ip, 4);
 		used+=4;
-		if (pack && !(pack->modified&IP_MOD_ROUTE_DADDR) && used-1==output[0]) {
-			pack->modified |= IP_MOD_ROUTE_DADDR;
-			pack->route_daddr=ip;
-		}
+	}
+	/* The pointer identifies the next hop to consume, not the final
+	 * destination required by the transport checksum pseudo-header.
+	 */
+	if (pack && !(pack->modified&IP_MOD_ROUTE_DADDR) && output[0]>=4 &&
+	    (output[0]-4)%4==0 && output[0]<=used+2) {
+		pack->modified |= IP_MOD_ROUTE_DADDR;
+		memcpy(&pack->route_daddr, output+used-4, 4);
 	}
 	return used;
 }
