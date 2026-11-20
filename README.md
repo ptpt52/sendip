@@ -27,6 +27,12 @@ range. SendIP still passes a decimal string to `do_opt`; explicit arguments
 retain their normal validation. Modules without this callback keep the legacy
 32-bit random value.
 
+### File arguments
+
+The `fF` argument form reads text values one line at a time. LF and CRLF line
+endings are removed; a carriage return elsewhere remains part of the value.
+The `-f` packet-data option continues to read raw file bytes.
+
 ### IPv4 byte order
 
 Assembled and dumped IPv4 headers use network byte order on every platform,

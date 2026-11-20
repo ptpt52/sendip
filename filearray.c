@@ -326,7 +326,10 @@ fa_create(const char *name)
 			if (!grown) goto fail;
 			answer=grown;
 		}
-		if (length && line[length-1]=='\n') line[length-1]='\0';
+		if (length && line[length-1]=='\n') {
+			line[--length]='\0';
+			if (length && line[length-1]=='\r') line[--length]='\0';
+		}
 		answer->lines[answer->length]=strdup(line);
 		if (!answer->lines[answer->length]) goto fail;
 		++answer->length;
