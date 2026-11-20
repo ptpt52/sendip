@@ -900,6 +900,8 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 						return optstring[0] == ':' ? ':' : '?';
 					}
 				}
+				else
+					gnuoptarg = NULL;
 				nextchar += strlen (nextchar);
 				if (longind != NULL)
 					*longind = option_index;
