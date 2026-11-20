@@ -222,10 +222,6 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	case 'D':	/* arbitrary SCTP chunk data */
 		length = stringargument(arg, &temp);
 		if (!temp) return FALSE;
-		if (!currentchunk ) {
-			currentchunk = add_chunk(pack, 0);
-		if (!currentchunk) return FALSE;
-		}
 		currentchunk = grow_chunk(pack, currentchunk, length,
 		                          (void *)temp);
 		if (!currentchunk) return FALSE;
@@ -266,11 +262,12 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			init.init_tag = parsed;
 		}
 
-		currentchunk = add_chunk(pack, SCTP_CID_INIT);
-		if (!currentchunk) return FALSE;
-		currentchunk = grow_chunk(pack, currentchunk,
+		currentchunk = grow_chunk(pack, NULL,
 		                          sizeof(sctp_inithdr_t), (void *)&init);
 		if (!currentchunk) return FALSE;
+		currentchunk->type=SCTP_CID_INIT;
+		if (!(pack->modified&SCTP_MOD_VTAG))
+			((sctp_header *)pack->data)->vtag=0;
 		break;
 	}
 	case '4':	/* IPv4 address parameter */
