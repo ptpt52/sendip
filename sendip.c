@@ -325,6 +325,13 @@ static bool load_module(char *modname) {
 		fprintf(stderr, "Module %s returned invalid option metadata\n", modname);
 		goto fail;
 	}
+	for (int i=0; i<newmod->num_opts; ++i) {
+		if (!newmod->opts[i].optname || !*newmod->opts[i].optname ||
+		    !newmod->opts[i].description) {
+			fprintf(stderr, "Module %s returned invalid option metadata\n", modname);
+			goto fail;
+		}
+	}
 	num_opts+=newmod->num_opts;
 	newmod->prev=last;
 	if (last) last->next=newmod;
