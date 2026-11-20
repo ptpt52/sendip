@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <ctype.h>
 #include <netinet/in.h>
@@ -183,7 +184,7 @@ randombytes(int length)
 	u_int8_t *answer;
 
 	/* Sanity check */
-	if (length > MAXRAND) {
+	if (length < 0 || length > MAXRAND) {
 		usage_error("Random data too long to be sane\n");
 		return NULL;
 	}
@@ -212,7 +213,7 @@ zerobytes(int length)
 	static u_int8_t answer[MAXRAND];
 
 	/* Sanity check */
-	if (length > MAXRAND) {
+	if (length < 0 || length > MAXRAND) {
 		usage_error("Zero data too long to be sane\n");
 		return NULL;
 	}
@@ -233,11 +234,15 @@ timestamp(int length)
 	static u_int8_t answer[MAXRAND];
 
 	/* Sanity check */
-	if (length > MAXRAND) {
+	if (length < 0 || length > MAXRAND) {
 		usage_error("Time data too long to be sane\n");
 		return NULL;
 	}
-	gettimeofday((void *)answer, NULL);
+	{
+		struct timeval now;
+		if (gettimeofday(&now, NULL) < 0) return NULL;
+		memcpy(answer, &now, sizeof(now));
+	}
 #ifdef notdef
 	/* Paranoia */
 	(void) memset((void *)answer, 0, MAXRAND);
@@ -263,6 +268,35 @@ resolve_file_arguments(const char *input)
 	return input;
 }
 
+static int
+requested_length(const char *input, int maximum, bool truncate)
+{
+	char *end;
+	unsigned long length;
+	errno=0;
+	length=strtoul(input, &end, 10);
+	if (errno || end==input || *end || *input=='-' ||
+	    (length>(unsigned long)maximum && !truncate)) {
+		usage_error("Invalid generated-data length\n");
+		return -1;
+	}
+	return length>(unsigned long)maximum ? maximum : (int)length;
+}
+
+static u_int32_t
+random_integer(const char *input, int width)
+{
+	u_int32_t value=0;
+	int length=requested_length(input, width, true);
+	const u_int8_t *bytes;
+	if (length < 0) return 0;
+	bytes=randombytes(length);
+	if (!bytes) return 0;
+	for (int i=0; i<length; ++i)
+		value=(value<<8)|bytes[i];
+	return value;
+}
+
 int
 stringargument(const char *input, char **output)
 {
@@ -278,24 +312,27 @@ stringargument(const char *input, char **output)
 	/* Special case for rN, zN, fN, tN strings */
 	switch (*input) {
 	case 'r':
-		if (isdigit(*(input+1))) {
-			length = atoi(input+1);
+		if (isdigit((unsigned char)input[1])) {
+			length = requested_length(input+1, MAXRAND, false);
+			if (length < 0) return 0;
 			*output = (char *)randombytes(length);
 			if (!*output) return 0;
 			return length;
 		}
 		break;
 	case 'z':
-		if (isdigit(*(input+1))) {
-			length = atoi(input+1);
+		if (isdigit((unsigned char)input[1])) {
+			length = requested_length(input+1, MAXRAND, false);
+			if (length < 0) return 0;
 			*output = (char *)zerobytes(length);
 			if (!*output) return 0;
 			return length;
 		}
 		break;
 	case 't':	/* timestamp */
-		if (isdigit(*(input+1))) {
-			length = atoi(input+1);
+		if (isdigit((unsigned char)input[1])) {
+			length = requested_length(input+1, MAXRAND, false);
+			if (length < 0) return 0;
 			*output = (char *)timestamp(length);
 			if (!*output) return 0;
 			return length;
@@ -333,32 +370,20 @@ stringargument(const char *input, char **output)
 u_int32_t
 integerargument(const char *input, int length)
 {
-	int inputlength;
-	void *string;
-
 	input=resolve_file_arguments(input);
-	if (!input || !length) return 0;
+	if (!input || length<1 || length>4) return 0;
 	/* Special case for rN, zN strings */
 	switch (*input) {
 	case 'r':
-		if (isdigit(*(input+1))) {
-			inputlength = atoi(input+1);
-			if (inputlength > length)
-				inputlength = length;
-			string = randombytes(inputlength);
-			if (!string) return 0;
-			/* There's no point in byte-swapping
-			 * random bytes!
-			 */
+		if (isdigit((unsigned char)input[1])) {
+			u_int32_t value=random_integer(input+1, length);
 			switch (length) {
 			case 1:
-				return *(u_int8_t *)string;
+				return value;
 			case 2:
-				return *(u_int16_t *)string;
-			case 3:
-				return (htonl(0xffffff) & *(u_int32_t *)string);
+				return htons((u_int16_t)value);
 			default:
-				return *(u_int32_t *)string;
+				return htonl(value);
 			}
 		}
 		break;
@@ -385,31 +410,13 @@ integerargument(const char *input, int length)
 u_int32_t
 hostintegerargument(const char *input, int length)
 {
-	int inputlength;
-	void *string;
-
 	input=resolve_file_arguments(input);
-	if (!input || !length) return 0;
+	if (!input || length<1 || length>4) return 0;
 	/* Special case for rN, zN, fN strings */
 	switch (*input) {
 	case 'r':
-		if (isdigit(*(input+1))) {
-			inputlength = atoi(input+1);
-			if (inputlength > length)
-				inputlength = length;
-			string = randombytes(inputlength);
-			if (!string) return 0;
-			switch (length) {
-			case 1:
-				return *(u_int8_t *)string;
-			case 2:
-				return *(u_int16_t *)string;
-			case 3:
-				return (0xffffff & *(u_int32_t *)string);
-			default:
-				return *(u_int32_t *)string;
-			}
-		}
+		if (isdigit((unsigned char)input[1]))
+			return random_integer(input+1, length);
 		break;
 	case 'z':
 		/* like I said, pointless ... */
