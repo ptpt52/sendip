@@ -349,8 +349,13 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		    SCTP_PARAM_SUPPORTED_ADDRESS_TYPES;
 		naddrs = parsenargs(arg, straddrs, MAXSUPPORTEDADDRS, " ,:.");
 		if (naddrs<0) return FALSE;
-		for (i=0; i < naddrs; ++i)
-			addrs[i] = htons(atoi(straddrs[i]));
+		for (i=0; i < naddrs; ++i) {
+			if (!uintargument(straddrs[i], UINT16_MAX, &svalue)) {
+				usage_error("Invalid SCTP supported address type\n");
+				return FALSE;
+			}
+			addrs[i] = htons(svalue);
+		}
 		addrs[i] = 0;
 		supportedaddrs.param_hdr.length =
 		    htons(sizeof(sctp_supported_addrs_param_t)
