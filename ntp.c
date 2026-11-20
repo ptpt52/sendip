@@ -114,12 +114,15 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 					  Else: must be zero
 				  */
 		if('0'<=*arg&&*arg<='9') {
-			/* either a number or an IP */
-			if((ntp->reference.ipaddr=inet_addr(arg))==INADDR_NONE) {
-				/* Not a valid IP, or really want 255.255.255.255 */
-				if(strcmp(arg,"255.255.255.255")) {
-					ntp->reference.ipaddr=htonl(strtol(arg,(char **)NULL,0));
-				}
+			struct in_addr address;
+			unsigned long number;
+			if (inet_aton(arg, &address)) {
+				ntp->reference.ipaddr=address.s_addr;
+			} else if (uintargument(arg, UINT32_MAX, &number)) {
+				ntp->reference.ipaddr=htonl(number);
+			} else {
+				usage_error("Invalid numeric NTP reference ID or IPv4 address\n");
+				return FALSE;
 			}
 		} else {
 			/* Hopefully a 4 byte or less string */
