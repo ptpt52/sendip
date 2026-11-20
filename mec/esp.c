@@ -24,6 +24,9 @@
  */
 const char opt_char='e';
 
+static u_int8_t *esp_components(esp_header *esp) {
+	return (u_int8_t *)esp+ESP_WORK_HEADER_LEN;
+}
 
 
 void destroy(sendip_data *pack) {
@@ -73,8 +76,8 @@ static bool replace_components(sendip_data *pack, const void *iv, int ivlen,
 	esp_header *replacement=calloc(1, size);
 	if (!replacement) return FALSE;
 	memcpy(replacement, pack->data, ESP_WORK_HEADER_LEN);
-	if (ivlen) memcpy(replacement->tail.ivicv, iv, ivlen);
-	if (icvlen) memcpy(replacement->tail.ivicv+ivlen, icv, icvlen);
+	if (ivlen) memcpy(esp_components(replacement), iv, ivlen);
+	if (icvlen) memcpy(esp_components(replacement)+ivlen, icv, icvlen);
 	free(pack->data);
 	pack->data=replacement;
 	pack->alloc_len=(int)size;
@@ -110,8 +113,9 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			usage_error("Padding length must be between 0 and 255\n");
 			return FALSE;
 		}
-		if (!replace_components(pack, esp->tail.ivicv, priv->ivlen,
-		                        esp->tail.ivicv+priv->ivlen, priv->icvlen, padding))
+		if (!replace_components(pack, esp_components(esp), priv->ivlen,
+		                        esp_components(esp)+priv->ivlen,
+		                        priv->icvlen, padding))
 			return FALSE;
 		esp=pack->data;
 		esp->tail.padlen=padding;
@@ -121,7 +125,8 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	case 'i': /* Initialization vector */
 		length=stringargument(arg, &temp);
 		if (!temp || !replace_components(pack, temp, length,
-		                                 esp->tail.ivicv+priv->ivlen, priv->icvlen,
+		                                 esp_components(esp)+priv->ivlen,
+		                                 priv->icvlen,
 		                                 pack->modified&ESP_MOD_PADDING ? esp->tail.padlen : ESP_MIN_PADDING))
 			return FALSE;
 		priv->ivlen=length;
@@ -129,7 +134,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'I': /* Integrity check value */
 		length=stringargument(arg, &temp);
-		if (!temp || !replace_components(pack, esp->tail.ivicv, priv->ivlen,
+		if (!temp || !replace_components(pack, esp_components(esp), priv->ivlen,
 		                                 temp, length,
 		                                 pack->modified&ESP_MOD_PADDING ? esp->tail.padlen : ESP_MIN_PADDING))
 			return FALSE;
@@ -253,14 +258,14 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	if (priv->ivlen) {
 		iv = (u_int8_t *)malloc(priv->ivlen);
 		if (!iv) return FALSE;
-		memcpy(iv, &esp->tail.ivicv[0], priv->ivlen);
+		memcpy(iv, esp_components(esp), priv->ivlen);
 	} else {
 		iv = NULL;
 	}
 	if (priv->icvlen) {
 		icv = (u_int8_t *)malloc(priv->icvlen);
 		if (!icv) { free(iv); return FALSE; }
-		memcpy(icv, &esp->tail.ivicv[priv->ivlen], priv->icvlen);
+		memcpy(icv, esp_components(esp)+priv->ivlen, priv->icvlen);
 	} else {
 		icv = NULL;
 	}
