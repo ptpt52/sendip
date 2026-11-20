@@ -256,32 +256,36 @@ hsearch_r (ENTRY item, ACTION action, ENTRY **retval,
 }
 #endif
 
-static struct hsearch_data fa_tab;
+static struct hsearch_data *fa_tab;
 static Filearray *fa_files;
-static bool fa_ready;
+static size_t fa_count, fa_capacity;
 static void fa_free(Filearray *fa);
+static bool grow_file_cache(void);
+
+static void free_file_table(struct hsearch_data *table) {
+	if (!table) return;
+	hdestroy_r(table);
+	free(table);
+}
 
 int
 fa_init(void)
 {
-	if (fa_ready) fa_close();
-	memset((void *)&fa_tab, 0, sizeof(fa_tab));
-#define HSIZE	512	/* why not, probably plenty */
-	fa_ready=hcreate_r(HSIZE, &fa_tab) != 0;
-	return fa_ready;
+	fa_close();
+	return grow_file_cache();
 }
 
 void
 fa_close(void)
 {
-	if (fa_ready) hdestroy_r(&fa_tab);
+	free_file_table(fa_tab);
+	fa_tab=NULL;
 	while (fa_files) {
 		Filearray *next=fa_files->next;
 		fa_free(fa_files);
 		fa_files=next;
 	}
-	fa_ready=false;
-	memset((void *)&fa_tab, 0, sizeof(fa_tab));
+	fa_count=fa_capacity=0;
 }
 
 static void
@@ -378,11 +382,39 @@ static bool insert_file(struct hsearch_data *table, Filearray *file) {
 	return FALSE;
 }
 
+static bool grow_file_cache(void) {
+	if (fa_capacity>SIZE_MAX/2) {
+		errno=ENOMEM;
+		return FALSE;
+	}
+	size_t capacity=fa_capacity ? fa_capacity*2 : 512;
+	struct hsearch_data *table=calloc(1, sizeof(*table));
+	if (!table) return FALSE;
+	if (!hcreate_r(capacity, table)) {
+		int error=errno;
+		free(table);
+		errno=error;
+		return FALSE;
+	}
+	for (Filearray *fa=fa_files; fa; fa=fa->next) {
+		if (!insert_file(table, fa)) {
+			int error=errno;
+			free_file_table(table);
+			errno=error;
+			return FALSE;
+		}
+	}
+	free_file_table(fa_tab);
+	fa_tab=table;
+	fa_capacity=capacity;
+	return TRUE;
+}
+
 /* Find the cache entry or load it on a miss. */
 Filearray *
 fa_find(const char *name)
 {
-	if (!fa_ready || !name) {
+	if (!fa_tab || !name) {
 		errno=EINVAL;
 		return NULL;
 	}
@@ -392,7 +424,7 @@ fa_find(const char *name)
 	ENTRY item = { .key=(char *)name };
 	ENTRY *found=NULL;
 	errno=0;
-	int result=hsearch_r(item, FIND, &found, &fa_tab);
+	int result=hsearch_r(item, FIND, &found, fa_tab);
 	if (result>0 && found) return found->data;
 	if (result<=0 && errno && errno!=ESRCH) {
 		perror(name);
@@ -400,7 +432,7 @@ fa_find(const char *name)
 	}
 
 	Filearray *fa=fa_create(name);
-	if (!fa || !insert_file(&fa_tab, fa)) {
+	if (!fa || (fa_count==fa_capacity && !grow_file_cache()) || !insert_file(fa_tab, fa)) {
 		int error=errno;
 		fa_free(fa);
 		errno=error;
@@ -410,6 +442,7 @@ fa_find(const char *name)
 	}
 	fa->next=fa_files;
 	fa_files=fa;
+	++fa_count;
 	return fa;
 }
 
