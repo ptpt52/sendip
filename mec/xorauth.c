@@ -82,7 +82,8 @@ xoricv(u_int8_t *key, u_int32_t keylen,
        u_int8_t *data1, u_int32_t data1len,
        u_int8_t *data2, u_int32_t data2len)
 {
-	int d, k, i;
+	u_int32_t d, k, i;
+	if (!icvlen || !keylen) return;
 
 	/* @@ The icv should be zeroed prior to calculation. Should
 	 * we do that here, or just assume that this has been done?
@@ -292,6 +293,7 @@ cryptomod(void *priv, char *hdrs, sendip_data *headers[],
 	if (!pack || !priv || !data) return FALSE; /* don't mess with me! */
 	type = *(u_int32_t *) priv;
 	i = outer_header(hdrs, index, "i6");	/* IPv4/IPv6 */
+	if (i<0) return FALSE;
 	ipack = headers[i];
 	if (!ipack) return FALSE; /* don't mess with me! */
 

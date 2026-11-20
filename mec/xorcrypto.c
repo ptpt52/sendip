@@ -51,7 +51,8 @@ void
 xorcrypto(u_int8_t *key, u_int32_t keylen,
           u_int8_t *data, u_int32_t datalen)
 {
-	int d, k;
+	u_int32_t d, k;
+	if (!keylen) return;
 
 	for (d=0, k=0; d < datalen; ++d, k = (k+1)%keylen) {
 		data[d] ^= key[k];
