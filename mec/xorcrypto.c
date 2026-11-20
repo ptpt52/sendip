@@ -88,9 +88,12 @@ espcrypto(esp_private *epriv, sendip_data *data, sendip_data *pack)
 		key = (u_int8_t *)epriv->key;
 		keylen = epriv->keylen;
 	}
-	/* The explicit IV and ICV stay clear; transform payload and trailer. */
+	/* The explicit IV and ICV stay clear; transform payload and trailer.
+	 * The encrypted region follows the fixed ESP header in the assembled
+	 * packet. Do not derive it from the zero-length enc_data member.
+	 */
 	xorcrypto(key, keylen,
-	          (u_int8_t *)esp->enc_data+epriv->ivlen,
+	          (u_int8_t *)pack->data+sizeof(*esp)+epriv->ivlen,
 	          data->alloc_len-epriv->ivlen-epriv->icvlen);
 	return TRUE;
 }
