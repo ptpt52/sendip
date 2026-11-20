@@ -164,35 +164,39 @@ timestats(Timentry **t, double *mu, double *sigma, double *rho)
 {
 	int i, j;
 	int n=0;
-	double sumsquare=0.0, sum=0.0, top=0.0;
-	double sigma2=0.0;
-	double prev;
+	double sum=0.0, variance=0.0;
+	double top=0.0, lag_variance=0.0, prev=0.0;
 
+	*mu = *sigma = *rho = NAN;
 	if (!t) return;
 	for (i=0; i < TABLESIZE; ++i) {
 		if (!t[i] || t[i]->used == 0)
 			break;
 		n += t[i]->used;
-		for (j=0; j < t[i]->used; ++j) {
-			sumsquare += (double)t[i]->times[j]*t[i]->times[j];
-			sum += (double)t[i]->times[j];
-		}
+		for (j=0; j < t[i]->used; ++j)
+			sum += t[i]->times[j];
 	}
-	*mu = sum/(double)n;
-	*sigma = sqrt((sumsquare - (double)n*(*mu)*(*mu))/(double)(n-1));
+	if (!n) return;
+	*mu = sum/n;
+	if (n < 2) return;
 
-	prev = *mu;
+	/* Center the samples before squaring so large delays with small
+	 * differences do not lose their variance to cancellation.
+	 */
 	for (i=0; i < TABLESIZE; ++i) {
 		if (!t[i] || t[i]->used == 0)
 			break;
 		for (j=0; j < t[i]->used; ++j) {
-			top += ((double)t[i]->times[j] - *mu)*
-			       (prev - *mu);
-			sigma2 += (prev - *mu) * (prev - *mu);
-			prev = (double)t[i]->times[j];
+			double delta = t[i]->times[j] - *mu;
+			variance += delta * delta;
+			top += delta * prev;
+			lag_variance += prev * prev;
+			prev = delta;
 		}
 	}
-	*rho = top/sigma2;
+	*sigma = sqrt(variance/(n-1));
+	if (lag_variance > 0.0)
+		*rho = top/lag_variance;
 }
 
 int
@@ -229,7 +233,8 @@ printtimes(void)
 	int i, j, k, l;
 	AddrTime *at1, *at2, *at3;
 	Timentry **t;
-	int used, totalused = 0;
+	int used;
+	uint64_t totalused = 0;
 	double mu, totalmu = 0.0;
 
 	for (i=0; i < TABLESIZE; ++i) {
@@ -246,8 +251,10 @@ printtimes(void)
 									t = at3->p[l]->t;
 									printf("%d.%d.%d.%d:", i, j, k, l);
 									used = printtime(t, &mu);
-									totalused += used;
-									totalmu += mu*used;
+									if (used) {
+										totalused += used;
+										totalmu += mu*used;
+									}
 								}
 							}
 						}
@@ -256,8 +263,8 @@ printtimes(void)
 			}
 		}
 	}
-	printf("total entries: %d, overall average %6.4f\n",
-	       totalused, totalmu/totalused);
+	printf("total entries: %" PRIu64 ", overall average %6.4f\n",
+	       totalused, totalused ? totalmu/totalused : NAN);
 }
 
 int main(int argc, char **argv)
