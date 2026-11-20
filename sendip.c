@@ -704,8 +704,8 @@ int main(int argc, char *const argv[]) {
 
 		/* Finalize from inside out */
 		{
-			char hdrs[num_modules];
-			sendip_data *headers[num_modules];
+			char hdrs[num_modules+1];
+			sendip_data *headers[num_modules+1];
 			sendip_data d;
 
 			d.alloc_len = datalen;
@@ -715,6 +715,8 @@ int main(int argc, char *const argv[]) {
 				hdrs[i]=mod->optchar;
 				headers[i]=mod->pack;
 			}
+			hdrs[num_modules] = '\0';
+			headers[num_modules] = NULL;
 
 			for(i=num_modules-1,mod=last; mod!=NULL; mod=mod->prev,i--) {
 
