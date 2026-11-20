@@ -83,12 +83,34 @@ static sctp_chunk_header *append_chunk(sendip_data *pack, sctp_chunk_header *chu
                                        int length, const void *data, bool padded) {
 	if (length<0 || length>UINT16_MAX) return NULL;
 	int padding=padded ? round4(length)-length : 0;
-	if (pack->alloc_len>INT_MAX-length-padding) return NULL;
+	sctp_state *state=pack->private;
 	if (!chunk) {
-		chunk=add_chunk(pack, 0);
-		if (!chunk) return NULL;
+		/* Allocate the implicit chunk header and its first payload together.
+		 * A failed payload allocation must not leave an empty chunk behind.
+		 */
+		if (length>UINT16_MAX-(int)sizeof(sctp_chunk_header) ||
+		        pack->alloc_len>INT_MAX-7) return NULL;
+		int start=round4(pack->alloc_len);
+		int total=start+sizeof(sctp_chunk_header);
+		if (total>INT_MAX-length-padding) return NULL;
+		total+=length+padding;
+		void *replacement=realloc(pack->data, total);
+		if (!replacement) return NULL;
+		memset((u_int8_t *)replacement+pack->alloc_len, 0,
+		       total-pack->alloc_len);
+		pack->data=replacement;
+		pack->alloc_len=total;
+		chunk=(void *)((u_int8_t *)replacement+start);
+		chunk->type=0;
+		chunk->length=htons(sizeof(*chunk)+length);
+		if (data) memcpy((u_int8_t *)chunk+sizeof(*chunk), data, length);
+		state->final_parameter_padding=padding;
+		if (!(pack->modified&SCTP_MOD_VTAG))
+			((sctp_header *)replacement)->vtag=htonl(1);
+		return chunk;
 	}
 	if (!length && !padding) return chunk;
+	if (pack->alloc_len>INT_MAX-length-padding) return NULL;
 	int offset=(u_int8_t *)chunk-(u_int8_t *)pack->data;
 	int used=pack->alloc_len-offset;
 	if (used>(int)UINT16_MAX-length || pack->alloc_len>INT_MAX-length-padding) return NULL;
@@ -101,7 +123,6 @@ static sctp_chunk_header *append_chunk(sendip_data *pack, sctp_chunk_header *chu
 	else memset((u_int8_t *)chunk+used, 0, length);
 	memset((u_int8_t *)chunk+used+length, 0, padding);
 	pack->alloc_len+=length+padding;
-	sctp_state *state=pack->private;
 	/* A previous parameter's padding becomes internal only when more data
 	 * follows. Padding of the final parameter is excluded (RFC 9260 3.2).
 	 */
