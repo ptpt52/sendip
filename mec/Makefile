@@ -39,13 +39,13 @@ hop.so: hop.c $(LIBS)
 dest.so: hop.c $(LIBS)
 			$(CC) -DDEST_OPT -o $@ $(CFLAGS) $(LIBCFLAGS) $+ $(LIBS)
 
-.PHONY:	clean install
+.PHONY:	all clean veryclean install
 
 clean:
 			rm -f *.o *~ *.so $(PROTOS) $(CRYPTOS) $(PROGS) core gmon.out
 
 veryclean:
-			make clean
+			$(MAKE) clean
 			rm -f sendip.spec sendip.1
 
 install:		all

@@ -52,9 +52,7 @@ libsendipaux.a: $(LIBOBJS)
 
 subdirs: $(LIBS)
 	for subdir in $(SUBDIRS) ; do \
-		cd $$subdir ;\
-		make  ;\
-		cd ..  ;\
+		$(MAKE) -C "$$subdir"  || exit $$?;\
 		done
 
 protoname.o:	mec/protoname.c
@@ -93,18 +91,16 @@ sendip.spec:	sendip.spec.in VERSION
 %.so: %.c $(LIBS)
 			$(CC) -o $@ $(CFLAGS) $(LIBCFLAGS) $+ $(LIBS)
 
-.PHONY:	clean install
+.PHONY:	all subdirs man clean veryclean install
 
 clean:
 			rm -f *.o *~ *.so $(PROTOS) $(PROGS) $(LIBS) core gmon.out
 			for subdir in $(SUBDIRS) ; do \
-				cd $$subdir ;\
-				make clean ;\
-				cd ..  ;\
+				$(MAKE) -C "$$subdir" clean || exit $$?;\
 				done
 
 veryclean:
-			make clean
+			$(MAKE) clean
 			rm -f sendip.spec sendip.1
 
 install:		all
@@ -115,7 +111,5 @@ install:		all
 			$(INSTALL) -m 644 sendip.1 $(MANDIR)
 			$(INSTALL) -m 755 $(PROTOS) $(LIBDIR)
 			for subdir in $(SUBDIRS) ; do \
-				cd $$subdir ;\
-				make install ;\
-				cd ..  ;\
+				$(MAKE) -C "$$subdir" install || exit $$?;\
 				done
