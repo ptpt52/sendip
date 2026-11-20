@@ -313,6 +313,7 @@ bool do_opt (char        *optstring,
 	bool	  rc = TRUE;
 	bool	  len_mod = FALSE;
 	u_int8_t  bytes;
+	u_int8_t  attr_flags, attr_type;
 	int count;
 	bgp_state *state=pack->private;
 	u_int8_t nlri[256]; /* One prefix-length byte and up to 255 data bytes. */
@@ -525,101 +526,83 @@ bool do_opt (char        *optstring,
 			break;
 
 		case 'a':
-			if (state->prev_part == BGP_HEADER) {
-				state->wdr_len_ptr = ptr;
-				PUTSHORT(ptr, 0);
-				ptr += 2;
-				state->prev_part = BGP_UPDATE_WDR_LEN;
-			}
-
-			if (state->prev_part == BGP_UPDATE_WDR_LEN ||
-			        state->prev_part == BGP_UPDATE_WDR) {
-				state->attr_len_ptr = ptr;
-				PUTSHORT(ptr, 0);
-				ptr += 2;
-				state->prev_part = BGP_UPDATE_ATTR_LEN;
-			}
-
-			if (state->prev_part != BGP_UPDATE_ATTR_LEN &&
-			        state->prev_part != BGP_UPDATE_ATTR) {
+		{
+			bgp_msg_part old_part=state->prev_part;
+			int prefix_length;
+			if (old_part==BGP_HEADER)
+				prefix_length=4;
+			else if (old_part==BGP_UPDATE_WDR_LEN || old_part==BGP_UPDATE_WDR)
+				prefix_length=2;
+			else if (old_part==BGP_UPDATE_ATTR_LEN || old_part==BGP_UPDATE_ATTR)
+				prefix_length=0;
+			else {
 				usage_error("Path Attributes must come after "
 				            "unfeasible routes (if any), "
 				            "or after header\n");
 				rc = FALSE;
-			} else {
-				rem_ptr = ptr;
-				arg_ptr = optarg;
-
-				*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 16);
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-
-				*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 10);
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-
-				bytes = (u_int8_t)strtoul(arg_ptr, &new_arg_ptr, 10);
-				if (arg_ptr != new_arg_ptr) {
-					if (bytes <= 1) {
-						bytes = 1;
-					} else {
-						bytes = 2;
-					}
-				} else {
-					if (*rem_ptr & 0x10) {
-						bytes = 2;
-					} else {
-						bytes = 1;
-					}
-				}
-				arg_ptr = new_arg_ptr;
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-
-				if (bytes == 1) {
-					*ptr++ = (u_int8_t)strtoul(arg_ptr, &new_arg_ptr, 10);
-				} else {
-					PUTSHORT(ptr, (u_int16_t)strtoul(arg_ptr, &new_arg_ptr, 10));
-					ptr += 2;
-				}
-				if (arg_ptr != new_arg_ptr) {
-					len_mod = TRUE;
-				}
-				arg_ptr = new_arg_ptr;
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-
-				if (bytes == 1) {
-					count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFF, 16, ':', '\0');
-					if (count<0) return FALSE;
-					ptr+=count;
-					if (*new_arg_ptr) { usage_error("Too many BGP value bytes\n"); return FALSE; }
-				} else {
-					count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFFFF, 16, ':', '\0');
-					if (count<0) return FALSE;
-					ptr+=count;
-					if (*new_arg_ptr) { usage_error("Too many BGP attribute bytes\n"); return FALSE; }
-				}
-
-				if (!len_mod) {
-					if (bytes == 1) {
-						*(rem_ptr + 2) = ptr - rem_ptr - 3;
-					} else {
-						PUTSHORT(rem_ptr + 2, ptr - rem_ptr - 4);
-					}
-				}
-
-				if (!(pack->modified & BGP_MOD_ATTR_LEN)) {
-					PUTSHORT(state->attr_len_ptr,
-					         GETSHORT(state->attr_len_ptr) + ptr - rem_ptr);
-				}
-				state->prev_part = BGP_UPDATE_ATTR;
+				break;
 			}
+
+			rem_ptr=ptr+prefix_length;
+			arg_ptr=optarg;
+			if (!bgp_scalar_field(&arg_ptr, 16, FALSE, 0, &scalar,
+			                      &specified, &separator)) return FALSE;
+			attr_flags=(u_int8_t)scalar;
+			if (!bgp_scalar_field(&arg_ptr, 10, FALSE, 0, &scalar,
+			                      &specified, &separator)) return FALSE;
+			attr_type=(u_int8_t)scalar;
+			if (!bgp_scalar_field(&arg_ptr, 10, TRUE, 0, &scalar,
+			                      &specified, &separator)) return FALSE;
+			if (specified) {
+				bytes=(u_int8_t)scalar;
+				bytes=bytes<=1 ? 1 : 2;
+			} else {
+				bytes=(attr_flags&0x10) ? 2 : 1;
+			}
+			if (!bgp_scalar_field(&arg_ptr, 10, TRUE, 0, &scalar,
+			                      &specified, &separator)) return FALSE;
+			len_mod=specified;
+			u_int8_t *data_ptr=rem_ptr+2+bytes;
+			count=bgp_parse_bytes(data_ptr, arg_ptr, &new_arg_ptr,
+			                      bytes==1 ? UINT8_MAX : UINT16_MAX,
+			                      16, ':', '\0');
+			if (count<0) return FALSE;
+			if (*new_arg_ptr) {
+				usage_error(bytes==1 ? "Too many BGP value bytes\n" :
+				                         "Too many BGP attribute bytes\n");
+				return FALSE;
+			}
+
+			size_t attribute_size=(size_t)count+2+bytes;
+			u_int8_t *attr_len_ptr=prefix_length ?
+			    ptr+(old_part==BGP_HEADER ? 2 : 0) : state->attr_len_ptr;
+			u_int16_t previous_length=prefix_length ? 0 : GETSHORT(attr_len_ptr);
+			if (!(pack->modified&BGP_MOD_ATTR_LEN) &&
+			        attribute_size>(size_t)UINT16_MAX-previous_length) {
+				usage_error("Automatic BGP attribute length exceeds two bytes\n");
+				return FALSE;
+			}
+
+			rem_ptr[0]=attr_flags;
+			rem_ptr[1]=attr_type;
+			if (bytes==1)
+				rem_ptr[2]=len_mod ? (u_int8_t)scalar : (u_int8_t)count;
+			else
+				PUTSHORT(rem_ptr+2, len_mod ? (u_int16_t)scalar : (u_int16_t)count);
+			if (old_part==BGP_HEADER) {
+				state->wdr_len_ptr=ptr;
+				PUTSHORT(ptr, 0);
+			}
+			if (prefix_length) {
+				state->attr_len_ptr=attr_len_ptr;
+				PUTSHORT(attr_len_ptr, 0);
+			}
+			if (!(pack->modified&BGP_MOD_ATTR_LEN))
+				PUTSHORT(state->attr_len_ptr, previous_length+attribute_size);
+			ptr=data_ptr+count;
+			state->prev_part=BGP_UPDATE_ATTR;
 			break;
+		}
 
 		case 'n':
 			if (state->prev_part == BGP_HEADER) {
