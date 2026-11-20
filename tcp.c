@@ -98,6 +98,7 @@ sendip_data *initialize(void) {
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	u_int32_t parsed;
+	unsigned long flag;
 	tcp_header *tcp = (tcp_header *)pack->data;
 	// opt[0]==t
 	bool added=TRUE;
@@ -143,37 +144,41 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified |= TCP_MOD_RES;
 		break;
 	case 'f':
+		if (!uintargument(arg, 1, &flag)) {
+			usage_error("TCP flags must be 0 or 1\n");
+			return FALSE;
+		}
 		switch(opt[2]) {
 		case 'e':
-			tcp->ecn=(u_int16_t)*arg&1;
+			tcp->ecn=flag;
 			pack->modified |= TCP_MOD_ECN;
 			break;
 		case 'c':
-			tcp->cwr=(u_int16_t)*arg&1;
+			tcp->cwr=flag;
 			pack->modified |= TCP_MOD_CWR;
 			break;
 		case 'u':
-			tcp->urg=(u_int16_t)*arg&1;
+			tcp->urg=flag;
 			pack->modified |= TCP_MOD_URG;
 			break;
 		case 'a':
-			tcp->ack=(u_int16_t)*arg&1;
+			tcp->ack=flag;
 			pack->modified |= TCP_MOD_ACK;
 			break;
 		case 'p':
-			tcp->psh=(u_int16_t)*arg&1;
+			tcp->psh=flag;
 			pack->modified |= TCP_MOD_PSH;
 			break;
 		case 'r':
-			tcp->rst=(u_int16_t)*arg&1;
+			tcp->rst=flag;
 			pack->modified |= TCP_MOD_RST;
 			break;
 		case 's':
-			tcp->syn=(u_int16_t)*arg&1;
+			tcp->syn=flag;
 			pack->modified |= TCP_MOD_SYN;
 			break;
 		case 'f':
-			tcp->fin=(u_int16_t)*arg&1;
+			tcp->fin=flag;
 			pack->modified |= TCP_MOD_FIN;
 			break;
 		default:
