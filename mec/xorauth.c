@@ -163,7 +163,7 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	 * boundaries...
 	 */
 	if(!(ipack->modified & IP_MOD_ID)) {
-		pseudoip.id = realip->id = rand();
+		pseudoip.id = realip->id = random();
 		ipack->modified |= IP_MOD_ID;
 	} else
 		pseudoip.id = realip->id;

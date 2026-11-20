@@ -348,7 +348,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		iph->tot_len = htons(iph->tot_len);
 	}
 	if(!(pack->modified & IP_MOD_ID)) {
-		iph->id = rand();
+		iph->id = random();
 	}
 	if(!(pack->modified & IP_MOD_TTL)) {
 		iph->ttl = 255;
