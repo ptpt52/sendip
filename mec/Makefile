@@ -19,6 +19,7 @@ LDFLAGS_LINUX= -rdynamic -ldl -lm
 LIBCFLAGS= -shared
 CC ?=	gcc
 AR ?=	ar
+DEPFLAGS = -MMD -MP -MF $@.d -MT $@
 
 
 MYPROTOS= ah.so dest.so esp.so frag.so gre.so hop.so route.so sctp.so wesp.so
@@ -31,18 +32,18 @@ LIBS= ../libsendipaux.a
 all:	$(PROTOS) $(CRYPTOS)
 
 %.so: %.c $(LIBS)
-			$(CC) -o $@ $(CFLAGS) $(LIBCFLAGS) $^
+			$(CC) -o $@ $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $< $(LIBS)
 
 hop.so: hop.c $(LIBS)
-			$(CC) -DHOP_OPT -o $@ $(CFLAGS) $(LIBCFLAGS) $^
+			$(CC) -DHOP_OPT -o $@ $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $< $(LIBS)
 
 dest.so: hop.c $(LIBS)
-			$(CC) -DDEST_OPT -o $@ $(CFLAGS) $(LIBCFLAGS) $^
+			$(CC) -DDEST_OPT -o $@ $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $< $(LIBS)
 
 .PHONY:	all clean veryclean install
 
 clean:
-			rm -f *.o *~ *.so $(PROTOS) $(CRYPTOS) $(PROGS) core gmon.out
+			rm -f *.o *.o.d *.so.d *~ *.so $(PROTOS) $(CRYPTOS) $(PROGS) core gmon.out
 
 veryclean:
 			$(MAKE) clean
@@ -53,3 +54,8 @@ install:		all
 			[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
 			[ -d $(MANDIR) ] || mkdir -p $(MANDIR)
 			$(INSTALL) -m 755 $(PROTOS) $(CRYPTOS) $(LIBDIR)
+
+$(PROTOS) $(CRYPTOS): %: %.d
+%.so.d: ;
+
+-include $(wildcard *.so.d)

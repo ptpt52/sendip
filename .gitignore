@@ -5,3 +5,5 @@ sendip
 mec/gen_crc32table
 cscope.files
 cscope.out
+*.o.d
+*.so.d

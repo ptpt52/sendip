@@ -22,6 +22,7 @@ LDFLAGS_LINUX= -rdynamic -Wl,--no-as-needed -lm -ldl
 LIBCFLAGS= -shared
 CC ?=	gcc
 AR ?=	ar
+DEPFLAGS = -MMD -MP -MF $@.d -MT $@
 
 PROGS= sendip
 BASEPROTOS= ipv4.so ipv6.so
@@ -47,6 +48,9 @@ else \
 $(CC) -o $@ $(LDFLAGS) $(CFLAGS) $+ ; \
 fi"
 
+%.o: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
 libsendipaux.a: $(LIBOBJS)
 	$(AR) vr $@ $?
 
@@ -56,19 +60,19 @@ subdirs: $(LIBS)
 		done
 
 protoname.o:	mec/protoname.c
-	$(CC) -o $@ -c -I. $(CFLAGS) $+
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $<
 
 headers.o:	mec/headers.c
-	$(CC) -o $@ -c -I. $(CFLAGS) $+
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $<
 
 parseargs.o:	mec/parseargs.c
-	$(CC) -o $@ -c -I. $(CFLAGS) $+
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $<
 
 cryptomod.o:	mec/cryptomod.c
-	$(CC) -o $@ -c -I. $(CFLAGS) $+
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $<
 
 crc32.o: mec/crc32table.h mec/crc32.c
-	$(CC) -o $@ -c -I. $(CFLAGS) mec/crc32.c
+	$(CC) -o $@ -c -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) mec/crc32.c
 
 #mec/crc32table.h: mec/gen_crc32table
 #	mec/gen_crc32table > mec/crc32table.h
@@ -89,12 +93,12 @@ sendip.spec:	sendip.spec.in VERSION
 			cat sendip.spec.in >>sendip.spec
 
 %.so: %.c $(LIBS)
-			$(CC) -o $@ $(CFLAGS) $(LIBCFLAGS) $^
+			$(CC) -o $@ $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $< $(LIBS)
 
 .PHONY:	all subdirs man clean veryclean install
 
 clean:
-			rm -f *.o *~ *.so $(PROTOS) $(PROGS) $(LIBS) core gmon.out
+			rm -f *.o *.o.d *.so.d *~ *.so $(PROTOS) $(PROGS) $(LIBS) core gmon.out
 			for subdir in $(SUBDIRS) ; do \
 				$(MAKE) -C "$$subdir" clean || exit $$?;\
 				done
@@ -113,3 +117,11 @@ install:		all
 			for subdir in $(SUBDIRS) ; do \
 				$(MAKE) -C "$$subdir" install || exit $$?;\
 				done
+
+# Missing dependency files force a one-time rebuild of older cached outputs.
+DEP_TARGETS = $(LIBOBJS) sendip.o gnugetopt.o gnugetopt1.o $(PROTOS)
+$(DEP_TARGETS): %: %.d
+%.o.d: ;
+%.so.d: ;
+
+-include $(wildcard *.o.d *.so.d)
