@@ -172,31 +172,34 @@ sendip_data *initialize (void)
 }
 
 
-static u_int32_t bgp_parse_bytes (u_int8_t   *buf,
-                                  char       *arg,
-                                  char      **new_arg,
-                                  u_int32_t   limit,
-                                  int         base,
-                                  char        stopc)
-{
-	u_int8_t *ptr = buf;
-	char     *arg_ptr = arg;
-
-	while (*arg_ptr != '\0' && *arg_ptr != stopc && limit > 0) {
-		*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, base);
-		if (*arg_ptr != '\0' && *arg_ptr != stopc) {
-			arg_ptr++;
+/* Return a byte count, or -1 when a token or delimiter is invalid. */
+static int bgp_parse_bytes(u_int8_t *buf, char *arg, char **new_arg,
+                           u_int32_t limit, int base, char separator, char stopc) {
+	u_int32_t count=0;
+	char *cursor=arg;
+	while (*cursor && *cursor!=stopc && count<limit) {
+		char *end;
+		if (!(base==16 ? isxdigit((unsigned char)*cursor) :
+		                isdigit((unsigned char)*cursor))) goto invalid;
+		errno=0;
+		unsigned long value=strtoul(cursor, &end, base);
+		if (errno || end==cursor || value>UINT8_MAX ||
+		    (*end && *end!=separator && *end!=stopc)) goto invalid;
+		buf[count++]=value;
+		cursor=end;
+		if (*end==separator) {
+			if (count==limit) break; /* Preserve excess input for the caller. */
+			cursor=end+1;
+			if (!*cursor || *cursor==stopc) goto invalid;
 		}
-		limit--;
 	}
-
-	if (new_arg != NULL) {
-		*new_arg = arg_ptr;
-	}
-
-	return (ptr - buf);
+	if (new_arg) *new_arg=cursor;
+	return count;
+invalid:
+	if (new_arg) *new_arg=cursor;
+	usage_error("Malformed BGP byte string\n");
+	return -1;
 }
-
 
 /* Parse decimal wire bytes without silently skipping malformed tokens. */
 static bool bgp_decimal_byte(char *input, char **end, u_int8_t *value) {
@@ -246,6 +249,7 @@ bool do_opt (char        *optstring,
 	bool	  rc = TRUE;
 	bool	  len_mod = FALSE;
 	u_int8_t  bytes;
+	int count;
 	bgp_state *state=pack->private;
 
 	/* Each parsed byte consumes input; reserve fixed fields as well. NLRI
@@ -265,7 +269,8 @@ bool do_opt (char        *optstring,
 	switch (optstring[1]) {
 	case 'm':
 		rem_ptr = (u_int8_t *)pack->data;
-		(void)bgp_parse_bytes(rem_ptr, optarg, &new_arg_ptr, 16, 16, '\0');
+		count=bgp_parse_bytes(rem_ptr, optarg, &new_arg_ptr, 16, 16, ':', '\0');
+		if (count<0) return FALSE;
 		if (*new_arg_ptr) { usage_error("Too many BGP marker bytes\n"); return FALSE; }
 		break;
 	case 'l':
@@ -316,7 +321,8 @@ bool do_opt (char        *optstring,
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
 				}
-				(void)bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 4, 10, ':');
+				count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 4, 10, '.', ':');
+				if (count<0) return FALSE;
 				if (arg_ptr == new_arg_ptr) {
 					PUTLONG(ptr, 0x7F000001);
 				}
@@ -365,7 +371,9 @@ bool do_opt (char        *optstring,
 					arg_ptr++;
 				}
 
-				ptr += bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFF, 16, '\0');
+				count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFF, 16, ':', '\0');
+				if (count<0) return FALSE;
+				ptr+=count;
 				if (*new_arg_ptr) { usage_error("Too many BGP value bytes\n"); return FALSE; }
 
 				if (!len_mod) {
@@ -529,11 +537,14 @@ bool do_opt (char        *optstring,
 				}
 
 				if (bytes == 1) {
-					ptr += bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFF, 16, '\0');
+					count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFF, 16, ':', '\0');
+					if (count<0) return FALSE;
+					ptr+=count;
 					if (*new_arg_ptr) { usage_error("Too many BGP value bytes\n"); return FALSE; }
 				} else {
-					ptr += bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFFFF, 16,
-					                       '\0');
+					count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFFFF, 16, ':', '\0');
+					if (count<0) return FALSE;
+					ptr+=count;
 					if (*new_arg_ptr) { usage_error("Too many BGP attribute bytes\n"); return FALSE; }
 				}
 
@@ -609,7 +620,9 @@ bool do_opt (char        *optstring,
 				arg_ptr++;
 			}
 
-			ptr += bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFFFF, 16, '\0');
+			count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFFFF, 16, ':', '\0');
+			if (count<0) return FALSE;
+			ptr+=count;
 			if (*new_arg_ptr) { usage_error("Too many BGP notification bytes\n"); return FALSE; }
 
 			state->prev_part = BGP_NOTFN;
