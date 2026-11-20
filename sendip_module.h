@@ -46,6 +46,7 @@ char get_optchar(void);
 #define usage_error(x) fprintf(stderr,x)
 
 extern u_int16_t csum(const void *packet, int packlen);
+/* Decode in place; return the byte count or -1 for invalid input. */
 extern int compact_string(char *data_out);
 /*@@ added */
 #define MAXRAND	8192	/* maximum length of random data */

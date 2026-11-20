@@ -21,7 +21,7 @@ int compact_string(char *data_out) {
 		data_in++;
 		if(*data_in=='x' || *data_in=='X') {
 			/* Hex */
-			char c='\0';
+			unsigned char c='\0';
 			data_in++;
 			while(*data_in) {
 				if(*data_in>='0' && *data_in<='9') {
@@ -33,7 +33,7 @@ int compact_string(char *data_out) {
 				} else {
 					fprintf(stderr,"Character %c invalid in hex data stream\n",
 					        *data_in);
-					return 0;
+					return -1;
 				}
 				if( i&1) {
 					*(data_out++)=c;  // odd nibble - output it
@@ -50,14 +50,14 @@ int compact_string(char *data_out) {
 			return i;
 		} else {
 			/* Octal */
-			char c='\0';
+			unsigned char c='\0';
 			while(*data_in) {
 				if(*data_in>='0' && *data_in<='7') {
 					c+=*data_in-'0';
 				} else {
 					fprintf(stderr,"Character %c invalid in octal data stream\n",
 					        *data_in);
-					return 0;
+					return -1;
 				}
 				if( (i&3) == 3 ) {
 					*(data_out++)=c;  // output every 4th char
@@ -355,6 +355,7 @@ stringargument(const char *input, char **output)
 	}
 	memmove(copy, input, needed);
 	length = compact_string(copy);
+	if (length<0) return 0;
 	*output = copy;
 	return length;
 }
