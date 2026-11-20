@@ -56,7 +56,7 @@ u_int32_t randomize_arg(const char *option, u_int32_t value);
 
 #endif  /* _SENDIP_MAIN */
 
-#define usage_error(x) fprintf(stderr,x)
+#define usage_error(x) fputs((x), stderr)
 
 extern u_int16_t csum(const void *packet, int packlen);
 /* Decode in place; return the byte count or -1 for invalid input. */
