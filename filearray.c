@@ -418,11 +418,11 @@ int main(void)
 	char arg[BUFSIZ];
 	char *line;
 
-	fa_init();
+	if (!fa_init()) return 1;
 	while (1) {
 		fprintf(stderr, "file? ");
-		fgets(arg, BUFSIZ, stdin);
-		arg[strlen(arg)-1] = '\0';
+		if (!fgets(arg, sizeof(arg), stdin)) break;
+		arg[strcspn(arg, "\n")] = '\0';
 		if (!arg[0]) break;
 		line = fileargument(arg);
 		if (line) {
