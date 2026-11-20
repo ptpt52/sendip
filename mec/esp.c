@@ -152,39 +152,35 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= ESP_MOD_KEY;
 		break;
 	case 'a':	/* Authentication module */
-		{
-			crypto_module *module=load_crypto_module(arg);
-			if (!module) return FALSE;
-			crypto_module *previous=priv->auth;
-			unsigned int previous_modified=pack->modified;
-			priv->auth=module;
-			pack->modified |= ESP_MOD_AUTH;
-			if (module->cryptoinit && !(*module->cryptoinit)(pack)) {
-				priv=pack->private;
-				if (priv) priv->auth=previous;
-				pack->modified=previous_modified;
-				unload_crypto_module(module);
-				return FALSE;
-			}
-			unload_crypto_module(previous);
-		}
-		break;
 	case 'c':	/* Cryptographic (encryption/privacy) module */
 		{
 			crypto_module *module=load_crypto_module(arg);
 			if (!module) return FALSE;
-			crypto_module *previous=priv->crypto;
+			bool authentication=opt[1]=='a';
+			unsigned int modified=authentication ? ESP_MOD_AUTH : ESP_MOD_CRYPT;
+			crypto_module *previous_auth=priv->auth;
+			crypto_module *previous_crypto=priv->crypto;
 			unsigned int previous_modified=pack->modified;
-			priv->crypto=module;
-			pack->modified |= ESP_MOD_CRYPT;
-			if (module->cryptoinit && !(*module->cryptoinit)(pack)) {
-				priv=pack->private;
-				if (priv) priv->crypto=previous;
+			if (authentication) priv->auth=module;
+			else priv->crypto=module;
+			pack->modified |= modified;
+			bool ready=initialize_crypto_module(module, pack);
+			priv=pack->private;
+			if (priv) {
+				priv->auth=ready && authentication ? module : previous_auth;
+				priv->crypto=ready && !authentication ? module : previous_crypto;
+			}
+			if (!ready) {
 				pack->modified=previous_modified;
 				unload_crypto_module(module);
+				if (!priv) {
+					unload_crypto_module(previous_auth);
+					unload_crypto_module(previous_crypto);
+				}
 				return FALSE;
 			}
-			unload_crypto_module(previous);
+			pack->modified |= modified;
+			unload_crypto_module(authentication ? previous_auth : previous_crypto);
 		}
 		break;
 	case 'n':	/* Next header */

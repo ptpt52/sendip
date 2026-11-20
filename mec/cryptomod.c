@@ -16,7 +16,7 @@
  *
  * Crypto modules have the following entry points:
  *
- * 	cryptoinit(key) - called with "key" as argument; perform initialization
+ * 	cryptoinit(pack) - initialize the protocol state, including any key
  * 	cryptomod() - called with both the private "key" information and
  * 		the usual arguments to finalize. It should fill in the
  * 		appropriate portions of the packet based on the other
@@ -25,6 +25,7 @@
  */
 
 #include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -62,6 +63,18 @@ fail:
 	free(newmod->name);
 	free(newmod);
 	return NULL;
+}
+
+bool initialize_crypto_module(crypto_module *module, sendip_data *pack) {
+	if (module->cryptoinit && !module->cryptoinit(pack)) {
+		fprintf(stderr, "Initialization of crypto module %s failed\n", module->name);
+		return FALSE;
+	}
+	if (!pack->private) {
+		fprintf(stderr, "Crypto module %s left no protocol state\n", module->name);
+		return FALSE;
+	}
+	return TRUE;
 }
 
 void unload_crypto_module(crypto_module *module) {

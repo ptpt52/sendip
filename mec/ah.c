@@ -114,11 +114,15 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			crypto_module *module=load_crypto_module(arg);
 			if (!module) return FALSE;
 			crypto_module *previous=priv->crypto;
+			unsigned int previous_modified=pack->modified;
 			priv->crypto=module;
-			if (module->cryptoinit && !(*module->cryptoinit)(pack)) {
-				priv=pack->private;
-				if (priv) priv->crypto=previous;
+			bool ready=initialize_crypto_module(module, pack);
+			priv=pack->private;
+			if (priv) priv->crypto=ready ? module : previous;
+			if (!ready) {
+				pack->modified=previous_modified;
 				unload_crypto_module(module);
+				if (!priv) unload_crypto_module(previous);
 				return FALSE;
 			}
 			unload_crypto_module(previous);
