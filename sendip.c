@@ -79,6 +79,25 @@ static sendip_module *last;
 
 static char *progname;
 
+static void free_arguments(char **arguments) {
+	if (!arguments) return;
+	for (size_t i=0; arguments[i]; ++i) free(arguments[i]);
+	free(arguments);
+}
+
+static char **copy_arguments(int count, char *const arguments[]) {
+	char **copy=calloc((size_t)count+1, sizeof(*copy));
+	if (!copy) return NULL;
+	for (int i=0; i<count; ++i) {
+		copy[i]=strdup(arguments[i]);
+		if (!copy[i]) {
+			free_arguments(copy);
+			return NULL;
+		}
+	}
+	return copy;
+}
+
 static bool parse_count(const char *input, unsigned long maximum, unsigned long *value) {
 	char *end;
 	if (!input || !isdigit((unsigned char)*input)) return false;
@@ -406,6 +425,7 @@ int main(int argc, char *const argv[]) {
 	struct option *opts=NULL;
 	int longindex=0;
 	char rbuff[31];
+	char **packet_argv=NULL;
 
 	bool usage=FALSE, verbosity=FALSE, dump=FALSE;
 
@@ -601,6 +621,13 @@ int main(int argc, char *const argv[]) {
 			free(mod->pack);
 			mod->pack=NULL;
 		}
+		free_arguments(packet_argv);
+		packet_argv=copy_arguments(argc, argv);
+		if (!packet_argv) {
+			perror("Copying packet arguments");
+			status=1;
+			goto cleanup;
+		}
 
 		/* Initialize all */
 		for(mod=first; mod!=NULL; mod=mod->next) {
@@ -625,7 +652,7 @@ int main(int argc, char *const argv[]) {
 		currentmod = NULL;
 		for (;;) {
 			longindex=-1;
-			optc=getopt_long_only(argc, argv, "p:l:T:vd:hf:D", opts, &longindex);
+			optc=getopt_long_only(argc, packet_argv, "p:l:T:vd:hf:D", opts, &longindex);
 			if (optc==EOF) break;
 			if (longindex<0) {
 				if (optc=='p') currentmod=currentmod ? currentmod->next : first;
@@ -683,7 +710,7 @@ int main(int argc, char *const argv[]) {
 			fprintf(stderr,"More than one hostname specified\n");
 		} else {
 			if(first && first->set_addr) {
-				if (!first->set_addr(argv[gnuoptind],first->pack)) {
+				if (!first->set_addr(packet_argv[gnuoptind],first->pack)) {
 					usage=TRUE;
 					status=1;
 				}
@@ -837,7 +864,7 @@ int main(int argc, char *const argv[]) {
 			if (dump)
 				i = fwrite(packet.data, packet.alloc_len, 1, stdout);
 			else
-				i = sendpacket(&packet,argv[gnuoptind],af_type,verbosity);
+				i = sendpacket(&packet,packet_argv[gnuoptind],af_type,verbosity);
 			free(packet.data);
 		}
 		/* @@ Regenerate data on subsequent loop calls */
@@ -866,6 +893,7 @@ cleanup:
 	else free(data);
 
 	unload_modules(FALSE,verbosity);
+	free_arguments(packet_argv);
 	/*@@ global de-init */
 	fa_close();
 
