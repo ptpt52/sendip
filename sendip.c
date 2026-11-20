@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <ctype.h> /* isprint */
 #include <limits.h>
+#include <errno.h>
 #include "sendip_module.h"
 
 #ifdef __sun__  /* for EVILNESS workaround */
@@ -77,6 +78,14 @@ static sendip_module *first;
 static sendip_module *last;
 
 static char *progname;
+
+static bool parse_count(const char *input, unsigned long maximum, unsigned long *value) {
+	char *end;
+	if (!input || !isdigit((unsigned char)*input)) return false;
+	errno=0;
+	*value=strtoul(input, &end, 10);
+	return !errno && !*end && *value<=maximum;
+}
 
 static bool set_payload(const char *argument, char **data, int *length) {
 	char *source=NULL, *replacement;
@@ -447,11 +456,27 @@ int main(int argc, char *const argv[]) {
 			++num_modules;
 			break;
 		case 'l':
-			loopcount = atoi(gnuoptarg);
+		{
+			unsigned long count;
+			if (!parse_count(gnuoptarg, INT_MAX, &count)) {
+				fprintf(stderr, "Invalid loop count\n");
+				status=1;
+				goto cleanup;
+			}
+			loopcount=(int)count;
 			break;
+		}
 		case 'T':
-			delaytime = atoi(gnuoptarg);
+		{
+			unsigned long delay;
+			if (!parse_count(gnuoptarg, UINT_MAX, &delay)) {
+				fprintf(stderr, "Invalid packet delay\n");
+				status=1;
+				goto cleanup;
+			}
+			delaytime=(unsigned int)delay;
 			break;
+		}
 		case 'v':
 			verbosity=TRUE;
 			break;
@@ -552,7 +577,9 @@ int main(int argc, char *const argv[]) {
 
 	/*@@ looping - needs to be after module loading, but before
 	 * module option processing ... */
-	while (--loopcount >= 0) {
+	bool forever=loopcount==0;
+	while (forever || loopcount>0) {
+		if (!forever) --loopcount;
 
 		/* Discard all previous packet views before any initializer can fail. */
 		for (mod=first; mod; mod=mod->next) {
@@ -813,7 +840,7 @@ int main(int argc, char *const argv[]) {
 			free(packet.data);
 		}
 		/* @@ Regenerate data on subsequent loop calls */
-		if (loopcount && datarg) {
+		if ((forever || loopcount) && datarg) {
 			if (!set_payload(datarg, &data, &datalen)) {
 				status=1;
 				goto cleanup;
@@ -821,7 +848,7 @@ int main(int argc, char *const argv[]) {
 		}
 
 		/*@@ looping */
-		if (loopcount && delaytime)
+		if ((forever || loopcount) && delaytime)
 			sleep(delaytime);
 	} /*@@ back to top of loop */
 
