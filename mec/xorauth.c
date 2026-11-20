@@ -24,6 +24,14 @@
 #include "esp.h"
 #include "crypto_module.h"
 
+static bool
+valid_segment(const sendip_data *segment, size_t minimum)
+{
+	return segment && segment->alloc_len>=0 &&
+	       (size_t)segment->alloc_len>=minimum &&
+	       segment->data;
+}
+
 /* There's no particular "initialization" to be done here, so
  * this is just a demo interface. In real life, initialization
  * might involve key negotiation, ICV length specification,
@@ -120,13 +128,19 @@ bool
 ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
        sendip_data *data, sendip_data *pack)
 {
-	ip_header *realip = (ip_header *)ipack->data;
+	ip_header *realip;
 	ip_header pseudoip;
-	ah_header *ah = (ah_header *)pack->data;
 	u_int32_t keylen;
 	u_int32_t authlen;
 	u_int8_t *key;
 	static u_int8_t fakekey;
+
+	if (!valid_segment(ipack, sizeof(*realip)) ||
+	    !valid_segment(pack, sizeof(ah_header)) || !valid_segment(data, 0)) {
+		usage_error("Invalid AH authentication extent\n");
+		return FALSE;
+	}
+	realip = (ip_header *)ipack->data;
 
 	(void) memset(&pseudoip, 0, sizeof(pseudoip));
 	if (!(ipack->modified & IP_MOD_VERSION))
@@ -184,8 +198,8 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	/* We allow odd ICV lengths, so we use this rather than
 	 * calculate from the length value in the AH header.
 	 */
-	authlen = pack->alloc_len - sizeof(ah_header);
-	xoricv(key, keylen, (u_int8_t *)ah->auth_data, authlen,
+	authlen = (u_int32_t)((size_t)pack->alloc_len-sizeof(ah_header));
+	xoricv(key, keylen, (u_int8_t *)pack->data+sizeof(ah_header), authlen,
 	       (u_int8_t *)&pseudoip, sizeof(pseudoip),
 	       (u_int8_t *)data->data, data->alloc_len);
 	return TRUE;
@@ -195,13 +209,19 @@ bool
 ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
        sendip_data *data, sendip_data *pack)
 {
-	ipv6_header *realip = (ipv6_header *)ipack->data;
+	ipv6_header *realip;
 	ipv6_header pseudoip;
-	ah_header *ah = (ah_header *)pack->data;
 	u_int32_t keylen;
 	u_int32_t authlen;
 	u_int8_t *key;
 	static u_int8_t fakekey;
+
+	if (!valid_segment(ipack, sizeof(*realip)) ||
+	    !valid_segment(pack, sizeof(ah_header)) || !valid_segment(data, 0)) {
+		usage_error("Invalid AH authentication extent\n");
+		return FALSE;
+	}
+	realip = (ipv6_header *)ipack->data;
 
 	(void) memset(&pseudoip, 0, sizeof(pseudoip));
 	if (!(ipack->modified & IPV6_MOD_VERSION)) {
@@ -240,8 +260,8 @@ ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	/* We allow odd ICV lengths, so we use this rather than
 	 * calculate from the length value in the AH header.
 	 */
-	authlen = pack->alloc_len - sizeof(ah_header);
-	xoricv(key, keylen, (u_int8_t *)ah->auth_data, authlen,
+	authlen = (u_int32_t)((size_t)pack->alloc_len-sizeof(ah_header));
+	xoricv(key, keylen, (u_int8_t *)pack->data+sizeof(ah_header), authlen,
 	       (u_int8_t *)&pseudoip, sizeof(pseudoip),
 	       (u_int8_t *)data->data, data->alloc_len);
 	return TRUE;
@@ -261,6 +281,14 @@ espip(esp_private *epriv, char *hdrs, int index, sendip_data *ipack,
 	static u_int8_t fakekey;
 	u_int8_t *icv;
 
+	if (!valid_segment(pack, sizeof(struct ip_esp_hdr)) ||
+	    pack->alloc_len!=(int)sizeof(struct ip_esp_hdr) ||
+	    !valid_segment(data, 0) ||
+	    epriv->icvlen>(u_int32_t)data->alloc_len) {
+		usage_error("Invalid ESP authentication extent\n");
+		return FALSE;
+	}
+
 	if (!epriv->keylen) {
 		key = &fakekey;
 		keylen = 1;
@@ -268,14 +296,16 @@ espip(esp_private *epriv, char *hdrs, int index, sendip_data *ipack,
 		key = (u_int8_t *)epriv->key;
 		keylen = epriv->keylen;
 	}
-	icv = (u_int8_t *)data->data + (data->alloc_len - epriv->icvlen);
+	icv = (u_int8_t *)data->data +
+	      ((u_int32_t)data->alloc_len-epriv->icvlen);
 	/* In this case, the two regions being "authenticated" are
 	 * contiguous, so we don't actually need to vector them. But
 	 * the routine is just sitting there ...
 	 */
 	xoricv(key, keylen, icv, epriv->icvlen,
 	       (u_int8_t *)pack->data, pack->alloc_len,
-	       (u_int8_t *)data->data, data->alloc_len - epriv->icvlen);
+	       (u_int8_t *)data->data,
+	       (u_int32_t)data->alloc_len-epriv->icvlen);
 	return TRUE;
 }
 
