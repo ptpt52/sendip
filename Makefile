@@ -66,8 +66,12 @@ $(LIBDIR_STAMP): FORCE_LIBDIR
 
 sendip.o: $(LIBDIR_STAMP)
 
-libsendipaux.a: $(LIBOBJS)
-	$(AR) vr $@ $?
+libsendipaux.a: $(LIBOBJS) Makefile
+	@tmpdir=$$(mktemp -d "$@.XXXXXXXX") || exit 1; \
+	trap 'rm -f "$$tmpdir/$@"; rmdir "$$tmpdir"' 0; \
+	trap 'exit 1' HUP INT TERM; \
+	$(AR) crs "$$tmpdir/$@" $(LIBOBJS) && \
+	mv -f "$$tmpdir/$@" "$@"
 
 subdirs: $(LIBS)
 	for subdir in $(SUBDIRS) ; do \
