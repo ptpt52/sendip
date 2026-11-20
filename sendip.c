@@ -31,9 +31,6 @@
 #include <dlfcn.h>
 #include <string.h>
 #include <time.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <fcntl.h>
 #include <ctype.h> /* isprint */
 #include <limits.h>
 #include <errno.h>
@@ -145,6 +142,49 @@ static bool set_payload(const char *argument, char **data, int *length) {
 	*data=replacement;
 	*length=size;
 	return true;
+}
+
+static bool read_payload_file(const char *path, char **data, int *length) {
+	FILE *file=fopen(path, "rb");
+	if (!file) {
+		perror("Couldn't open data file");
+		return false;
+	}
+	char *buffer=NULL;
+	off_t size;
+	if (fseeko(file, 0, SEEK_END)!=0 || (size=ftello(file))<0 ||
+	    fseeko(file, 0, SEEK_SET)!=0) {
+		perror("Couldn't determine data file size");
+		goto fail;
+	}
+	if (size>INT_MAX) {
+		usage_error("Data file is too large\n");
+		goto fail;
+	}
+	if (size) {
+		/* Use the same file bytes for every packet, even if the file changes. */
+		buffer=malloc((size_t)size);
+		if (!buffer) {
+			perror("Allocating packet data");
+			goto fail;
+		}
+		if (fread(buffer, 1, (size_t)size, file)!=(size_t)size) {
+			if (ferror(file)) perror("Couldn't read data file");
+			else usage_error("Unexpected end of data file\n");
+			goto fail;
+		}
+	} else {
+		usage_error("Data file is empty\nNo data will be included\n");
+	}
+	fclose(file);
+	*data=buffer;
+	*length=(int)size;
+	return true;
+
+fail:
+	free(buffer);
+	fclose(file);
+	return false;
 }
 
 static int sendpacket(sendip_data *data, char *hostname, int af_type,
@@ -487,7 +527,7 @@ int main(int argc, char *const argv[]) {
 	bool usage=FALSE, verbosity=FALSE, dump=FALSE;
 
 	char *data=NULL;
-	int datafile=-1;
+	const char *datafile=NULL;
 	int datalen=0;
 	char *datarg=NULL;
 
@@ -607,7 +647,7 @@ int main(int argc, char *const argv[]) {
 			verbosity=TRUE;
 			break;
 		case 'd':
-			if (!datarg && datafile == -1) {
+			if (!datarg && !datafile) {
 				datarg = gnuoptarg; /* Select the source; decode in packet option order. */
 
 			} else {
@@ -620,38 +660,8 @@ int main(int argc, char *const argv[]) {
 			usage=TRUE;
 			break;
 		case 'f':
-			if(!datarg && datafile == -1) {
-				off_t file_length;
-				datafile=open(gnuoptarg,O_RDONLY);
-				if(datafile == -1) {
-					perror("Couldn't open data file");
-					status=1;
-					goto cleanup;
-				} else {
-					file_length = lseek(datafile,0,SEEK_END);
-					if(file_length == (off_t)-1) {
-						perror("Error reading data file: lseek()");
-						status=1;
-						goto cleanup;
-					}
-					if (file_length > INT_MAX) {
-						fprintf(stderr,"Data file is too large\n");
-						status=1;
-						goto cleanup;
-					}
-					datalen=(int)file_length;
-					if(datalen == 0) {
-						fprintf(stderr,"Data file is empty\nNo data will be included\n");
-					} else {
-						data = mmap(NULL,datalen,PROT_READ,MAP_SHARED,datafile,0);
-						if(data == MAP_FAILED) {
-							perror("Couldn't read data file: mmap()");
-							data = NULL;
-							status=1;
-							goto cleanup;
-						}
-					}
-				}
+			if (!datarg && !datafile) {
+				datafile=gnuoptarg;
 			} else {
 				fprintf(stderr,"Only one -d or -f option can be given\n");
 				usage = TRUE;
@@ -674,6 +684,10 @@ int main(int argc, char *const argv[]) {
 	if (next_selector) {
 		fprintf(stderr, "Module selector for %s is missing after resolving module options\n",
 		        next_selector->name);
+		status=1;
+		goto cleanup;
+	}
+	if (datafile && !read_payload_file(datafile, &data, &datalen)) {
 		status=1;
 		goto cleanup;
 	}
@@ -953,11 +967,7 @@ int main(int argc, char *const argv[]) {
 
 cleanup:
 	free_options(opts);
-	if(datafile != -1) {
-		if (data && datalen) munmap(data,datalen);
-		close(datafile);
-	}
-	else free(data);
+	free(data);
 
 	unload_modules(FALSE,verbosity);
 	free_arguments(packet_argv);

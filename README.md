@@ -52,7 +52,8 @@ address; IPv4 source, destination, route and timestamp options use it.
 The `fF` argument form reads text values one line at a time. LF and CRLF line
 endings are removed; a carriage return elsewhere remains part of the value.
 Embedded NUL bytes are rejected; use hex or octal text to describe binary values.
-The `-f` packet-data option continues to read raw file bytes.
+The `-f` packet-data option reads the raw file bytes once and reuses them for
+every packet in the loop.
 
 ### IPv4 byte order
 
