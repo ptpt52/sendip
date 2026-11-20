@@ -98,7 +98,8 @@ xoricv(u_int8_t *key, u_int32_t keylen,
 	        k = (k+1)%keylen, i = (i+1)%icvlen) {
 		icv[i] ^= (key[k]^data1[d]);
 	}
-	for (d=0, k=0, i=0; d < data2len; ++d,
+	/* Continue the same byte stream across the vector boundary. */
+	for (d=0; d < data2len; ++d,
 	        k = (k+1)%keylen, i = (i+1)%icvlen) {
 		icv[i] ^= (key[k]^data2[d]);
 	}
