@@ -856,7 +856,13 @@ int main(int argc, char *const argv[]) {
 		packet.alloc_len = 0;
 		packet.modified = 0;
 		for(mod=first; mod!=NULL; mod=mod->next) {
-			if (mod->pack->alloc_len<0 || mod->pack->alloc_len>INT_MAX-packet.alloc_len) {
+			if (mod->pack->alloc_len<0 || (mod->pack->alloc_len && !mod->pack->data)) {
+				fprintf(stderr, "Module %s returned invalid header storage\n", mod->name);
+				unload_modules(TRUE, verbosity);
+				status=1;
+				goto cleanup;
+			}
+			if (mod->pack->alloc_len>INT_MAX-packet.alloc_len) {
 				fprintf(stderr, "Packet headers are too large\n");
 				unload_modules(TRUE, verbosity);
 				status=1;
@@ -879,7 +885,8 @@ int main(int argc, char *const argv[]) {
 			goto cleanup;
 		}
 		for(i=0, mod=first; mod!=NULL; mod=mod->next) {
-			memcpy((char *)packet.data+i,mod->pack->data,mod->pack->alloc_len);
+			if (mod->pack->alloc_len)
+				memcpy((char *)packet.data+i,mod->pack->data,mod->pack->alloc_len);
 			free(mod->pack->data);
 			mod->pack->data = (char *)packet.data+i;
 			i+=mod->pack->alloc_len;
