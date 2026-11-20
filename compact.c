@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <errno.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <ctype.h>
 #include <netinet/in.h>
@@ -464,23 +465,39 @@ hostintegerargument(const char *input, int length)
 in_addr_t
 cidrargument(const char *input, char *slashpoint, int length)
 {
-	static char ipv4space[BUFSIZ]; /* actual max around 40 */
+	char ipv4space[INET_ADDRSTRLEN];
 	in_addr_t host;
 	in_addr_t hmask, smask;
 	struct in_addr cidrarg;
 	int slash;
+	long prefix;
+	char *end;
+	size_t address_length=slashpoint-input;
 
 	(void)length;
 
-	strncpy(ipv4space, input, slashpoint-input);
-	ipv4space[slashpoint-input] = '\0';
-	inet_pton(AF_INET, ipv4space, &cidrarg);
-	slash = atoi(++slashpoint);
+	if (!address_length || address_length>=sizeof(ipv4space)) {
+		usage_error("Invalid IPv4 address in CIDR argument\n");
+		return INADDR_NONE;
+	}
+	memcpy(ipv4space, input, address_length);
+	ipv4space[address_length]='\0';
+	if (inet_pton(AF_INET, ipv4space, &cidrarg) != 1) {
+		usage_error("Invalid IPv4 address in CIDR argument\n");
+		return INADDR_NONE;
+	}
+	errno=0;
+	prefix=strtol(slashpoint+1, &end, 10);
+	if (errno || end==slashpoint+1 || *end) {
+		usage_error("Invalid CIDR prefix\n");
+		return INADDR_NONE;
+	}
 	/* Interpret weird /xx values as fixed addresses */
-	if (slash <= 0 || slash >= 32)
+	if (prefix <= 0 || prefix >= 32)
 		return cidrarg.s_addr;
+	slash=(int)prefix;
 	/* The host and subnet parts, in host order for now */
-	hmask = ((1<<(32-slash))-1);
+	hmask = UINT32_MAX >> slash;
 	smask = ~hmask;
 	/* Determine how much randomness we need, and get it. */
 	/* Don't allow 0 or ffff.. host parts if we can help it.
@@ -488,13 +505,13 @@ cidrargument(const char *input, char *slashpoint, int length)
 	 */
 	do {
 		if (slash < 8) {
-			host = integerargument("r4", 4);
+			host = hostintegerargument("r4", 4);
 		} else if (slash < 16) {
-			host = integerargument("r3", 3);
+			host = hostintegerargument("r3", 3);
 		} else if (slash < 24) {
-			host = integerargument("r2", 2);
+			host = hostintegerargument("r2", 2);
 		} else {
-			host = integerargument("r1", 1);
+			host = hostintegerargument("r1", 1);
 		}
 		host &= hmask;
 	} while (slash < 31 && (host == 0 || host == hmask));
