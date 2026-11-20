@@ -116,11 +116,12 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		if(RIPNG_NUM_ENTRIES(pack) != 0) {
 			usage_error("Warning: a real RIPng packet does not have any other entries in a default request.\n");
 		}
+		if (!add_entry(pack)) return FALSE;
+		rippack=pack->data;
 		rippack->command = (u_int8_t)1;
 		rippack->version = (u_int8_t)1;
 		rippack->res = (u_int16_t)0;
 		pack->modified|=RIPNG_MOD_COMMAND|RIPNG_MOD_VERSION|RIPNG_MOD_RESERVED;
-		if (!add_entry(pack)) return FALSE;
 		ripopt=RIPNG_ENTRY(pack);
 		ripopt->prefix=in6addr_any;
 		ripopt->tag=(u_int16_t)0;

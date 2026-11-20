@@ -121,8 +121,9 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		if(RIP_NUM_ENTRIES(pack) != 0) {
 			usage_error("Warning: a real RIP-1 or -2 packet does not have any entries in a default request.\n");
 		}
-		rippack->command = (u_int8_t)1;
 		if (!add_entry(pack)) return FALSE;
+		rippack=pack->data;
+		rippack->command = (u_int8_t)1;
 		ripopt=RIP_OPTION(pack);
 		ripopt->address=inet_addr("0.0.0.0");
 		ripopt->subnetMask=inet_addr("0.0.0.0");
