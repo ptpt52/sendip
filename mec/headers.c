@@ -67,6 +67,26 @@ inner_header(const char *hdrs, int index, const char *choices)
 	return -1;
 }
 
+/* Destination options are not finalized yet: use their allocated extent,
+ * not the pending Hdr Ext Len field, while parsing the option TLVs.
+ */
+static bool home_address_source(const sendip_data *header, struct in6_addr *source) {
+	if (!header || header->alloc_len<2) return FALSE;
+	const u_int8_t *options=header->data;
+	for (int offset=2; offset<header->alloc_len;) {
+		if (!options[offset]) { ++offset; continue; } /* Pad1 */
+		if (header->alloc_len-offset<2) return FALSE;
+		int length=options[offset+1];
+		if (length>header->alloc_len-offset-2) return FALSE;
+		if (options[offset]==201) { /* Mobile IPv6 Home Address option */
+			if (length!=(int)sizeof(*source)) return FALSE;
+			memcpy(source, options+offset+2, sizeof(*source));
+		}
+		offset+=length+2;
+	}
+	return TRUE;
+}
+
 /* Resolve the final destination before enclosing routing headers finalize.
  * Read wire bytes rather than assuming their alignment inside the packet.
  */
@@ -84,6 +104,13 @@ bool ipv6_pseudo_header(const char *hdrs, sendip_data *headers[],
 	pseudo->nexthdr=protocol;
 
 	for (int i=ip_index+1; i<transport_index; ++i) {
+		if (hdrs[i]=='d') {
+			if (!home_address_source(headers[i], &pseudo->source)) {
+				usage_error("Cannot derive checksum source from invalid IPv6 destination options\n");
+				return FALSE;
+			}
+			continue;
+		}
 		if (hdrs[i]!='o') continue;
 		if (!headers[i] || headers[i]->alloc_len<4) goto invalid;
 		const u_int8_t *route=headers[i]->data;
