@@ -524,6 +524,8 @@ int main(int argc, char *const argv[]) {
 	int longindex=0;
 	char rbuff[31];
 	char **packet_argv=NULL;
+	char *hdrs=NULL;
+	sendip_data **headers=NULL;
 
 	bool usage=FALSE, verbosity=FALSE, dump=FALSE;
 
@@ -689,6 +691,15 @@ int main(int argc, char *const argv[]) {
 		goto cleanup;
 	}
 	if (datafile && !read_payload_file(datafile, &data, &datalen)) {
+		status=1;
+		goto cleanup;
+	}
+
+	size_t slots=(size_t)num_modules+1;
+	hdrs=malloc(slots);
+	headers=calloc(slots, sizeof(*headers));
+	if (!hdrs || !headers) {
+		perror("Allocating module header lists");
 		status=1;
 		goto cleanup;
 	}
@@ -879,8 +890,6 @@ int main(int argc, char *const argv[]) {
 
 		/* Finalize from inside out */
 		{
-			char hdrs[num_modules+1];
-			sendip_data *headers[num_modules+1];
 			sendip_data d = {
 				.data = (char *)packet.data+packet.alloc_len-datalen,
 				.alloc_len = datalen,
@@ -955,6 +964,8 @@ cleanup:
 	 */
 	unload_modules(!packet.data, verbosity);
 	free(packet.data);
+	free(headers);
+	free(hdrs);
 	free_options(opts);
 	free(data);
 	free_arguments(packet_argv);
