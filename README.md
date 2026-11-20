@@ -29,7 +29,7 @@ source/dest addresses, and convert it to a PCAP file for analysis with wireshark
 
 ipv4:
 ```sh
-./sendip -D -p ipv4 -p tcp -d r1000 -d r1000 -id r -is r \
+./sendip -D -p ipv4 -p tcp -d r1000 -id r -is r \
 		| od -Ax -tx1 -v | text2pcap -e 0x800 - /tmp/test.pcap
 ```
 

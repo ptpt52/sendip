@@ -548,7 +548,7 @@ int main(int argc, char *const argv[]) {
 			verbosity=TRUE;
 			break;
 		case 'd':
-			if (datafile == -1) {
+			if (!datarg && datafile == -1) {
 				datarg = gnuoptarg;	/* save for regen */
 				if (!set_payload(datarg, &data, &datalen)) {
 					status=1;
@@ -565,7 +565,7 @@ int main(int argc, char *const argv[]) {
 			usage=TRUE;
 			break;
 		case 'f':
-			if(data == NULL && datafile == -1) {
+			if(!datarg && datafile == -1) {
 				off_t file_length;
 				datafile=open(gnuoptarg,O_RDONLY);
 				if(datafile == -1) {
