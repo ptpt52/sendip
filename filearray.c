@@ -19,7 +19,7 @@ typedef struct _filearray {
 	char *name;
 	size_t length;
 	size_t index;
-	char *lines[0];
+	char *lines[];
 } Filearray;
 
 #if defined(__APPLE_CC__)
