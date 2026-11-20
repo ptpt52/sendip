@@ -155,6 +155,7 @@ bool set_addr(char *hostname, sendip_data *pack) {
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	u_int32_t parsed;
 	in_addr_t address;
+	unsigned long flag;
 	ip_header *iph = (ip_header *)pack->data;
 	bool added=TRUE;
 	switch(opt[1]) {
@@ -200,24 +201,26 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 	case 'f':
 		if(opt[2]) {
-			/* Note: *arg&1 is what we want because:
-				if arg=="0", *arg&1==0
-				if arg=="1", *arg&1==1
-				otherwise, it doesn't really matter...
-			*/
+			if (!uintargument(arg, 1, &flag)) {
+				usage_error("IPv4 flags must be 0 or 1\n");
+				return FALSE;
+			}
 			switch(opt[2]) {
 			case 'r':
-				iph->res=*arg&1;
+				iph->res=flag;
 				pack->modified |= IP_MOD_RES;
 				break;
 			case 'd':
-				iph->df=*arg&1;
+				iph->df=flag;
 				pack->modified |= IP_MOD_DF;
 				break;
 			case 'm':
-				iph->mf=*arg&1;
+				iph->mf=flag;
 				pack->modified |= IP_MOD_MF;
 				break;
+			default:
+				usage_error("IPv4 flag not known\n");
+				return FALSE;
 			}
 		} else {
 			/* Preserve the flags when setting the wire-format offset. */
