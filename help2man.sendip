@@ -95,7 +95,9 @@ length $version or die "$this_program: empty version in VERSION\n";
 
 my %include = ();
 my %append = ();
-my @include = (); # retain order given in include file
+# Retain declaration order for sections and pattern supplements.
+my @include = ();
+my @append = ();
 
 # Provide replacement `quote-regex' operator for pre-5.005.
 BEGIN { eval q(sub qr { '' =~ $_[0]; $_[0] }) if $] < 5.005 }
@@ -131,7 +133,11 @@ for (@opt_include)
 	    $key =~ s/^\s+//;
 	    $key =~ s/\s+$//;
 	    $hash = \%include;
-	    push @include, $key unless $include{$key};
+	    unless (exists $include{$key})
+	    {
+		push @include, $key;
+		$include{$key} = '';
+	    }
 	    next;
 	}
 
@@ -149,6 +155,11 @@ for (@opt_include)
 	    }
 
 	    $hash = \%append;
+	    unless (exists $append{$key})
+	    {
+		push @append, $key;
+		$append{$key} = '';
+	    }
 	    next;
 	}
 
@@ -450,9 +461,9 @@ while (length)
     # Check if matched paragraph contains /pat/.
     if (%append)
     {
-	for my $pat (keys %append)
+	for my $pat (@append)
 	{
-	    if ($matched =~ $pat)
+	    if (length $append{$pat} && $matched =~ $pat)
 	    {
 		$content .= ".PP\n" unless $append{$pat} =~ /^\./;
 		$content .= $append{$pat};
