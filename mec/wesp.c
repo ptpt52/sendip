@@ -154,9 +154,12 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 			/* hdrlen is the length from the start of WESP header to
 			 * the start of the post-IV payload.
 			 */
-			wesp->hdrlen = pack->alloc_len +
-			               sizeof(struct ip_esp_hdr) +
-			               priv->ivlen;
+			size_t length=(size_t)pack->alloc_len+sizeof(struct ip_esp_hdr)+priv->ivlen;
+			if (length>OCTET_MAX) {
+				usage_error("Derived WESP header length exceeds one byte\n");
+				return FALSE;
+			}
+			wesp->hdrlen=length;
 		}
 	}
 	if (!(pack->modified&WESP_MOD_TRLRLEN)) {
@@ -164,6 +167,10 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 			wesp->trlrlen = 0;
 		else {
 			/* trlrlen is just the ICV length */
+			if (priv->icvlen>OCTET_MAX) {
+				usage_error("Derived WESP trailer length exceeds one byte\n");
+				return FALSE;
+			}
 			wesp->trlrlen = priv->icvlen;
 		}
 	}
