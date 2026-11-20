@@ -242,6 +242,39 @@ static bool bgp_scalar_argument(const char *input, int base,
 	return TRUE;
 }
 
+/* Parse one colon-delimited numeric field. Optional empty fields retain
+ * their documented default; nonempty fields must end at ':' or '\0'.
+ */
+static bool bgp_scalar_field(char **cursor, int base, bool optional,
+                             unsigned long fallback, unsigned long *value,
+                             bool *specified, bool *separator) {
+	char *input=*cursor;
+	char *end;
+
+	if (!*input || *input==':') {
+		if (!optional) {
+			usage_error("Missing BGP numeric field\n");
+			return FALSE;
+		}
+		*value=fallback;
+		*specified=FALSE;
+		*separator=*input==':';
+		*cursor=*separator ? input+1 : input;
+		return TRUE;
+	}
+	errno=0;
+	unsigned long parsed=strtoul(input, &end, base);
+	if (errno || end==input || (*end && *end!=':')) {
+		usage_error("Malformed BGP numeric field\n");
+		return FALSE;
+	}
+	*value=parsed;
+	*specified=TRUE;
+	*separator=*end==':';
+	*cursor=*separator ? end+1 : end;
+	return TRUE;
+}
+
 static int bgp_parse_nlri(u_int8_t *buf, char *arg) {
 	u_int8_t address[4], prefix, explicit_bytes;
 	char *end;
@@ -284,9 +317,11 @@ bool do_opt (char        *optstring,
 	bgp_state *state=pack->private;
 	u_int8_t nlri[256]; /* One prefix-length byte and up to 255 data bytes. */
 	u_int8_t marker[16];
+	u_int8_t open[10];
 	int nlri_length=0;
 	size_t needed=0;
 	unsigned long scalar;
+	bool specified, separator;
 
 	if (pack->alloc_len<0 || (unsigned int)pack->alloc_len>BGP_BUFLEN) {
 		usage_error("BGP message is too large\n");
@@ -344,53 +379,34 @@ bool do_opt (char        *optstring,
 				            "after header\n");
 				rc = FALSE;
 			} else {
+				u_int8_t *open_ptr=open;
 				arg_ptr = optarg;
-				*ptr = (u_int8_t)strtoul(arg_ptr, &new_arg_ptr, 10);
-				if (arg_ptr == new_arg_ptr) {
-					*ptr = 4;
+				if (!bgp_scalar_field(&arg_ptr, 10, TRUE, 4, &scalar,
+				                      &specified, &separator)) return FALSE;
+				*open_ptr++=(u_int8_t)scalar;
+				if (!bgp_scalar_field(&arg_ptr, 10, TRUE, 1, &scalar,
+				                      &specified, &separator)) return FALSE;
+				PUTSHORT(open_ptr, (u_int16_t)scalar);
+				open_ptr+=2;
+				if (!bgp_scalar_field(&arg_ptr, 10, TRUE, 90, &scalar,
+				                      &specified, &separator)) return FALSE;
+				PUTSHORT(open_ptr, (u_int16_t)scalar);
+				open_ptr+=2;
+				if (!bgp_parse_identifier(open_ptr, arg_ptr, &new_arg_ptr)) return FALSE;
+				open_ptr+=4;
+				arg_ptr=new_arg_ptr;
+				if (*arg_ptr==':') ++arg_ptr;
+				if (!bgp_scalar_field(&arg_ptr, 10, TRUE, 0, &scalar,
+				                      &specified, &separator)) return FALSE;
+				if (separator || *arg_ptr) {
+					usage_error("Too many BGP OPEN fields\n");
+					return FALSE;
 				}
-				ptr++;
-
-				arg_ptr = new_arg_ptr;
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-				PUTSHORT(ptr, (u_int16_t)strtoul(arg_ptr, &new_arg_ptr, 10));
-				if (arg_ptr == new_arg_ptr) {
-					PUTSHORT(ptr, 1);
-				}
-				ptr += 2;
-
-				arg_ptr = new_arg_ptr;
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-				PUTSHORT(ptr, (u_int16_t)strtoul(arg_ptr, &new_arg_ptr, 10));
-				if (arg_ptr == new_arg_ptr) {
-					PUTSHORT(ptr, 90);
-				}
-				ptr += 2;
-
-				arg_ptr = new_arg_ptr;
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-				if (!bgp_parse_identifier(ptr, arg_ptr, &new_arg_ptr)) return FALSE;
-				ptr += 4;
-
-				arg_ptr = new_arg_ptr;
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-				*ptr = (u_int8_t)strtoul(arg_ptr, &new_arg_ptr, 10);
-				if (arg_ptr == new_arg_ptr) {
-					*ptr = 0;
-				} else {
-					pack->modified |= BGP_MOD_OPT_LEN;
-				}
-				state->opt_len_ptr = ptr;
-				ptr++;
-
+				*open_ptr=(u_int8_t)scalar;
+				memcpy(ptr, open, sizeof(open));
+				state->opt_len_ptr = ptr+sizeof(open)-1;
+				ptr+=sizeof(open);
+				if (specified) pack->modified |= BGP_MOD_OPT_LEN;
 				state->prev_part = BGP_OPEN;
 			}
 			break;
