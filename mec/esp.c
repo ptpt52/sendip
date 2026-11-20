@@ -28,6 +28,26 @@ static u_int8_t *esp_components(esp_header *esp) {
 	return (u_int8_t *)esp+ESP_WORK_HEADER_LEN;
 }
 
+static size_t reserved_padding(const sendip_data *pack, const esp_header *esp) {
+	return pack->modified&ESP_MOD_PADDING ? esp->tail.padlen : ESP_MIN_PADDING;
+}
+
+static bool components_fit(size_t available, size_t ivlen, size_t icvlen,
+                           size_t padding) {
+	return ivlen<=available && icvlen<=available-ivlen &&
+	       padding<=available-ivlen-icvlen;
+}
+
+static bool valid_work_header(const sendip_data *pack) {
+	const esp_header *esp=pack->data;
+	const esp_private *priv=pack->private;
+	if (esp && priv && pack->alloc_len>=(int)ESP_WORK_HEADER_LEN &&
+	    components_fit((size_t)pack->alloc_len-ESP_WORK_HEADER_LEN,
+	                   priv->ivlen, priv->icvlen, reserved_padding(pack, esp)))
+		return TRUE;
+	usage_error("Invalid ESP working header storage\n");
+	return FALSE;
+}
 
 void destroy(sendip_data *pack) {
 	esp_private *priv=pack->private;
@@ -71,9 +91,7 @@ initialize(void)
  */
 static bool replace_components(sendip_data *pack, const void *iv, size_t ivlen,
                                const void *icv, size_t icvlen, size_t padding) {
-	size_t available=INT_MAX-ESP_WORK_HEADER_LEN;
-	if (ivlen>available || icvlen>available-ivlen ||
-	    padding>available-ivlen-icvlen) {
+	if (!components_fit(INT_MAX-ESP_WORK_HEADER_LEN, ivlen, icvlen, padding)) {
 		usage_error("ESP components exceed the header size limit\n");
 		return FALSE;
 	}
@@ -98,6 +116,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	char *temp;
 	int length;
 
+	if (!valid_work_header(pack)) return FALSE;
 	switch(opt[1]) {
 	case 's':	/* SPI (32 bits) */
 		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
@@ -131,8 +150,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		length=stringargument(arg, &temp);
 		if (!temp || !replace_components(pack, temp, length,
 		                                 esp_components(esp)+priv->ivlen,
-		                                 priv->icvlen,
-		                                 pack->modified&ESP_MOD_PADDING ? esp->tail.padlen : ESP_MIN_PADDING))
+		                                 priv->icvlen, reserved_padding(pack, esp)))
 			return FALSE;
 		priv->ivlen=length;
 		pack->modified |= ESP_MOD_IV;
@@ -140,8 +158,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	case 'I': /* Integrity check value */
 		length=stringargument(arg, &temp);
 		if (!temp || !replace_components(pack, esp_components(esp), priv->ivlen,
-		                                 temp, length,
-		                                 pack->modified&ESP_MOD_PADDING ? esp->tail.padlen : ESP_MIN_PADDING))
+		                                 temp, length, reserved_padding(pack, esp)))
 			return FALSE;
 		priv->icvlen=length;
 		pack->modified |= ESP_MOD_ICV;
@@ -208,6 +225,7 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	u_int8_t *iv, *icv, *where;
 	int ret = TRUE;
 
+	if (!valid_work_header(pack)) return FALSE;
 	if (!(pack->modified&ESP_MOD_NEXTHDR))
 		esp->tail.nexthdr = header_type_at(hdrs, index+1);
 	/* @@ figure out padding if not already set */
