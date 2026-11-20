@@ -273,11 +273,27 @@ printtimes(void)
 int main(int argc, char **argv)
 {
 	int sock;
-	struct sockaddr_in name, from;
+	struct sockaddr_in name = {0}, from;
 	struct timeval t, now;
 	int pnum, lastpnum;
 	fd_set dset;
-	uint16_t port;
+	uint16_t port = 5000;
+
+	if (argc > 2) {
+		fprintf(stderr, "Usage: %s [port]\n", argv[0]);
+		return EXIT_FAILURE;
+	}
+	if (argc == 2) {
+		char *end;
+		errno = 0;
+		unsigned long value = strtoul(argv[1], &end, 10);
+		if (argv[1][0] < '0' || argv[1][0] > '9' ||
+		    errno || *end || value > UINT16_MAX) {
+			fprintf(stderr, "Invalid UDP port: %s\n", argv[1]);
+			return EXIT_FAILURE;
+		}
+		port = (uint16_t)value;
+	}
 
 	/* Create socket from which to read. */
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -288,10 +304,6 @@ int main(int argc, char **argv)
 	/* Create name with wildcards. */
 	name.sin_family = AF_INET;
 	name.sin_addr.s_addr = INADDR_ANY;
-	if (argc > 1)
-		port = atoi(argv[1]);
-	else
-		port = 5000;
 	name.sin_port = htons(port);
 	if (bind(sock, (struct sockaddr *)&name, sizeof(name))) {
 		perror("binding datagram socket");
