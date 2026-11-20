@@ -42,75 +42,46 @@
 /* This is patterned after the sendip load_module, but I made
  * it a bit more compact.
  */
-struct modname_pattern {
-	const char *pattern;
-	const char *dirarg;
-	const char *error;
-} namepats[] = {
-	{"%s",	NULL, NULL},
-	{"./%s.so",	NULL, NULL},
-	{"%s/%s.so", SENDIP_LIBS, NULL},
-	{"%s/%s", SENDIP_LIBS, NULL},
-	{NULL, NULL, NULL}
-};
-
 crypto_module *
 load_crypto_module(char *modname)
 {
-	crypto_module *newmod = malloc(sizeof(crypto_module));
-	int i;
+	static const char *patterns[]={"%s", "./%s.so", "%s/%s.so", "%s/%s"};
+	char *errors[4]={NULL};
+	crypto_module *newmod=calloc(1, sizeof(*newmod));
+	size_t namesize=strlen(modname)+strlen(SENDIP_LIBS)+6;
 
-	/* Longest possible name is:
-	 * SENDIP_LIBS/modname.so
-	 */
-	if (!newmod)
-		return NULL;
-	memset(newmod, 0, sizeof(crypto_module));
-
-	newmod->name = (char *)
-	               malloc(strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6);
-	for (i=0; namepats[i].pattern; ++i) {
-		if (namepats[i].dirarg) {
-			snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, namepats[i].pattern,
-			        namepats[i].dirarg, modname);
-		} else {
-			snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, namepats[i].pattern, modname);
-		}
-		if ((newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
-			break;
-		}
-		namepats[i].error = strdup(dlerror());
+	if (!newmod) return NULL;
+	newmod->name=malloc(namesize);
+	if (!newmod->name) goto fail;
+	for (int i=0; i<4; ++i) {
+		if (i<2) snprintf(newmod->name, namesize, patterns[i], modname);
+		else snprintf(newmod->name, namesize, patterns[i], SENDIP_LIBS, modname);
+		newmod->handle=dlopen(newmod->name, RTLD_NOW);
+		if (newmod->handle) break;
+		const char *error=dlerror();
+		errors[i]=strdup(error ? error : "unknown loader error");
 	}
 	if (!newmod->handle) {
-		fprintf(stderr,"Couldn't open module %s, tried:\n",modname);
-		for (i=0; namepats[i].pattern; ++i) {
-			fprintf(stderr, "\t%s\n", namepats[i].error);
-			free((void *)namepats[i].error);
-		}
-		free(newmod);
-		return NULL;
-	} else {
-		for (i=0; namepats[i].pattern; ++i) {
-			if (namepats[i].error)
-				free((void *)namepats[i].error);
-		}
+		fprintf(stderr, "Couldn't open module %s, tried:\n", modname);
+		for (int i=0; i<4; ++i)
+			fprintf(stderr, "  %s\n", errors[i] ? errors[i] : "loader error unavailable");
 	}
-
-	/* Initialize is optional */
-	newmod->cryptoinit=dlsym(newmod->handle,"cryptoinit");
-	if (!newmod->cryptoinit) {
-		fprintf(stderr,"Warning: %s has no initialize function: %s\n",
-		        modname, dlerror());
-	}
-
-	/* cryptomod is not */
-	newmod->cryptomod=dlsym(newmod->handle,"cryptomod");
+	for (int i=0; i<4; ++i) free(errors[i]);
+	if (!newmod->handle) goto fail;
+	newmod->cryptomod=dlsym(newmod->handle, "cryptomod");
 	if (!newmod->cryptomod) {
-		fprintf(stderr,"Error: %s has no cryptomod function: %s\n",
-		        modname, dlerror());
-		dlclose(newmod->handle);
-		free(newmod);
-		return NULL;
+		const char *error=dlerror();
+		fprintf(stderr, "Module %s has no cryptomod function: %s\n", modname,
+		        error ? error : "null function pointer");
+		goto fail;
 	}
+	/* Initialization is optional. */
+	newmod->cryptoinit=dlsym(newmod->handle, "cryptoinit");
 	return newmod;
+
+fail:
+	if (newmod->handle) dlclose(newmod->handle);
+	free(newmod->name);
+	free(newmod);
+	return NULL;
 }
