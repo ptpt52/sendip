@@ -204,7 +204,7 @@ printtime(Timentry **t, double *mu)
 
 	numused = 0;
 	if (!t) return 0;
-	for (m=0; t[m] && t[m]->used > 0; ++m) {
+	for (m=0; m<TABLESIZE && t[m] && t[m]->used > 0; ++m) {
 #ifdef DEBUG
 		int n;
 
