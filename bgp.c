@@ -255,7 +255,7 @@ bool do_opt (char        *optstring,
              char        *optarg,
              sendip_data *pack)
 {
-	u_int8_t *ptr = (u_int8_t *)pack->data + pack->alloc_len;
+	u_int8_t *ptr;
 	u_int8_t *rem_ptr = NULL;
 	char     *arg_ptr = NULL;
 	char     *new_arg_ptr = NULL;
@@ -264,20 +264,38 @@ bool do_opt (char        *optstring,
 	u_int8_t  bytes;
 	int count;
 	bgp_state *state=pack->private;
+	u_int8_t nlri[256]; /* One prefix-length byte and up to 255 data bytes. */
+	int nlri_length=0;
+	size_t needed=0;
 
-	/* Each parsed byte consumes input; reserve fixed fields as well. NLRI
-	 * explicitly allows a claimed prefix width of up to 255 bytes.
+	if (pack->alloc_len<0 || (unsigned int)pack->alloc_len>BGP_BUFLEN) {
+		usage_error("BGP message is too large\n");
+		return FALSE;
+	}
+	/* A short NLRI argument can expand to 256 bytes. Parse it separately
+	 * and include any length fields inserted by this state transition.
 	 */
-	if (optstring[1]=='o' || optstring[1]=='u' || optstring[1]=='n') {
-		size_t needed=strnlen(optarg, BGP_BUFLEN)+16;
-		if (optstring[1]=='u' && (optstring[2]=='w' || optstring[2]=='n') && needed<256)
-			needed=256;
-		if (pack->alloc_len<0 || (unsigned int)pack->alloc_len>BGP_BUFLEN ||
-		    needed>BGP_BUFLEN-(unsigned int)pack->alloc_len) {
-			usage_error("BGP message is too large\n");
+	if (optstring[1]=='u' && (optstring[2]=='w' || optstring[2]=='n')) {
+		nlri_length=bgp_parse_nlri(nlri, optarg);
+		if (nlri_length<0) {
+			usage_error("Malformed BGP IPv4 prefix\n");
 			return FALSE;
 		}
+		needed=nlri_length;
+		if (state->prev_part==BGP_HEADER)
+			needed+=optstring[2]=='w' ? 2 : 4;
+		else if (optstring[2]=='n' && (state->prev_part==BGP_UPDATE_WDR_LEN ||
+		                             state->prev_part==BGP_UPDATE_WDR))
+			needed+=2;
+	} else if (optstring[1]=='o' || optstring[1]=='u' || optstring[1]=='n') {
+		/* Each parsed value byte consumes input; allow for fixed fields. */
+		needed=strnlen(optarg, BGP_BUFLEN)+16;
 	}
+	if (needed>BGP_BUFLEN-(unsigned int)pack->alloc_len) {
+		usage_error("BGP message is too large\n");
+		return FALSE;
+	}
+	ptr=(u_int8_t *)pack->data+pack->alloc_len;
 
 	switch (optstring[1]) {
 	case 'm':
@@ -438,12 +456,8 @@ bool do_opt (char        *optstring,
 				rc = FALSE;
 			} else {
 				rem_ptr = ptr;
-				int length=bgp_parse_nlri(ptr, optarg);
-				if (length<0) {
-					usage_error("Malformed BGP IPv4 prefix\n");
-					return FALSE;
-				}
-				ptr+=length;
+				memcpy(ptr, nlri, nlri_length);
+				ptr+=nlri_length;
 
 				if (!(pack->modified & BGP_MOD_WDR_LEN)) {
 					PUTSHORT(state->wdr_len_ptr,
@@ -596,12 +610,8 @@ bool do_opt (char        *optstring,
 				            "attributes, if any, or after header\n");
 				rc = FALSE;
 			} else {
-				int length=bgp_parse_nlri(ptr, optarg);
-				if (length<0) {
-					usage_error("Malformed BGP IPv4 prefix\n");
-					return FALSE;
-				}
-				ptr+=length;
+				memcpy(ptr, nlri, nlri_length);
+				ptr+=nlri_length;
 
 				state->prev_part = BGP_UPDATE_NLRI;
 			}
