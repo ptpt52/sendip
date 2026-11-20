@@ -696,10 +696,28 @@ int main(int argc, char *const argv[]) {
 		packet.alloc_len = 0;
 		packet.modified = 0;
 		for(mod=first; mod!=NULL; mod=mod->next) {
+			if (mod->pack->alloc_len<0 || mod->pack->alloc_len>INT_MAX-packet.alloc_len) {
+				fprintf(stderr, "Packet headers are too large\n");
+				unload_modules(TRUE, verbosity);
+				status=1;
+				goto cleanup;
+			}
 			packet.alloc_len+=mod->pack->alloc_len;
 		}
-		if(data != NULL) packet.alloc_len+=datalen;
-		packet.data = malloc(packet.alloc_len);
+		if (datalen>INT_MAX-packet.alloc_len) {
+			fprintf(stderr, "Packet data is too large\n");
+			unload_modules(TRUE, verbosity);
+			status=1;
+			goto cleanup;
+		}
+		packet.alloc_len+=datalen;
+		packet.data = malloc(packet.alloc_len ? (size_t)packet.alloc_len : 1);
+		if (!packet.data) {
+			perror("Allocating packet");
+			unload_modules(TRUE, verbosity);
+			status=1;
+			goto cleanup;
+		}
 		for(i=0, mod=first; mod!=NULL; mod=mod->next) {
 			memcpy((char *)packet.data+i,mod->pack->data,mod->pack->alloc_len);
 			free(mod->pack->data);
@@ -750,6 +768,13 @@ int main(int argc, char *const argv[]) {
 				}
 
 				/* Get everything ready for the next call */
+				if (d.alloc_len<0 || mod->pack->alloc_len<0 ||
+				    mod->pack->alloc_len>packet.alloc_len-d.alloc_len) {
+					fprintf(stderr, "Module %s expanded the finalized packet\n", mod->name);
+					free(packet.data);
+					status=1;
+					goto cleanup;
+				}
 				d.data=(char *)d.data-mod->pack->alloc_len;
 				d.alloc_len+=mod->pack->alloc_len;
 			}
