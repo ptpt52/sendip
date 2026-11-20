@@ -64,20 +64,20 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 	switch(opt[1]) {
 	case 'v':	/* WESP version number (2 bits) */
-		pack->modified |= WESP_MOD_VERSION;
 		if (!uintargument(arg, DUO_MAX, &svalue)) {
 			usage_error("Too big a version value\n");
 			return FALSE;
 		}
 		wesp->version = svalue;
+		pack->modified |= WESP_MOD_VERSION;
 		break;
 	case 'e':	/* Encrypted payload flag */
-		pack->modified |= WESP_MOD_ENCRYPTED;
 		if (!uintargument(arg, 1, &svalue)) {
 			usage_error("There's only one bit!\n");
 			return FALSE;
 		}
 		wesp->encrypted = svalue;
+		pack->modified |= WESP_MOD_ENCRYPTED;
 		break;
 	case 'p':	/* Padded flag */
 		if (!uintargument(arg, 1, &svalue)) {
@@ -95,28 +95,28 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		wesp->padded = svalue;
 		break;
 	case 'r':	/* WESP reserved (4 bits) */
-		pack->modified |= WESP_MOD_RESERVED;
 		if (!uintargument(arg, QUARTET_MAX, &svalue)) {
 			usage_error("Too big a resv value\n");
 			return FALSE;
 		}
 		wesp->reserved = svalue;
+		pack->modified |= WESP_MOD_RESERVED;
 		break;
 	case 'h':	/* Header length */
-		pack->modified |= WESP_MOD_HDRLEN;
 		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a header length\n");
 			return FALSE;
 		}
 		wesp->hdrlen = svalue;
+		pack->modified |= WESP_MOD_HDRLEN;
 		break;
 	case 't':	/* Trailer length */
-		pack->modified |= WESP_MOD_TRLRLEN;
 		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a trailer length\n");
 			return FALSE;
 		}
 		wesp->trlrlen = svalue;
+		pack->modified |= WESP_MOD_TRLRLEN;
 		break;
 
 	case 'n':	/* WESP next header */
