@@ -62,14 +62,19 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		rippack->command = integerargument(arg, 1);
 		pack->modified |= RIP_MOD_COMMAND;
 		break;
-	case 'a': /* authenticate */
-		if(RIP_NUM_ENTRIES(pack) != 0) {
-			usage_error("Warning: a real RIP-2 packet only has authentication on the first entry.\n");
+	case 'a': /* RFC 2453 simple-password authentication occupies one RTE. */
+		if (strlen(arg)>16) {
+			usage_error("RIP authentication passwords must be at most 16 bytes\n");
+			return FALSE;
 		}
+		if (RIP_NUM_ENTRIES(pack)!=0)
+			usage_error("Warning: RIP authentication should be the first entry\n");
+		if (!add_entry(pack)) return FALSE;
+		ripopt=RIP_OPTION(pack);
+		ripopt->addressFamily=htons(0xffff);
+		ripopt->routeTagOrAuthenticationType=htons(2);
+		memcpy(&ripopt->address, arg, strlen(arg));
 		pack->modified |= RIP_IS_AUTH;
-		pack->data = realloc(pack->data,pack->alloc_len+strlen(arg));
-		memcpy((char *)pack->data+pack->alloc_len,arg,strlen(arg));
-		pack->alloc_len += strlen(arg);
 		break;
 	case 'e': /* Split and validate every field before growing the packet. */
 		remaining=arg;
