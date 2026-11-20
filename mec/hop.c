@@ -77,6 +77,16 @@ static bool parse_value(const char *arg, unsigned long maximum,
 	return !errno && *end!=arg && *value<=maximum;
 }
 
+static bool align_option(sendip_data *pack, int alignment, int offset) {
+	int padding=(alignment+offset-pack->alloc_len%alignment)%alignment;
+	if (!padding) return TRUE;
+	if (padding==1) return addopt(pack, NULL);
+	u_int8_t bytes[8]={IPV6_TLV_PADN};
+	struct ipv6_hopopt *pad=(void *)bytes;
+	pad->hopt_len=padding-2;
+	return addopt(pack, pad);
+}
+
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	hop_header *hop=pack->data;
 	u_int8_t storage[2+255]={0};
@@ -84,6 +94,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	unsigned long value;
 	char *end, *temp;
 	int length;
+	int alignment=1, offset=0;
 
 	switch (opt[1]) {
 	case 'n':
@@ -98,6 +109,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		hopt->hopt_len=value-2;
 		break;
 	case 'r': {
+		alignment=2;
 		u_int16_t alert=integerargument(arg, 2);
 		hopt->hopt_type=IPV6_TLV_ROUTERALERT;
 		hopt->hopt_len=sizeof(alert);
@@ -105,6 +117,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		break;
 	}
 	case 'j': {
+		alignment=4;
+		offset=2;
 		u_int32_t jumbo=integerargument(arg, 4);
 		hopt->hopt_type=IPV6_TLV_JUMBO;
 		hopt->hopt_len=sizeof(jumbo);
@@ -112,6 +126,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		break;
 	}
 	case 'h': {
+		alignment=8;
+		offset=6;
 		struct in6_addr address;
 		if (inet_pton(AF_INET6, arg, &address)!=1) return FALSE;
 		hopt->hopt_type=IPV6_TLV_HAO;
@@ -135,7 +151,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	default:
 		return FALSE;
 	}
-	return addopt(pack, hopt);
+	return align_option(pack, alignment, offset) && addopt(pack, hopt);
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
