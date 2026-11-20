@@ -6,6 +6,8 @@
  */
 
 #include <stdlib.h>
+#include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -196,30 +198,42 @@ static u_int32_t bgp_parse_bytes (u_int8_t   *buf,
 }
 
 
-static u_int32_t bgp_parse_nlri (u_int8_t *buf,
-                                 char     *arg)
-{
-	u_int8_t *ptr = buf;
-	char     *arg_ptr = arg;
-	char     *new_arg_ptr;
-	u_int8_t  bytes;
-
-	ptr++;
-	(void)bgp_parse_bytes(ptr, arg_ptr, &arg_ptr, 4, 10, '\0');
-	*buf = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 10);
-	if (*arg_ptr != '\0') {
-		arg_ptr++;
-	}
-	bytes = (u_int8_t)strtoul(arg_ptr, &new_arg_ptr, 10);
-	if (arg_ptr != new_arg_ptr) {
-		ptr += bytes;
-	} else if (*buf > 0) {
-		ptr += ((*buf - 1) >> 3) + 1;
-	}
-
-	return (ptr - buf);
+/* Parse decimal wire bytes without silently skipping malformed tokens. */
+static bool bgp_decimal_byte(char *input, char **end, u_int8_t *value) {
+	if (!isdigit((unsigned char)*input)) return FALSE;
+	errno=0;
+	unsigned long parsed=strtoul(input, end, 10);
+	if (errno || *end==input || parsed>UINT8_MAX) return FALSE;
+	*value=parsed;
+	return TRUE;
 }
 
+static int bgp_parse_nlri(u_int8_t *buf, char *arg) {
+	u_int8_t address[4], prefix, explicit_bytes;
+	char *end;
+	for (int i=0; i<4; ++i) {
+		if (!bgp_decimal_byte(arg, &end, &address[i]) || *end!=(i<3 ? '.' : '/'))
+			return -1;
+		arg=end+1;
+	}
+	if (!bgp_decimal_byte(arg, &end, &prefix)) return -1;
+	unsigned int bytes=(prefix+7U)/8;
+	if (*end==':') {
+		arg=end+1;
+		if (*arg) {
+			if (!bgp_decimal_byte(arg, &end, &explicit_bytes) || *end) return -1;
+			bytes=explicit_bytes;
+		}
+	} else if (*end) return -1;
+
+	/* Retain explicit prefix-length/byte-count overrides for malformed
+	 * packet tests, but serialize only the requested extent deterministically.
+	 */
+	buf[0]=prefix;
+	memset(buf+1, 0, bytes);
+	memcpy(buf+1, address, bytes<sizeof(address) ? bytes : sizeof(address));
+	return bytes+1;
+}
 
 bool do_opt (char        *optstring,
              char        *optarg,
@@ -407,7 +421,12 @@ bool do_opt (char        *optstring,
 				rc = FALSE;
 			} else {
 				rem_ptr = ptr;
-				ptr += bgp_parse_nlri(ptr, optarg);
+				int length=bgp_parse_nlri(ptr, optarg);
+				if (length<0) {
+					usage_error("Malformed BGP IPv4 prefix\n");
+					return FALSE;
+				}
+				ptr+=length;
 
 				if (!(pack->modified & BGP_MOD_WDR_LEN)) {
 					PUTSHORT(state->wdr_len_ptr,
@@ -557,7 +576,12 @@ bool do_opt (char        *optstring,
 				            "attributes, if any, or after header\n");
 				rc = FALSE;
 			} else {
-				ptr += bgp_parse_nlri(ptr, optarg);
+				int length=bgp_parse_nlri(ptr, optarg);
+				if (length<0) {
+					usage_error("Malformed BGP IPv4 prefix\n");
+					return FALSE;
+				}
+				ptr+=length;
 
 				state->prev_part = BGP_UPDATE_NLRI;
 			}
