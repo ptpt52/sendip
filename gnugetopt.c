@@ -858,9 +858,10 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 			{
 				if (print_errors)
 					fprintf (stderr, _("%s: option `-W %s' is ambiguous\n"),
-					         argv[0], argv[gnuoptind]);
-				nextchar += strlen (nextchar);
-				gnuoptind++;
+					         argv[0], gnuoptarg);
+				/* The -W argument has already been consumed. */
+				nextchar = NULL;
+				gnuoptopt = 0;
 				return '?';
 			}
 			if (pfound != NULL)
