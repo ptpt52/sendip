@@ -3,6 +3,8 @@
 #ifndef _SENDIP_ESP_H
 #define _SENDIP_ESP_H
 
+#include <stddef.h>
+
 /* Real ESP header (ip_esp_hdr) is defined in ipv6ext.h.
  * For allocation purposes, we make up a fake header which includes
  * the ESP trailer. We then move the trailer after the packet data
@@ -11,7 +13,7 @@
 struct ip_esp_tail {
 	u_int8_t padlen;	/* padding is pushed before tail */
 	u_int8_t nexthdr;
-	u_int32_t ivicv[0];	/* both IV and ICV, if any */
+	u_int8_t ivicv[0];	/* both IV and ICV, if any */
 };
 #define ESP_MIN_PADDING	4	/* We preallocate 4 bytes to handle any
 				 * padding requirements.
@@ -23,6 +25,9 @@ struct ip_esp_headtail {
 };
 
 typedef struct ip_esp_headtail esp_header;
+
+/* In-memory prefix ends at the byte array, excluding C struct tail padding. */
+#define ESP_WORK_HEADER_LEN offsetof(esp_header, tail.ivicv)
 
 /* We include provisions for a stored key for future use, when we allow
  * "real" ESP implementations.

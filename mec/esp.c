@@ -5,6 +5,9 @@
  */
 
 #include <stdlib.h>
+#include <limits.h>
+#include <errno.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <memory.h>
@@ -41,7 +44,7 @@ initialize(void)
 	 * we will only need at most 3 bytes, but this should
 	 * help keep things aligned better.
 	 */
-	esp_header *esp = malloc(sizeof(esp_header) + ESP_MIN_PADDING);
+	esp_header *esp = malloc(ESP_WORK_HEADER_LEN + ESP_MIN_PADDING);
 	esp_private *priv = malloc(sizeof(esp_private));
 
 	if (!ret || !esp || !priv) {
@@ -50,14 +53,32 @@ initialize(void)
 		free(ret);
 		return NULL;
 	}
-	memset(esp,0,sizeof(esp_header)+ESP_MIN_PADDING);
+	memset(esp,0,ESP_WORK_HEADER_LEN+ESP_MIN_PADDING);
 	memset(priv,0,sizeof(esp_private));
-	ret->alloc_len = sizeof(esp_header)+ESP_MIN_PADDING;
+	ret->alloc_len = ESP_WORK_HEADER_LEN+ESP_MIN_PADDING;
 	ret->data = esp;
 	priv->type = IPPROTO_ESP;
 	ret->private = priv;
 	ret->modified=0;
 	return ret;
+}
+
+/* Rebuild the variable region before releasing the old buffer. This also
+ * makes repeated IV/ICV options replace the previous value without gaps.
+ */
+static bool replace_components(sendip_data *pack, const void *iv, int ivlen,
+                               const void *icv, int icvlen, int padding) {
+	size_t size=ESP_WORK_HEADER_LEN+(size_t)ivlen+icvlen+padding;
+	if (ivlen<0 || icvlen<0 || padding<0 || size>INT_MAX) return FALSE;
+	esp_header *replacement=calloc(1, size);
+	if (!replacement) return FALSE;
+	memcpy(replacement, pack->data, ESP_WORK_HEADER_LEN);
+	if (ivlen) memcpy(replacement->tail.ivicv, iv, ivlen);
+	if (icvlen) memcpy(replacement->tail.ivicv+ivlen, icv, icvlen);
+	free(pack->data);
+	pack->data=replacement;
+	pack->alloc_len=(int)size;
+	return TRUE;
 }
 
 bool
@@ -77,63 +98,49 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		esp->hdr.seq_no = integerargument(arg, 4);
 		pack->modified |= ESP_MOD_SEQUENCE;
 		break;
-	case 'p':	/* padding (variable length) */
-		/* We initially put the padding at the end of the
-		 * header, then move it past the payload in finalize.
-		 */
-		length = strtoul(arg, (char **)NULL, 0);
-		if (length > OCTET_MAX) {
-			usage_error("Padding length can't be over 255\n");
+	case 'p': /* Explicit padding replaces the previous reservation. */
+	{
+		char *end;
+		errno=0;
+		unsigned long padding=strtoul(arg, &end, 0);
+		if (!isdigit((unsigned char)*arg) || errno || *end || padding>OCTET_MAX) {
+			usage_error("Padding length must be between 0 and 255\n");
 			return FALSE;
 		}
-		esp->tail.padlen = length;
-		if (length >  ESP_MIN_PADDING) {
-			pack->alloc_len += length-ESP_MIN_PADDING;
-			pack->data = realloc(esp, pack->alloc_len);
-		}
-		/* We don't bother doing anything with the padding
-		 * contents right now
-		 */
+		if (!replace_components(pack, esp->tail.ivicv, priv->ivlen,
+		                        esp->tail.ivicv+priv->ivlen, priv->icvlen, padding))
+			return FALSE;
+		esp=pack->data;
+		esp->tail.padlen=padding;
 		pack->modified |= ESP_MOD_PADDING;
 		break;
-	case 'i':	/* IV data (variable length) */
-		/* For right now, we will do either random generation
-		 * or a user-provided string. We put it in the header,
-		 * where in finalize it will constitute the beginning
-		 * of the payload area.
-		 */
-		length = stringargument(arg, &temp);
-		priv->ivlen = length;
-		pack->alloc_len += length;
-		pack->data = realloc(esp, pack->alloc_len);
-		esp = (esp_header *)pack->data;
-		/* Check if we have an ICV we have to shove down */
-		if (priv->icvlen)
-			memmove(&esp->tail.ivicv[priv->ivlen],
-			        &esp->tail.ivicv[0], priv->icvlen);
-		memcpy(&esp->tail.ivicv[0], temp, priv->ivlen);
+	}
+	case 'i': /* Initialization vector */
+		length=stringargument(arg, &temp);
+		if (!temp || !replace_components(pack, temp, length,
+		                                 esp->tail.ivicv+priv->ivlen, priv->icvlen,
+		                                 pack->modified&ESP_MOD_PADDING ? esp->tail.padlen : ESP_MIN_PADDING))
+			return FALSE;
+		priv->ivlen=length;
 		pack->modified |= ESP_MOD_IV;
 		break;
-	case 'I':	/* ICV data (variable length) */
-		/* For right now, we will do either random generation
-		 * or a user-provided string. We put it in the header,
-		 * then move it into the trailer in finalize.
-		 */
-		length = stringargument(arg, &temp);
-		priv->icvlen = length;
-		pack->alloc_len += length;
-		pack->data = realloc(esp, pack->alloc_len);
-		esp = (esp_header *)pack->data;
-		memcpy(&esp->tail.ivicv[priv->ivlen], temp, priv->icvlen);
+	case 'I': /* Integrity check value */
+		length=stringargument(arg, &temp);
+		if (!temp || !replace_components(pack, esp->tail.ivicv, priv->ivlen,
+		                                 temp, length,
+		                                 pack->modified&ESP_MOD_PADDING ? esp->tail.padlen : ESP_MIN_PADDING))
+			return FALSE;
+		priv->icvlen=length;
 		pack->modified |= ESP_MOD_ICV;
 		break;
-	case 'k':	/* Key */
-		length = stringargument(arg, &temp);
-		priv->keylen = length;
-		priv = (esp_private *)realloc(priv,
-		                              sizeof(esp_private) + length);
-		memcpy(priv->key, temp, priv->keylen);
-		pack->private = priv;
+	case 'k': /* Key */
+		length=stringargument(arg, &temp);
+		if (!temp) return FALSE;
+		priv=realloc(priv, sizeof(*priv)+(size_t)length);
+		if (!priv) return FALSE;
+		priv->keylen=length;
+		memcpy(priv->key, temp, length);
+		pack->private=priv;
 		pack->modified |= ESP_MOD_KEY;
 		break;
 	case 'a':	/* Authentication module */
@@ -230,12 +237,14 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	nexthdr = esp->tail.nexthdr;
 	if (priv->ivlen) {
 		iv = (u_int8_t *)malloc(priv->ivlen);
+		if (!iv) return FALSE;
 		memcpy(iv, &esp->tail.ivicv[0], priv->ivlen);
 	} else {
 		iv = NULL;
 	}
 	if (priv->icvlen) {
 		icv = (u_int8_t *)malloc(priv->icvlen);
+		if (!icv) { free(iv); return FALSE; }
 		memcpy(icv, &esp->tail.ivicv[priv->ivlen], priv->icvlen);
 	} else {
 		icv = NULL;
