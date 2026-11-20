@@ -5,13 +5,13 @@
 
 /* RIP PACKET STRUCTURES
  */
-typedef struct {
+typedef struct SENDIP_PACKED {
 	u_int8_t command;
 	u_int8_t version;
 	u_int16_t res;
 } ripng_header;
 
-typedef struct {
+typedef struct SENDIP_PACKED {
 	struct in6_addr prefix;
 	u_int16_t tag;
 	u_int8_t len;

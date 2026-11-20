@@ -17,6 +17,9 @@
 #define FALSE false
 #endif
 
+/* Packet headers may begin at any byte offset in the assembled buffer. */
+#define SENDIP_PACKED __attribute__((__packed__))
+
 /* Solaris doesn't define these */
 #ifdef __sun__
 typedef uint16_t u_int16_t;

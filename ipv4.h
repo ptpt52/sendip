@@ -11,7 +11,7 @@
 /* IP HEADER
  * Taken from glibc 2.2, and modified
  */
-typedef struct {
+typedef struct SENDIP_PACKED {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	unsigned int header_len:4;
 	unsigned int version:4;

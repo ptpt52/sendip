@@ -28,7 +28,7 @@
 #define	WESP_PADDED		0x10
 #define WESP_RESERVED_MASK	0x0f
 
-typedef struct ip_wesp_phdr {
+typedef struct SENDIP_PACKED ip_wesp_phdr {
 	u_int8_t nexthdr;
 	u_int8_t hdrlen;	/* either 0 (encrypted ESP) or WESP+ESP len */
 	u_int8_t trlrlen;	/* either 0 (encrypted ESP) or ICV len */

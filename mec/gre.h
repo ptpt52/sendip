@@ -8,7 +8,7 @@
  * which the actual GRE (or whatever) header is constructed during
  * transmit time. So we'll just hack one out.
  */
-typedef struct {
+typedef struct SENDIP_PACKED {
 	u_int16_t	gre_flag;	/* Flags and version number */
 	u_int16_t	gre_protocol;	/* Ethernet protocol value */
 	union {

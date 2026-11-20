@@ -5,7 +5,7 @@
 
 /* UDP HEADER
  */
-typedef struct {
+typedef struct SENDIP_PACKED {
 	u_int16_t     source;
 	u_int16_t     dest;
 	u_int16_t     len;

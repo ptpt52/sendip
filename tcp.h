@@ -11,7 +11,7 @@
  * Ripped straight out of glibc-2.2.2, modified for RFC22481
  * Reproduced here to prevent nasty #defines on non-linux boxes
  */
-typedef struct {
+typedef struct SENDIP_PACKED {
 	u_int16_t source;
 	u_int16_t dest;
 	u_int32_t seq;

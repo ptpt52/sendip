@@ -20,7 +20,7 @@
 /*
  * Overall header
  */
-typedef struct sctp {
+typedef struct SENDIP_PACKED sctp {
 	u_int16_t	source;
 	u_int16_t	dest;
 	u_int32_t	vtag;
@@ -30,7 +30,7 @@ typedef struct sctp {
 /*
  * Chunk header
  */
-typedef struct sctp_chunk {
+typedef struct SENDIP_PACKED sctp_chunk {
 	u_int8_t type;
 	u_int8_t flags;
 	u_int16_t length;
@@ -81,7 +81,7 @@ typedef enum {
 enum { SCTP_CID_ACTION_MASK = 0xc0, };
 
 /* Init header */
-typedef struct sctp_inithdr {
+typedef struct SENDIP_PACKED sctp_inithdr {
 	u_int32_t init_tag;
 	u_int32_t a_rwnd; /* advertised receiver window credit */
 	u_int16_t num_outbound_streams;
@@ -91,7 +91,7 @@ typedef struct sctp_inithdr {
 } sctp_inithdr_t;
 
 /* Data header */
-typedef struct sctp_datahdr {
+typedef struct SENDIP_PACKED sctp_datahdr {
 	u_int32_t tsn;
 	u_int16_t stream;
 	u_int16_t ssn;
@@ -138,7 +138,7 @@ typedef enum {
 /* The generic Linux structure just includes the type and length.
  * Data fields are in the type-specific structures.
  */
-typedef struct sctp_paramhdr {
+typedef struct SENDIP_PACKED sctp_paramhdr {
 	u_int16_t	type;
 	u_int16_t	length;
 } sctp_paramhdr_t;
@@ -148,67 +148,67 @@ typedef struct sctp_paramhdr {
  */
 
 /* Section 3.3.2.1. IPv4 Address Parameter (5) */
-typedef struct sctp_ipv4addr_param {
+typedef struct SENDIP_PACKED sctp_ipv4addr_param {
 	sctp_paramhdr_t param_hdr;
 	struct in_addr addr;
 } sctp_ipv4addr_param_t;
 
 /* Section 3.3.2.1. IPv6 Address Parameter (6) */
-typedef struct sctp_ipv6addr_param {
+typedef struct SENDIP_PACKED sctp_ipv6addr_param {
 	sctp_paramhdr_t param_hdr;
 	struct in6_addr addr;
 } sctp_ipv6addr_param_t;
 
 /* Section 3.3.2.1 Cookie Preservative (9) */
-typedef struct sctp_cookie_preserve_param {
+typedef struct SENDIP_PACKED sctp_cookie_preserve_param {
 	sctp_paramhdr_t param_hdr;
 	u_int32_t lifespan_increment;
 } sctp_cookie_preserve_param_t;
 
 /* Section 3.3.2.1 Host Name Address (11) */
-typedef struct sctp_hostname_param {
+typedef struct SENDIP_PACKED sctp_hostname_param {
 	sctp_paramhdr_t param_hdr;
 	uint8_t hostname[0];
 } sctp_hostname_param_t;
 
 /* Section 3.3.2.1 Supported Address Types (12) */
-typedef struct sctp_supported_addrs_param {
+typedef struct SENDIP_PACKED sctp_supported_addrs_param {
 	sctp_paramhdr_t param_hdr;
 	u_int16_t types[0];
 } sctp_supported_addrs_param_t;
 
 /* Appendix A. ECN Capable (32768) */
-typedef struct sctp_ecn_capable_param {
+typedef struct SENDIP_PACKED sctp_ecn_capable_param {
 	sctp_paramhdr_t param_hdr;
 } sctp_ecn_capable_param_t;
 
 /* ADDIP Section 3.2.6 Adaptation Layer Indication */
-typedef struct sctp_adaptation_ind_param {
+typedef struct SENDIP_PACKED sctp_adaptation_ind_param {
 	struct sctp_paramhdr param_hdr;
 	u_int32_t adaptation_ind;
 } sctp_adaptation_ind_param_t;
 
 /* ADDIP Section 4.2.7 Supported Extensions Parameter */
-typedef struct sctp_supported_ext_param {
+typedef struct SENDIP_PACKED sctp_supported_ext_param {
 	struct sctp_paramhdr param_hdr;
 	u_int8_t chunks[0];
 } sctp_supported_ext_param_t;
 
 /* AUTH Section 3.1 Random */
-typedef struct sctp_random_param {
+typedef struct SENDIP_PACKED sctp_random_param {
 	sctp_paramhdr_t param_hdr;
 	u_int8_t random_val[0];
 } sctp_random_param_t;
 
 /* AUTH Section 3.2 Chunk List */
-typedef struct sctp_chunks_param {
+typedef struct SENDIP_PACKED sctp_chunks_param {
 	sctp_paramhdr_t param_hdr;
 	u_int8_t chunks[0];
 } sctp_chunks_param_t;
 
 
 /* AUTH Section 3.3 HMAC Algorithm */
-typedef struct sctp_hmac_algo_param {
+typedef struct SENDIP_PACKED sctp_hmac_algo_param {
 	sctp_paramhdr_t param_hdr;
 	u_int16_t hmac_ids[0];
 } sctp_hmac_algo_param_t;
@@ -219,14 +219,14 @@ typedef struct sctp_hmac_algo_param {
  */
 
 /* Section 3.3.3.1 State Cookie (7) */
-typedef struct sctp_cookie_param {
+typedef struct SENDIP_PACKED sctp_cookie_param {
 	sctp_paramhdr_t p;
 	u_int8_t body[0];
 } sctp_cookie_param_t;
 
 
 /* Section 3.3.3.1 Unrecognized Parameters (8) */
-typedef struct sctp_unrecognized_param {
+typedef struct SENDIP_PACKED sctp_unrecognized_param {
 	sctp_paramhdr_t param_hdr;
 	sctp_paramhdr_t unrecognized;
 } sctp_unrecognized_param_t;
@@ -236,7 +236,7 @@ typedef struct sctp_unrecognized_param {
 /* Forward TSN supported (0xC000, 49152) - mere presence seems to imply
  * capability, just like with ECN, so there are no other fields.
  */
-typedef struct sctp_forward_tsn_param {
+typedef struct SENDIP_PACKED sctp_forward_tsn_param {
 	sctp_paramhdr_t param_hdr;
 } sctp_forward_tsn_param_t;
 

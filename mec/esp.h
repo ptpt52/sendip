@@ -10,7 +10,7 @@
  * the ESP trailer. We then move the trailer after the packet data
  * in finalize.
  */
-struct ip_esp_tail {
+struct SENDIP_PACKED ip_esp_tail {
 	u_int8_t padlen;	/* padding is pushed before tail */
 	u_int8_t nexthdr;
 	u_int8_t ivicv[0];	/* both IV and ICV, if any */
@@ -19,7 +19,7 @@ struct ip_esp_tail {
 				 * padding requirements.
 				 */
 
-struct ip_esp_headtail {
+struct SENDIP_PACKED ip_esp_headtail {
 	struct ip_esp_hdr hdr;
 	struct ip_esp_tail tail;
 };

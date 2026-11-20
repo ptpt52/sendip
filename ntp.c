@@ -79,6 +79,7 @@ sendip_data *initialize(void) {
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	ntp_header *ntp = (ntp_header *)pack->data;
+	u_int32_t value;
 	switch(opt[1]) {
 	case 'l':  /* Leap Indicator (2 bits) */
 		ntp->leap=(u_int8_t)strtoul(arg,(char **)NULL,0)&3;
@@ -97,12 +98,14 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified|=NTP_MOD_PRECISION;
 		break;
 	case 'e':  /* esitmated error (32 bits, fixed point between bits 15/16) */
-		if (!parse_fixed_point(arg, FALSE, 16, &ntp->error)) return FALSE;
+		if (!parse_fixed_point(arg, FALSE, 16, &value)) return FALSE;
+		ntp->error=value;
 		pack->modified|=NTP_MOD_ERROR;
 		break;
 	case 'd':  /* estimated drift rate (32 bits, signed fixed point left of
 					  high order bit) */
-		if (!parse_fixed_point(arg, TRUE, 31, &ntp->drift)) return FALSE;
+		if (!parse_fixed_point(arg, TRUE, 31, &value)) return FALSE;
+		ntp->drift=value;
 		pack->modified|=NTP_MOD_DRIFT;
 		break;
 	case 'r':  /* reference clock id (32 bits or a 4 byte string).  Can be:

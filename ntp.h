@@ -3,14 +3,14 @@
 #ifndef _SENDIP_NTP_H
 #define _SENDIP_NTP_H
 
-typedef struct {
+typedef struct SENDIP_PACKED {
 	u_int32_t intpart;
 	u_int32_t fracpart;
 } ntp_ts;
 
 /* NTP HEADER
  */
-typedef struct {
+typedef struct SENDIP_PACKED {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	u_int8_t status:6;
 	u_int8_t leap:2;

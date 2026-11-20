@@ -266,11 +266,12 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	case '4':	/* IPv4 address parameter */
 	{
 		sctp_ipv4addr_param_t v4param;
+		struct in_addr address;
 
 		v4param.param_hdr.type = SCTP_PARAM_IPV4_ADDRESS;
 		v4param.param_hdr.length = htons(sizeof(sctp_ipv4addr_param_t));
-		if (inet_aton(arg, &v4param.addr)) {
-			;
+		if (inet_aton(arg, &address)) {
+			v4param.addr=address;
 		} else {
 			fprintf(stderr,
 			        "Couldn't parse v4 address %s\n", arg);

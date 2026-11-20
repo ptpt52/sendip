@@ -9,7 +9,7 @@
 /* ICMP HEADER
  * Copied from glibc 2.2, reproduced here without code specific stuff
  */
-typedef struct {
+typedef struct SENDIP_PACKED {
 	u_int8_t type;
 	u_int8_t code;
 	u_int16_t check;

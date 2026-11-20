@@ -59,7 +59,7 @@ struct sendip_headers {
 extern struct sendip_headers sendip_headers[];
 
 /* hop-by-hop and destination options header */
-struct ipv6_opt_hdr {
+struct SENDIP_PACKED ipv6_opt_hdr {
 	u_int8_t		nexthdr;
 	u_int8_t		hdrlen;
 	/*
@@ -74,7 +74,7 @@ struct ipv6_opt_hdr {
  *	home address option in destination options header
  */
 
-struct ipv6_destopt_hao {
+struct SENDIP_PACKED ipv6_destopt_hao {
 	u_int8_t	type;
 	u_int8_t	length;
 	struct in6_addr	addr;
@@ -84,7 +84,7 @@ struct ipv6_destopt_hao {
  *	fragmentation header
  */
 
-struct ipv6_frag_hdr {
+struct SENDIP_PACKED ipv6_frag_hdr {
 	u_int8_t	nexthdr;
 	u_int8_t	reserved;
 	u_int16_t	frag_off;   /* fragment offset - 13 bits + 3 flags */
@@ -98,7 +98,7 @@ struct ipv6_frag_hdr {
 #define IPV6_SRCRT_STRICT	0x01	/* Deprecated; will be removed */
 #define IPV6_SRCRT_TYPE_0	0	/* Deprecated; will be removed */
 #define IPV6_SRCRT_TYPE_2	2	/* IPv6 type 2 Routing Header	*/
-struct ipv6_rt_hdr {
+struct SENDIP_PACKED ipv6_rt_hdr {
 	u_int8_t		nexthdr;
 	u_int8_t		hdrlen;
 	u_int8_t		type;
@@ -114,7 +114,7 @@ struct ipv6_rt_hdr {
  *	routing header type 0 (used in cmsghdr struct)
  */
 
-struct rt0_hdr {
+struct SENDIP_PACKED rt0_hdr {
 	struct ipv6_rt_hdr	rt_hdr;
 	u_int32_t		reserved;
 	struct in6_addr		addr[0];
@@ -126,7 +126,7 @@ struct rt0_hdr {
  *	routing header type 2
  */
 
-struct rt2_hdr {
+struct SENDIP_PACKED rt2_hdr {
 	struct ipv6_rt_hdr	rt_hdr;
 	u_int32_t		reserved;
 	struct in6_addr		addr;
@@ -137,7 +137,7 @@ struct rt2_hdr {
 /*
  * authentication header
  */
-struct ip_auth_hdr {
+struct SENDIP_PACKED ip_auth_hdr {
 	u_int8_t  nexthdr;
 	u_int8_t  hdrlen;	/* This one is measured in 32 bit units! */
 	u_int16_t reserved;
@@ -152,7 +152,7 @@ struct ip_auth_hdr {
 /*
  * encapsulated security payload header
  */
-struct ip_esp_hdr {
+struct SENDIP_PACKED ip_esp_hdr {
 	u_int32_t spi;
 	u_int32_t seq_no;	/* Sequence number */
 	u_int8_t  enc_data[0];	/* Variable len but >=8. Mind the 64 bit alignment! */
@@ -162,7 +162,7 @@ struct ip_esp_hdr {
 /*
  * compression header
  */
-struct ip_comp_hdr {
+struct SENDIP_PACKED ip_comp_hdr {
 	u_int8_t nexthdr;
 	u_int8_t flags;
 	u_int16_t cpi;
@@ -171,7 +171,7 @@ struct ip_comp_hdr {
 /*
  * beet header
  */
-struct ip_beet_phdr {
+struct SENDIP_PACKED ip_beet_phdr {
 	u_int8_t nexthdr;
 	u_int8_t hdrlen;
 	u_int8_t padlen;

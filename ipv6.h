@@ -5,9 +5,9 @@
 
 /* Header taken from glibc 2.2
  */
-typedef struct {
+typedef struct SENDIP_PACKED {
 	union  {
-		struct ip6_hdrctl {
+		struct SENDIP_PACKED ip6_hdrctl {
 			uint32_t ip6_un1_flow;   /* 24 bits of flow-ID */
 			uint16_t ip6_un1_plen;   /* payload length */
 			uint8_t  ip6_un1_nxt;    /* next header */
