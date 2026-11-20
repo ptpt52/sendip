@@ -373,7 +373,7 @@ static struct option *module_options(void) {
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
-	fprintf(stderr, "Usage: %s [-v] [-D] [-l loopcount] [-t time] [-d data] [-h] [-f datafile] [-p module] [module options] [hostname]\n",progname);
+	fprintf(stderr, "Usage: %s [-v] [-D] [-l loopcount] [-T time] [-d data] [-h] [-f datafile] [-p module] [module options] [hostname]\n",progname);
 	fprintf(stderr, " -d data\tadd this data as a string to the end of the packet\n");
 	fprintf(stderr, " -f datafile\tread packet data from file\n");
 	fprintf(stderr, " -h\t\thelp (this message)\n");
@@ -404,7 +404,7 @@ static void print_usage(void) {
 	fprintf(stderr, "Each packet sent will be identical unless random (rN) or\n");
 	fprintf(stderr, "file (fF) arguments are used.\n");
 	fprintf(stderr, "When looping, sendip will send packets as quickly as possible\n");
-	fprintf(stderr, "unless a time delay (-t) argument is specified.\n");
+	fprintf(stderr, "unless a time delay (-T) argument is specified.\n");
 	fprintf(stderr, "\nFile arguments are read line by line, with the contents of\n");
 	fprintf(stderr, "the line then substituted for the corresponding argument.\n");
 	fprintf(stderr, "For example, assume the file F contains the four lines:\n");
