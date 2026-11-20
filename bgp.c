@@ -356,7 +356,12 @@ bool do_opt (char        *optstring,
 					*(rem_ptr + 1) = ptr - rem_ptr - 2;
 				}
 				if (!(pack->modified & BGP_MOD_OPT_LEN)) {
-					*state->opt_len_ptr += ptr - rem_ptr;
+					size_t added=ptr-rem_ptr;
+					if (added>UINT8_MAX || *state->opt_len_ptr>UINT8_MAX-added) {
+						usage_error("Automatic BGP OPEN option length exceeds one byte\n");
+						return FALSE;
+					}
+					*state->opt_len_ptr += added;
 				}
 				state->prev_part = BGP_OPEN_OPT;
 			}
