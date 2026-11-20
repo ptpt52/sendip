@@ -17,6 +17,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #include "sendip_module.h"
 #include "ipv4.h"
@@ -85,18 +86,23 @@ static u_int8_t buildroute(char *data, sendip_data *pack) {
 }
 
 /* This bears an incredible resemblance to the TCP addoption function... */
-static void addoption(u_int8_t copy, u_int8_t class, u_int8_t num,
-                      u_int8_t len, u_int8_t *data,
+static bool addoption(u_int8_t copy, u_int8_t class, u_int8_t num,
+                      int len, u_int8_t *data,
                       sendip_data *pack) {
 	/* opt is copy flag (1bit) + class (2 bit) + number (5 bit) */
 	u_int8_t opt = ((copy&1)<<7) | ((class&3)<<5) | (num&31);
-	pack->data = realloc(pack->data, pack->alloc_len + len);
+	if (len<1 || len>255 || pack->alloc_len>INT_MAX-len || (len>2 && !data))
+		return FALSE;
+	void *replacement=realloc(pack->data, (size_t)pack->alloc_len+len);
+	if (!replacement) return FALSE;
+	pack->data=replacement;
 	*((u_int8_t *)pack->data+pack->alloc_len) = opt;
 	if(len > 1)
 		*((u_int8_t *)pack->data+pack->alloc_len+1) = len;
 	if(len > 2)
 		memcpy((u_int8_t *)pack->data+pack->alloc_len+2,data,len-2);
 	pack->alloc_len += len;
+	return TRUE;
 }
 
 sendip_data *initialize(void) {
@@ -133,6 +139,7 @@ bool set_addr(char *hostname, sendip_data *pack) {
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	ip_header *iph = (ip_header *)pack->data;
+	bool added=TRUE;
 	switch(opt[1]) {
 	case 's':
 		/*@@iph->saddr = inet_addr(arg);*/
@@ -237,7 +244,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		/* IP options */
 		if(!strcmp(opt+2, "num")) {
 			/* Other options (auto length) */
-			u_int8_t cp, cls, num, len;
+			u_int8_t cp, cls, num;
+			int len;
 			u_int8_t *data = malloc(strlen(arg)+3);
 			if(!data) {
 				fprintf(stderr,"Out of memory!\n");
@@ -245,23 +253,24 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			}
 			snprintf((char *)data, strlen(arg)+3, "0x%s",arg);
 			len = compact_string((char *)data);
+			if (len<1 || len>254) { free(data); return FALSE; }
 			cp=(*data&0x80)>>7;
 			cls=(*data&0x60)>>5;
 			num=(*data&0x1F);
-			addoption(cp,cls,num,len+1,data+1,pack);
+			added=addoption(cp,cls,num,len+1,data+1,pack);
 			free(data);
 		} else if(!strcmp(opt+2, "eol")) {
 			/* End of list */
-			addoption(0,0,0,1,NULL,pack);
+			added=addoption(0,0,0,1,NULL,pack);
 		} else if(!strcmp(opt+2, "nop")) {
 			/* NOP */
-			addoption(0,0,1,1,NULL,pack);
+			added=addoption(0,0,1,1,NULL,pack);
 		} else if(!strcmp(opt+2, "rr")) {
 			/* Record route
 			 * Format is the same as for loose source route
 			 */
 			char *data = strdup(arg);
-			u_int8_t len;
+			int len;
 			if(!data) {
 				fprintf(stderr,"Out of memory!\n");
 				return FALSE;
@@ -271,7 +280,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				free(data);
 				return FALSE;
 			} else {
-				addoption(0,0,7,len+2,(u_int8_t *)data,pack);
+				added=addoption(0,0,7,len+2,(u_int8_t *)data,pack);
 				free(data);
 			}
 		} else if(!strcmp(opt+2, "ts")) {
@@ -389,7 +398,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				data_in = next;
 			}
 
-			addoption(0,2,4,data_out-data+2,(u_int8_t *)data,pack);
+			added=addoption(0,2,4,data_out-data+2,(u_int8_t *)data,pack);
 			free(data);
 			/* End of timestamp parsing */
 
@@ -404,7 +413,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			 *  ...
 			 */
 			char *data = strdup(arg);
-			u_int8_t len;
+			int len;
 			if(!data) {
 				fprintf(stderr,"Out of memory!\n");
 				return FALSE;
@@ -414,20 +423,20 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				free(data);
 				return FALSE;
 			} else {
-				addoption(1,0,3,len+2,(u_int8_t *)data,pack);
+				added=addoption(1,0,3,len+2,(u_int8_t *)data,pack);
 				free(data);
 			}
 		} else if(!strcmp(opt+2, "sid")) {
 			/* Stream ID (RFC791) */
 			/*@@u_int16_t sid = htons(atoi(arg));*/
 			u_int16_t sid = integerargument(arg, 2);
-			addoption(1,0,8,4,(u_int8_t *)&sid,pack);
+			added=addoption(1,0,8,4,(u_int8_t *)&sid,pack);
 		} else if(!strcmp(opt+2, "ssr")) {
 			/* Strict Source Route
 			 * Format is identical to loose source route
 			 */
 			char *data = strdup(arg);
-			u_int8_t len;
+			int len;
 			if(!data) {
 				fprintf(stderr,"Out of memory!\n");
 				return FALSE;
@@ -437,7 +446,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				free(data);
 				return FALSE;
 			} else {
-				addoption(1,0,9,len+2,(u_int8_t *)data,pack);
+				added=addoption(1,0,9,len+2,(u_int8_t *)data,pack);
 				free(data);
 			}
 		} else {
@@ -451,13 +460,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		return FALSE;
 		break;
 	}
-	return TRUE;
+	return added;
 
 }
 
 bool do_pad(sendip_data *pack) {
 	while ((pack->alloc_len+3)/4 != (pack->alloc_len)/4)
-		addoption(0,0,0,1,NULL,pack);
+		if (!addoption(0,0,0,1,NULL,pack)) return FALSE;
 	return TRUE;
 }
 

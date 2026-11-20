@@ -17,6 +17,7 @@
 
 #include <sys/types.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <string.h>
 #include "sendip_module.h"
@@ -59,15 +60,20 @@ static void tcp6csum(sendip_data *ipv6_hdr, sendip_data *tcp_hdr,
 	tcp->check=csumv(blocks, lengths);
 }
 
-static void addoption(u_int8_t opt, u_int8_t len, u_int8_t *data,
+static bool addoption(u_int8_t opt, int len, u_int8_t *data,
                       sendip_data *pack) {
-	pack->data = realloc(pack->data, pack->alloc_len + len);
+	if (len<1 || len>255 || pack->alloc_len>INT_MAX-len || (len>2 && !data))
+		return FALSE;
+	void *replacement=realloc(pack->data, (size_t)pack->alloc_len+len);
+	if (!replacement) return FALSE;
+	pack->data=replacement;
 	*((u_int8_t *)pack->data+pack->alloc_len) = opt;
 	if(len > 1)
 		*((u_int8_t *)pack->data+pack->alloc_len+1)=len;
 	if(len > 2)
 		memcpy((u_int8_t *)pack->data+pack->alloc_len+2,data,len-2);
 	pack->alloc_len += len;
+	return TRUE;
 }
 
 sendip_data *initialize(void) {
@@ -88,6 +94,7 @@ sendip_data *initialize(void) {
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	tcp_header *tcp = (tcp_header *)pack->data;
 	// opt[0]==t
+	bool added=TRUE;
 	switch(opt[1]) {
 	case 's':
 		/*@@tcp->source = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
@@ -194,28 +201,29 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			}
 			snprintf((char *)data, strlen(arg)+3, "0x%s",arg);
 			len = compact_string((char *)data);
+			if (len<1 || len>254) { free(data); return FALSE; }
 			if(len==1)
-				addoption(*data,1,NULL,pack);
+				added=addoption(*data,1,NULL,pack);
 			else
-				addoption(*data,len+1,data+1,pack);
+				added=addoption(*data,len+1,data+1,pack);
 			free(data);
 		} else if (!strcmp(opt+2, "eol")) {
 			/* End of options list RFC 793 kind 0, no length */
-			addoption(0,1,NULL,pack);
+			added=addoption(0,1,NULL,pack);
 		} else if (!strcmp(opt+2, "nop")) {
 			/* No op RFC 793 kind 1, no length */
-			addoption(1,1,NULL,pack);
+			added=addoption(1,1,NULL,pack);
 		} else if (!strcmp(opt+2, "mss")) {
 			/* Maximum segment size RFC 793 kind 2 */
 			u_int16_t mss=htons(atoi(arg));
-			addoption(2,4,(u_int8_t *)&mss,pack);
+			added=addoption(2,4,(u_int8_t *)&mss,pack);
 		} else if (!strcmp(opt+2, "wscale")) {
 			/* Window scale rfc1323 */
 			u_int8_t wscale=atoi(arg);
-			addoption(3,3,&wscale,pack);
+			added=addoption(3,3,&wscale,pack);
 		} else if (!strcmp(opt+2, "sackok")) {
 			/* Selective Acknowledge permitted rfc1323 */
-			addoption(4,2,NULL,pack);
+			added=addoption(4,2,NULL,pack);
 		} else if (!strcmp(opt+2, "sack")) {
 			/* Selective Acknowledge rfc1323 */
 			char *next;
@@ -263,7 +271,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				memcpy(c+4, &re, 4);
 				c+=8;
 			}
-			addoption(5,count*8+2,comb,pack);
+			added=addoption(5,count*8+2,comb,pack);
 			free(comb);
 		} else if (!strcmp(opt+2, "ts")) {
 			/* Timestamp rfc1323 */
@@ -280,7 +288,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			memcpy(comb, &tsval, 4);
 			tsecr=htonl(tsecr);
 			memcpy(comb+4, &tsecr, 4);
-			addoption(8,10,comb,pack);
+			added=addoption(8,10,comb,pack);
 		} else {
 			/* Unrecognized -to* */
 			fprintf(stderr, "unsupported TCP Option %s val %s\n",
@@ -296,7 +304,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 	}
 
-	return TRUE;
+	return added;
 
 }
 
