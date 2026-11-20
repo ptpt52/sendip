@@ -663,10 +663,11 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 					pfound = p;
 					indfound = option_index;
 				}
-				else if (long_only
-				         || pfound->has_arg != p->has_arg
+				/* Repeated modules can register the same option more than once. */
+				else if (pfound->has_arg != p->has_arg
 				         || pfound->flag != p->flag
-				         || pfound->val != p->val)
+				         || pfound->val != p->val
+				         || (long_only && strcmp (pfound->name, p->name) != 0))
 					/* Second or later nonexact match found.  */
 					ambig = 1;
 			}
