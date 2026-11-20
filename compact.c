@@ -543,8 +543,8 @@ cidrargument(const char *input, char *slashpoint, int length)
 		usage_error("Invalid CIDR prefix\n");
 		return INADDR_NONE;
 	}
-	/* Interpret weird /xx values as fixed addresses */
-	if (prefix <= 0 || prefix >= 32)
+	/* /0 covers all addresses; /32 and legacy out-of-range values are fixed. */
+	if (prefix < 0 || prefix >= 32)
 		return cidrarg.s_addr;
 	slash=(int)prefix;
 	/* The host and subnet parts, in host order for now */

@@ -62,6 +62,10 @@ length is then zero; automatic UDP length is zero when the UDP datagram itself
 exceeds 65535 bytes. Explicit wire-length overrides remain available for packet
 experiments.
 
+IPv4 CIDR arguments choose a random host in the given prefix. `/0` uses all
+32 host bits; `/32` keeps the supplied address. Prefixes shorter than `/31`
+exclude the all-zero and all-one host values.
+
 For example, this will generate a TCP/IPv4 packet with 1000 bytes of random data and random
 source/dest addresses, and convert it to a PCAP file for analysis with wireshark or tcpdump.
 
