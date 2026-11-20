@@ -433,6 +433,18 @@ static u_int32_t sctp_crc32c(u_int32_t crc, const void *data, int length) {
 	return crc;
 }
 
+bool do_pad(sendip_data *pack) {
+	if (pack->alloc_len>INT_MAX-3) return FALSE;
+	int length=round4(pack->alloc_len);
+	if (length==pack->alloc_len) return TRUE;
+	void *replacement=realloc(pack->data, length);
+	if (!replacement) return FALSE;
+	memset((u_int8_t *)replacement+pack->alloc_len, 0, length-pack->alloc_len);
+	pack->data=replacement;
+	pack->alloc_len=length;
+	return TRUE;
+}
+
 bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack)
 {
