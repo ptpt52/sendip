@@ -289,6 +289,30 @@ fail:
 	return false;
 }
 
+static void free_options(struct option *options) {
+	if (!options) return;
+	for (size_t i=0; options[i].name; ++i) free((void *)options[i].name);
+	free(options);
+}
+
+static struct option *module_options(void) {
+	struct option *options=calloc((size_t)num_opts+1, sizeof(*options));
+	if (!options) return NULL;
+	int i=0;
+	for (sendip_module *module=first; module; module=module->next) {
+		for (int j=0; j<module->num_opts; ++j, ++i) {
+			size_t size=strlen(module->opts[j].optname)+2;
+			char *name=malloc(size);
+			if (!name) { free_options(options); return NULL; }
+			snprintf(name, size, "%c%s", module->optchar, module->opts[j].optname);
+			options[i].name=name;
+			options[i].has_arg=module->opts[j].arg;
+			options[i].val=module->optchar;
+		}
+	}
+	return options;
+}
+
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
@@ -413,46 +437,41 @@ int main(int argc, char *const argv[]) {
 		goto cleanup;
 	}
 
-	/* Discover modules without interpreting partially matched protocol options. */
+	/* Learn options as modules load, so their argument values are consumed
+	 * as values even when they resemble global flags such as -p or -d.
+	 */
 	gnuopterr=0;
 	gnuoptind=0;
-	while (gnuoptind<argc && (optc=gnugetopt(argc, argv, "-p:l:T:vd:hf:D"))!=EOF) {
+	for (;;) {
+		longindex=-1;
+		optc=getopt_long_only(argc, argv, "-p:l:T:vd:hf:D", opts, &longindex);
+		if (optc==EOF) break;
+		if (longindex>=0) continue;
 		if (optc=='p') {
 			if (!load_module(gnuoptarg)) {
 				status=1;
 				goto cleanup;
 			}
 			++num_modules;
+			struct option *updated=module_options();
+			if (!updated) {
+				perror("Allocating module options");
+				status=1;
+				goto cleanup;
+			}
+			free_options(opts);
+			opts=updated;
 		} else if (optc=='?' || optc==':') {
 			if (nextchar && *nextchar) ++gnuoptind;
 			nextchar=NULL;
 		}
 	}
-
-	/* Build the getopt listings */
-	opts = calloc((size_t)num_opts+1, sizeof(*opts));
-	if(opts==NULL) {
-		perror("OUT OF MEMORY!\n");
-		status=1;
-		goto cleanup;
-	}
-	i=0;
-	for(mod=first; mod!=NULL; mod=mod->next) {
-		int j;
-		char *s;   // nasty kludge because option.name is const
-		for(j=0; j<mod->num_opts; j++) {
-			/* +2 on next line is one for the char, one for the trailing null */
-			opts[i].name = s = malloc(strlen(mod->opts[j].optname)+2);
-			if (!s) {
-				perror("Allocating module options");
-				status=1;
-				goto cleanup;
-			}
-			sprintf(s,"%c%s",mod->optchar,mod->opts[j].optname);
-			opts[i].has_arg = mod->opts[j].arg;
-			opts[i].flag = NULL;
-			opts[i].val = mod->optchar;
-			i++;
+	if (!opts) {
+		opts=module_options();
+		if (!opts) {
+			perror("Allocating module options");
+			status=1;
+			goto cleanup;
 		}
 	}
 
@@ -833,10 +852,7 @@ int main(int argc, char *const argv[]) {
 	} /*@@ back to top of loop */
 
 cleanup:
-	if (opts) {
-		for (size_t j=0; opts[j].name; ++j) free((void *)opts[j].name);
-		free(opts);
-	}
+	free_options(opts);
 	if(datafile != -1) {
 		if (data && datalen) munmap(data,datalen);
 		close(datafile);
