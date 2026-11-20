@@ -3,6 +3,7 @@
  */
 
 #include <stdlib.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -45,6 +46,8 @@ bool
 addpadding(sendip_data *pack)
 {
 	wesp_header *wesp = (wesp_header *)pack->data;
+	if (pack->alloc_len>INT_MAX-4) return FALSE;
+	int oldlen=pack->alloc_len;
 	int alloclen = pack->alloc_len+4;
 
 	wesp = realloc((void *)wesp, alloclen);
@@ -52,7 +55,7 @@ addpadding(sendip_data *pack)
 	pack->data = wesp;
 	pack->alloc_len = alloclen;
 	/* Be a good citizen */
-	wesp->padding[0] = 0;
+	memset((u_int8_t *)wesp+oldlen, 0, 4);
 	return TRUE;
 }
 
