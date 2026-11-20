@@ -29,7 +29,7 @@
  * might involve key negotiation, ICV length specification,
  * IV determination, or whatever.
  */
-sendip_bool
+bool
 cryptoinit(sendip_data *pack)
 {
 	u_int32_t type;
@@ -114,7 +114,7 @@ xoricv(u_int8_t *key, u_int32_t keylen,
  * a fake header and "finalize" that.
  */
 
-sendip_bool
+bool
 ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
        sendip_data *data, sendip_data *pack)
 {
@@ -193,7 +193,7 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	return TRUE;
 }
 
-sendip_bool
+bool
 ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
        sendip_data *data, sendip_data *pack)
 {
@@ -254,7 +254,7 @@ ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
  * from the ESP header to right before the ICV area. It
  * is therefore the same for IPv4 and IPv6.
  */
-sendip_bool
+bool
 espip(esp_private *epriv, char *hdrs, int index, sendip_data *ipack,
       sendip_data *data, sendip_data *pack)
 {
@@ -281,7 +281,7 @@ espip(esp_private *epriv, char *hdrs, int index, sendip_data *ipack,
 	return TRUE;
 }
 
-sendip_bool
+bool
 cryptomod(void *priv, char *hdrs, sendip_data *headers[],
           int index, sendip_data *data, sendip_data *pack)
 {

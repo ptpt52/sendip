@@ -28,7 +28,7 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
-sendip_bool set_addr(char *hostname, sendip_data *pack) {
+bool set_addr(char *hostname, sendip_data *pack) {
 	ipv6_header *ipv6 = (ipv6_header *)pack->data;
 	struct hostent *host = gethostbyname2(hostname,AF_INET6);
 	if(!(pack->modified & IPV6_MOD_SRC)) {
@@ -45,7 +45,7 @@ sendip_bool set_addr(char *hostname, sendip_data *pack) {
 	return TRUE;
 }
 
-sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
+bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	ipv6_header *hdr = (ipv6_header *)pack->data;
 	struct in6_addr addr;
 
@@ -101,7 +101,7 @@ sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 }
 
-sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
+bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	ipv6_header *ipv6 = (ipv6_header *)pack->data;
 

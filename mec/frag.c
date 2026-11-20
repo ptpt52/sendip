@@ -77,7 +77,7 @@ frag_getflags(frag_header *frag)
 	return ntohs(frag->frag_off) & IPV6_FRAG_FLAGS;
 }
 
-sendip_bool
+bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	frag_header *frag = (frag_header *)pack->data;
@@ -128,7 +128,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 }
 
-sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
+bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack)
 {
 	frag_header *frag = (frag_header *)pack->data;

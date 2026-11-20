@@ -73,7 +73,7 @@ initialize(void)
 	return ret;
 }
 
-sendip_bool
+bool
 addopt(sendip_data *pack, struct ipv6_hopopt *opt)
 {
 	hop_header *hop = (hop_header *)pack->data;
@@ -117,7 +117,7 @@ addopt(sendip_data *pack, struct ipv6_hopopt *opt)
 	return TRUE;
 }
 
-sendip_bool do_opt(char *opt, char *arg, sendip_data *pack)
+bool do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	hop_header *hop = (hop_header *)pack->data;
 	struct ipv6_hopopt *hopt;
@@ -258,7 +258,7 @@ sendip_bool do_opt(char *opt, char *arg, sendip_data *pack)
 	return TRUE;
 }
 
-sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
+bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack)
 {
 	hop_header *hop = (hop_header *)pack->data;

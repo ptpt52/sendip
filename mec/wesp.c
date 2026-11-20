@@ -35,7 +35,7 @@ initialize(void)
 /* Pretty straightforward. If they flip the padded flag, we
  * add exactly 4 bytes.
  */
-sendip_bool
+bool
 addpadding(sendip_data *pack)
 {
 	wesp_header *wesp = (wesp_header *)pack->data;
@@ -49,7 +49,7 @@ addpadding(sendip_data *pack)
 	return TRUE;
 }
 
-sendip_bool
+bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	wesp_header *wesp = (wesp_header *)pack->data;
@@ -124,7 +124,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 }
 
-sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
+bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack)
 {
 	wesp_header *wesp = (wesp_header *)pack->data;
@@ -132,7 +132,7 @@ sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
 	 * the next header is not esp, don't try to interpret it
 	 * as such.
 	 */
-	sendip_bool nextesp = (hdrs[index+1] == 'e');
+	bool nextesp = (hdrs[index+1] == 'e');
 	esp_private *priv;
 
 	if (!headers[index+1]) {	/* oh well */

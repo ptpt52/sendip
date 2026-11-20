@@ -44,7 +44,7 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
-sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
+bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	ripng_header *rippack = (ripng_header *)pack->data;
 	ripng_entry *ripopt;
 	char *p, *q;
@@ -116,7 +116,7 @@ sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 }
 
-sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
+bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	if(hdrs[index-1] != 'u') {
 		usage_error("Warning: RIPng should be contained in a UDP packet\n");

@@ -50,11 +50,11 @@ typedef struct _s_m {
 	char *name;
 	char optchar;
 	sendip_data * (*initialize)(void);
-	sendip_bool (*do_opt)(const char *optstring, const char *optarg,
+	bool (*do_opt)(const char *optstring, const char *optarg,
 	               sendip_data *pack);
-	sendip_bool (*do_pad)(sendip_data *pack);
-	sendip_bool (*set_addr)(char *hostname, sendip_data *pack);
-	sendip_bool (*finalize)(char *hdrs, sendip_data *headers[], int index,
+	bool (*do_pad)(sendip_data *pack);
+	bool (*set_addr)(char *hostname, sendip_data *pack);
+	bool (*finalize)(char *hdrs, sendip_data *headers[], int index,
 	                 sendip_data *data, sendip_data *pack);
 	sendip_data *pack;
 	void *handle;
@@ -78,7 +78,7 @@ static sendip_module *last;
 static char *progname;
 
 static int sendpacket(sendip_data *data, char *hostname, int af_type,
-                      sendip_bool verbose) {
+                      bool verbose) {
 	_sockaddr_storage *to = malloc(sizeof(_sockaddr_storage));
 	int tolen;
 
@@ -201,7 +201,7 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 	return sent;
 }
 
-static void unload_modules(sendip_bool freeit, int verbosity) {
+static void unload_modules(bool freeit, int verbosity) {
 	sendip_module *mod, *p;
 	p = NULL;
 	for(mod=first; mod!=NULL; mod=mod->next) {
@@ -217,7 +217,7 @@ static void unload_modules(sendip_bool freeit, int verbosity) {
 	if(p) free(p);
 }
 
-static sendip_bool load_module(char *modname) {
+static bool load_module(char *modname) {
 	sendip_module *newmod = malloc(sizeof(sendip_module));
 	/*@@
 		sendip_module *cur;
@@ -420,7 +420,7 @@ int main(int argc, char *const argv[]) {
 	int longindex=0;
 	char rbuff[31];
 
-	sendip_bool usage=FALSE, verbosity=FALSE, dump=FALSE;
+	bool usage=FALSE, verbosity=FALSE, dump=FALSE;
 
 	char *data=NULL;
 	int datafile=-1;

@@ -17,11 +17,11 @@
  */
 const char opt_char='n';
 
-u_int32_t make_fixed_point(double n, sendip_bool issigned, int totbits, int intbits) {
+u_int32_t make_fixed_point(double n, bool issigned, int totbits, int intbits) {
 	u_int32_t intpart;
 	u_int32_t fracpart;
 	u_int32_t result;
-	sendip_bool signbit;
+	bool signbit;
 	double intpartd, fracpartd;
 	int fracbits;
 
@@ -66,7 +66,7 @@ u_int32_t make_fixed_point(double n, sendip_bool issigned, int totbits, int intb
 	return htonl(result);
 }
 
-sendip_bool make_ts(ntp_ts *dest, char *src) {
+bool make_ts(ntp_ts *dest, char *src) {
 	char *intpart, *fracpart;
 	intpart=src;
 	fracpart=strchr(intpart,'.');
@@ -95,7 +95,7 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
-sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
+bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	ntp_header *ntp = (ntp_header *)pack->data;
 	switch(opt[1]) {
 	case 'l':  /* Leap Indicator (2 bits) */
@@ -185,7 +185,7 @@ sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 }
 
-sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
+bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	if(hdrs[index-1] != 'u') {
 		usage_error("Warning: NTP should be contained in a UDP packet\n");

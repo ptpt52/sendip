@@ -5,6 +5,12 @@ sendip
 
 [Original README](README)
 
+### Module compatibility
+
+SendIP and its modules use the standard C `bool` type from `<stdbool.h>`.
+After upgrading from a version that used `typedef int bool`, rebuild SendIP
+and all protocol and crypto modules together to match the new module ABI.
+
 ### Enhancements
 
 This version adds the ability to dump packets to `stdout` rather than sending them to their
