@@ -31,13 +31,13 @@ LIBS= ../libsendipaux.a
 all:	$(PROTOS) $(CRYPTOS)
 
 %.so: %.c $(LIBS)
-			$(CC) -o $@ $(CFLAGS) $(LIBCFLAGS) $+ $(LIBS)
+			$(CC) -o $@ $(CFLAGS) $(LIBCFLAGS) $^
 
 hop.so: hop.c $(LIBS)
-			$(CC) -DHOP_OPT -o $@ $(CFLAGS) $(LIBCFLAGS) $+ $(LIBS)
+			$(CC) -DHOP_OPT -o $@ $(CFLAGS) $(LIBCFLAGS) $^
 
 dest.so: hop.c $(LIBS)
-			$(CC) -DDEST_OPT -o $@ $(CFLAGS) $(LIBCFLAGS) $+ $(LIBS)
+			$(CC) -DDEST_OPT -o $@ $(CFLAGS) $(LIBCFLAGS) $^
 
 .PHONY:	all clean veryclean install
 

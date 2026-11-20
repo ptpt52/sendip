@@ -89,7 +89,7 @@ sendip.spec:	sendip.spec.in VERSION
 			cat sendip.spec.in >>sendip.spec
 
 %.so: %.c $(LIBS)
-			$(CC) -o $@ $(CFLAGS) $(LIBCFLAGS) $+ $(LIBS)
+			$(CC) -o $@ $(CFLAGS) $(LIBCFLAGS) $^
 
 .PHONY:	all subdirs man clean veryclean install
 
