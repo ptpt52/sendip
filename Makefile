@@ -83,13 +83,21 @@ crc32.o: mec/crc32table.h mec/crc32.c
 
 # This requires help2man; a customized local copy is included
 sendip.1:	$(PROGS) $(PROTOS) subdirs VERSION help2man.sendip mec/modules.mk
-	-rm -f sendip.1
-	./help2man.sendip -n "Send arbitrary IP packets" -N -- $(addprefix ./,$(PROTOS)) $(addprefix ./mec/,$(MEC_PROTOS)) >sendip.1
+	@tmpdir=$$(mktemp -d "$@.XXXXXXXX") || exit 1; \
+	trap 'rm -f "$$tmpdir/$@"; rmdir "$$tmpdir"' 0; \
+	trap 'exit 1' HUP INT TERM; \
+	./help2man.sendip -n "Send arbitrary IP packets" -N -- \
+		$(addprefix ./,$(PROTOS)) $(addprefix ./mec/,$(MEC_PROTOS)) > "$$tmpdir/$@" && \
+	test -s "$$tmpdir/$@" && mv -f "$$tmpdir/$@" "$@"
 
 # This requires man2html, a relatively recent (post-2003?) one, at that
 sendipman.html:	sendip.1
-	-rm -f sendipman.html
-	-man2html sendip.1 | tail -n +2 > sendipman.html
+	@tmpdir=$$(mktemp -d "$@.XXXXXXXX") || exit 1; \
+	trap 'rm -f "$$tmpdir/converted" "$$tmpdir/$@"; rmdir "$$tmpdir"' 0; \
+	trap 'exit 1' HUP INT TERM; \
+	man2html "$<" > "$$tmpdir/converted" && \
+	sed '1d' "$$tmpdir/converted" > "$$tmpdir/$@" && \
+	test -s "$$tmpdir/$@" && mv -f "$$tmpdir/$@" "$@"
 
 sendip.spec:	sendip.spec.in VERSION
 			{ source_version=$$(cat VERSION) && \
