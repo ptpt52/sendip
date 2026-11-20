@@ -83,18 +83,21 @@ AddrTime tstore;
 
 AddrTime *newprefix(void)
 {
-	AddrTime *answer;
-
-	answer = (AddrTime *)malloc(sizeof(AddrTime));
-	memset((void *)answer, 0, sizeof(AddrTime));
+	AddrTime *answer = calloc(1, sizeof(*answer));
+	if (!answer) {
+		perror("allocating UDP timer address table");
+		exit(EXIT_FAILURE);
+	}
 	return answer;
 }
 
 Timentry *newtimentry(void)
 {
-	Timentry *answer;
-
-	answer = (Timentry *)malloc(sizeof(struct timentry));
+	Timentry *answer = malloc(sizeof(*answer));
+	if (!answer) {
+		perror("allocating UDP timer sample table");
+		exit(EXIT_FAILURE);
+	}
 	answer->used = 0;
 	return answer;
 }
