@@ -35,6 +35,7 @@ static void udpcsum(sendip_data *ip_hdr, sendip_data *udp_hdr,
 	int lengths[]={sizeof(pseudo), udp_hdr->alloc_len, data->alloc_len, 0};
 	udp->check=0;
 	udp->check=csumv(blocks, lengths);
+	if (!udp->check) udp->check=htons(0xffff);
 }
 
 static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
@@ -50,6 +51,7 @@ static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
 	int lengths[]={sizeof(phdr), udp_hdr->alloc_len, data->alloc_len, 0};
 	udp->check=0;
 	udp->check=csumv(blocks, lengths);
+	if (!udp->check) udp->check=htons(0xffff);
 }
 
 sendip_data *initialize(void) {
