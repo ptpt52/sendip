@@ -286,6 +286,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 }
 
+/* TCP Data Offset counts complete 32-bit words, including zero padding. */
+bool do_pad(sendip_data *pack) {
+	while (pack->alloc_len%4)
+		if (!addoption(0, 1, NULL, pack)) return FALSE;
+	return TRUE;
+}
+
 bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	tcp_header *tcp = (tcp_header *)pack->data;
