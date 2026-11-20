@@ -38,7 +38,7 @@ typedef struct {
 
 #define GRE_MAX_REC	7	/* three-bit value */
 #define GRE_MAX_VERSION	7	/* three-bit value */
-#define GRE_REC_SHIFT	3
+#define GRE_REC_SHIFT	8
 
 /* Taken from Linux headers, (Ethernet) protocol defines */
 #define ETH_P_IP	0x0800		/* Internet Protocol packet	*/
@@ -67,11 +67,11 @@ typedef struct {
  */
 sendip_option gre_opts[] = {
 	{"c",1,"GRE supplied checksum","none"},
-	{"C",0,"GRE add actual checksum",},
+	{"C",0,"GRE add actual checksum",NULL},
 	{"r",1,"GRE routing field","none"},
 	{"k",1,"GRE key field","none"},
 	{"s",1,"GRE sequence number","none"},
-	{"S",0,"GRE strict source routing flag on"},
+	{"S",0,"GRE strict source routing flag on",NULL},
 	{"e",1,"GRE recursion encapsulation limit","0"},
 	{"v",1,"GRE version number","0"},
 	{"p",1,"GRE encapsulated protocol","Correct (if known, IPv4 and IPv6 only)"},

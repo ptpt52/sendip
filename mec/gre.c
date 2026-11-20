@@ -103,55 +103,35 @@ gre_where(u_int16_t flags, u_int16_t addflag)
 	return where;
 }
 
-gre_header *
-gre_resize(sendip_data *pack, u_int16_t flags, u_int16_t addflag)
-{
-	u_int16_t size;
-	int ourspot, endspot;
-	u_int16_t newflags=(flags|addflag);
-	gre_header *gre = (gre_header *)pack->data;
+/* Physical allocation is independent of intentionally malformed wire flags.
+ * Keep its flag mask in the unused high half of pack->modified.
+ */
+static u_int16_t allocated_flags(const sendip_data *pack) {
+	return pack->modified>>16;
+}
 
-	/* First, check whether we already have one of these */
-	if (newflags == flags) return gre;
-
-	/* Oy, is this stupid or what? */
-	size = sizeof(gre_header);
-	if (newflags&GRE_CSUM)
-		size += sizeof(u_int32_t);
-	if (newflags&GRE_KEY)
-		size += sizeof(u_int32_t);
-	if (newflags&GRE_SEQ)
-		size += sizeof(u_int32_t);
-	if (newflags&GRE_ROUTING) {
-		size += sizeof(u_int32_t);
-		/* Routing requires the space for checksum/offset
-		 * to be allocated as well. We'll just make a
-		 * recursive call to handle it.
-		 */
-		if (!(newflags&GRE_CSUM)) {
-			gre = gre_resize(pack, flags, GRE_CSUM);
-			size += sizeof(u_int32_t);
-		}
-	}
-
-	/* Allocate any additional space needed */
-	if (pack->alloc_len >= size) return gre; /* ?? */
-	pack->data = realloc(pack->data, size);
-	pack->alloc_len = size;
-	gre = (gre_header *)pack->data;
-
-	/* Now shove any preexisting options down to allow space for
-	 * our new one.
-	 */
-	ourspot = gre_where(flags, addflag);
-	endspot = (size-sizeof(gre_header))/sizeof(u_int32_t);
-	while (--endspot > ourspot) {
-		gre->gre_info.thirtytwo[endspot] =
-		    gre->gre_info.thirtytwo[endspot-1];
-	}
-	/* Zero out the new option just for fun */
-	gre->gre_info.thirtytwo[ourspot] = 0;
-	return gre;
+gre_header *gre_resize(sendip_data *pack, u_int16_t flags, u_int16_t addflag) {
+	(void)flags;
+	u_int16_t oldflags=allocated_flags(pack), newflags=oldflags|addflag;
+	const u_int16_t fields[]={GRE_CSUM, GRE_KEY, GRE_SEQ, GRE_ROUTING};
+	if (newflags&GRE_ROUTING) newflags |= GRE_CSUM;
+	if (newflags==oldflags) return pack->data;
+	size_t size=sizeof(gre_header);
+	for (size_t i=0; i<sizeof(fields)/sizeof(fields[0]); ++i)
+		if (newflags&fields[i]) size+=sizeof(u_int32_t);
+	gre_header *replacement=calloc(1, size);
+	if (!replacement) return NULL;
+	gre_header *old=pack->data;
+	memcpy(replacement, old, sizeof(*old));
+	for (size_t i=0; i<sizeof(fields)/sizeof(fields[0]); ++i)
+		if (oldflags&fields[i])
+			replacement->gre_info.thirtytwo[gre_where(newflags, fields[i])]=
+			    old->gre_info.thirtytwo[gre_where(oldflags, fields[i])];
+	free(old);
+	pack->data=replacement;
+	pack->alloc_len=size;
+	pack->modified=(pack->modified&0xffff)|((unsigned int)newflags<<16);
+	return replacement;
 }
 
 bool
@@ -167,6 +147,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			return FALSE;
 		}
 		gre = gre_resize(pack, gre->gre_flag, GRE_CSUM);
+		if (!gre) return FALSE;
 		gre->gre_flag |= GRE_CSUM;
 		/* There's only one place for the checksum field to go! */
 		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] =
@@ -179,6 +160,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			return FALSE;
 		}
 		gre = gre_resize(pack, gre->gre_flag, GRE_CSUM);
+		if (!gre) return FALSE;
 		gre->gre_flag |= GRE_CSUM;
 		/* Actual checksum will be computed in finalize */
 		/* Note we do *not* set the pack flag here, so we will
@@ -187,21 +169,24 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'r':
 		gre = gre_resize(pack, gre->gre_flag, GRE_ROUTING);
-		gre->gre_info.thirtytwo[gre_where(gre->gre_flag, GRE_ROUTING)] =
+		if (!gre) return FALSE;
+		gre->gre_info.thirtytwo[gre_where(allocated_flags(pack), GRE_ROUTING)] =
 		    htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
 		gre->gre_flag |= GRE_ROUTING;
 		pack->modified |= GRE_MOD_ROUTING;
 		break;
 	case 'k':
 		gre = gre_resize(pack, gre->gre_flag, GRE_KEY);
-		gre->gre_info.thirtytwo[gre_where(gre->gre_flag, GRE_KEY)] =
+		if (!gre) return FALSE;
+		gre->gre_info.thirtytwo[gre_where(allocated_flags(pack), GRE_KEY)] =
 		    htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
 		gre->gre_flag |= GRE_KEY;
 		pack->modified |= GRE_MOD_KEY;
 		break;
 	case 's':
 		gre = gre_resize(pack, gre->gre_flag, GRE_SEQ);
-		gre->gre_info.thirtytwo[gre_where(gre->gre_flag, GRE_SEQ)] =
+		if (!gre) return FALSE;
+		gre->gre_info.thirtytwo[gre_where(allocated_flags(pack), GRE_SEQ)] =
 		    htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
 		gre->gre_flag |= GRE_SEQ;
 		pack->modified |= GRE_MOD_SEQUENCE;
@@ -247,9 +232,10 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 * of this code is to be able to construct bad headers.
 		 */
 		gre = gre_resize(pack, gre->gre_flag, GRE_CSUM);
+		if (!gre) return FALSE;
 		/* There's only one place for the offset field to go! */
 		gre->gre_info.sixteen[GRE_OFFSET_FIELD] =
-		    htonl((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		    htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
 		pack->modified |= GRE_MOD_OFFSET;
 		break;
 	}
@@ -267,7 +253,12 @@ finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
 	 * IP one! Because it's "generic," you see.
 	 */
 	if (!(pack->modified&GRE_MOD_PROTOCOL)) {
-		switch (hdrs[inner_header(hdrs, index, "i6")]) {
+		int inner=inner_header(hdrs, index, "i6");
+		if (inner<0) {
+			usage_error("Specify the GRE payload protocol when no inner IP header is present\n");
+			return FALSE;
+		}
+		switch (hdrs[inner]) {
 		case 'i':
 			gre->gre_protocol = htons(ETH_P_IP);
 			break;
@@ -287,6 +278,7 @@ finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
 		lens[1] = data->alloc_len;
 		vec[2] = NULL;
 		lens[2] = 0;
+		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] = 0;
 		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] = csumv(vec, lens);
 	}
 	return TRUE;
