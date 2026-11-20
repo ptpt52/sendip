@@ -269,7 +269,7 @@ finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
 	}
 	if ((gre->gre_flag&GRE_CSUM) && !(pack->modified&GRE_MOD_CHECKSUM)) {
 		/* We need to compute the checksum */
-		u_int16_t *vec[3];
+		const void *vec[3];
 		int lens[3];
 
 		vec[0] = pack->data;

@@ -31,7 +31,7 @@ static void udpcsum(sendip_data *ip_hdr, sendip_data *udp_hdr,
 	memcpy(pseudo+4, &ip->daddr, 4);
 	pseudo[9]=IPPROTO_UDP;
 	memcpy(pseudo+10, &length, 2);
-	u_int16_t *blocks[]={(u_int16_t *)pseudo, udp_hdr->data, data->data};
+	const void *blocks[]={pseudo, udp_hdr->data, data->data};
 	int lengths[]={sizeof(pseudo), udp_hdr->alloc_len, data->alloc_len, 0};
 	udp->check=0;
 	udp->check=csumv(blocks, lengths);
@@ -47,7 +47,7 @@ static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
 	phdr.destination=ipv6->ip6_dst;
 	phdr.ulp_length=htonl(udp_hdr->alloc_len+data->alloc_len);
 	phdr.nexthdr=IPPROTO_UDP;
-	u_int16_t *blocks[]={(u_int16_t *)&phdr, udp_hdr->data, data->data};
+	const void *blocks[]={&phdr, udp_hdr->data, data->data};
 	int lengths[]={sizeof(phdr), udp_hdr->alloc_len, data->alloc_len, 0};
 	udp->check=0;
 	udp->check=csumv(blocks, lengths);

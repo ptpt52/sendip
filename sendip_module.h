@@ -45,7 +45,7 @@ char get_optchar(void);
 
 #define usage_error(x) fprintf(stderr,x)
 
-extern u_int16_t csum(u_int16_t *packet, int packlen);
+extern u_int16_t csum(const void *packet, int packlen);
 extern int compact_string(char *data_out);
 /*@@ added */
 #define MAXRAND	8192	/* maximum length of random data */
@@ -65,7 +65,7 @@ u_int8_t header_type(const char hdr_char);
 int outer_header(const char *hdrs, int index, const char *choices);
 int inner_header(const char *hdrs, int index, const char *choices);
 
-extern u_int16_t csumv(u_int16_t *packet[], int packlen[]);
+extern u_int16_t csumv(const void *const packet[], const int packlen[]);
 /*@@ end added */
 
 #endif  /* _SENDIP_MODULE_H */

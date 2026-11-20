@@ -29,14 +29,14 @@ static u_int32_t add_bytes(u_int32_t sum, const unsigned char *bytes,
 }
 
 /* Return the checksum in the byte order used by packet header fields. */
-u_int16_t csum(u_int16_t *packet, int packlen) {
+u_int16_t csum(const void *packet, int packlen) {
 	int odd=0;
 	u_int32_t sum=add_bytes(0, (const unsigned char *)packet, packlen, &odd);
 	return htons((u_int16_t)~sum);
 }
 
 /* The caller's vector and lengths are read-only. A zero length terminates it. */
-u_int16_t csumv(u_int16_t *packet[], int packlen[]) {
+u_int16_t csumv(const void *const packet[], const int packlen[]) {
 	u_int32_t sum=0;
 	int odd=0;
 	for (int i=0; packlen[i]; ++i)

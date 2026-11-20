@@ -30,7 +30,7 @@ const char opt_char='i';
 static void ipcsum(sendip_data *ip_hdr) {
 	ip_header *ip = (ip_header *)ip_hdr->data;
 	ip->check=0;
-	ip->check=csum((u_int16_t *)ip_hdr->data, ip_hdr->alloc_len);
+	ip->check=csum(ip_hdr->data, ip_hdr->alloc_len);
 }
 
 /* Output storage is separate: short numeric addresses can expand to four

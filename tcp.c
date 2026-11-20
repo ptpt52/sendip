@@ -39,7 +39,7 @@ static void tcpcsum(sendip_data *ip_hdr, sendip_data *tcp_hdr,
 	memcpy(pseudo+4, &ip->daddr, 4);
 	pseudo[9]=IPPROTO_TCP;
 	memcpy(pseudo+10, &length, 2);
-	u_int16_t *blocks[]={(u_int16_t *)pseudo, tcp_hdr->data, data->data};
+	const void *blocks[]={pseudo, tcp_hdr->data, data->data};
 	int lengths[]={sizeof(pseudo), tcp_hdr->alloc_len, data->alloc_len, 0};
 	tcp->check=0;
 	tcp->check=csumv(blocks, lengths);
@@ -54,7 +54,7 @@ static void tcp6csum(sendip_data *ipv6_hdr, sendip_data *tcp_hdr,
 	phdr.destination=ipv6->ip6_dst;
 	phdr.ulp_length=htonl(tcp_hdr->alloc_len+data->alloc_len);
 	phdr.nexthdr=IPPROTO_TCP;
-	u_int16_t *blocks[]={(u_int16_t *)&phdr, tcp_hdr->data, data->data};
+	const void *blocks[]={&phdr, tcp_hdr->data, data->data};
 	int lengths[]={sizeof(phdr), tcp_hdr->alloc_len, data->alloc_len, 0};
 	tcp->check=0;
 	tcp->check=csumv(blocks, lengths);

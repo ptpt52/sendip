@@ -27,7 +27,7 @@ const char opt_char='c';
 
 static void icmpcsum(sendip_data *hdr, sendip_data *data) {
 	icmp_header *icmp=hdr->data;
-	u_int16_t *blocks[]={hdr->data, data->data};
+	const void *blocks[]={hdr->data, data->data};
 	int lengths[]={hdr->alloc_len, data->alloc_len, 0};
 	icmp->check=0;
 	icmp->check=csumv(blocks, lengths);
@@ -41,7 +41,7 @@ static void icmp6csum(struct in6_addr *src, struct in6_addr *dst,
 	phdr.destination=*dst;
 	phdr.ulp_length=htonl(hdr->alloc_len+data->alloc_len);
 	phdr.nexthdr=IPPROTO_ICMPV6;
-	u_int16_t *blocks[]={(u_int16_t *)&phdr, hdr->data, data->data};
+	const void *blocks[]={&phdr, hdr->data, data->data};
 	int lengths[]={sizeof(phdr), hdr->alloc_len, data->alloc_len, 0};
 	icmp->check=0;
 	icmp->check=csumv(blocks, lengths);
