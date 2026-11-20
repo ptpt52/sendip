@@ -24,6 +24,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <inttypes.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -61,13 +63,10 @@
  * which is way more than enough for statistics.
  */
 
-/* 4096 - 1  - I keep these allocations at 8K each, as I have some
- * vague ideas about making a faster allocator for them.
- */
 #define TIMENTRYSIZE	4095
 typedef struct timentry {
 	u_int16_t used;
-	u_int16_t times[TIMENTRYSIZE];
+	int32_t times[TIMENTRYSIZE];
 } Timentry;
 
 /* The union accommodates either table type. Not really necessary to do
@@ -127,7 +126,7 @@ Timentry **gettimentry(struct in_addr *from)
 }
 
 void
-storetimentry(Timentry **t, int delaytime)
+storetimentry(Timentry **t, int32_t delaytime)
 {
 	int i;
 
@@ -144,14 +143,14 @@ storetimentry(Timentry **t, int delaytime)
 }
 
 void
-storetime(struct in_addr *from, int delaytime)
+storetime(struct in_addr *from, int32_t delaytime)
 {
 	Timentry **t;
 
 	/* from->s_addr is 32-bit address */
 #ifdef DEBUG
 	char dst[INET_ADDRSTRLEN];
-	printf("store %s %d\n",
+	printf("store %s %" PRId32 "\n",
 	       inet_ntop(AF_INET, from,
 	                 dst, INET_ADDRSTRLEN), delaytime);
 #endif
@@ -211,7 +210,7 @@ printtime(Timentry **t, double *mu)
 
 		/* Dump only for debug */
 		for (n=0; n < t[m]->used; ++n) {
-			printf(" %d", t[m]->times[n]);
+			printf(" %" PRId32, t[m]->times[n]);
 		}
 #endif
 		numused += t[m]->used;
@@ -315,14 +314,17 @@ int main(int argc, char **argv)
 				return EXIT_FAILURE;
 			}
 			if (received < (ssize_t)sizeof(t) || length < sizeof(from) ||
-			    from.sin_family != AF_INET)
+			    from.sin_family != AF_INET || t.tv_usec < 0 || t.tv_usec >= 1000000)
 				continue;
 			if (gettimeofday(&now, NULL) != 0) {
 				perror("reading current time");
 				continue;
 			}
-			storetime(&from.sin_addr,
-			          1000000*(now.tv_sec-t.tv_sec)+now.tv_usec-t.tv_usec);
+			double delay = 1000000.0 * difftime(now.tv_sec, t.tv_sec) +
+			               now.tv_usec - t.tv_usec;
+			if (!isfinite(delay) || delay < INT32_MIN || delay > INT32_MAX)
+				continue;
+			storetime(&from.sin_addr, (int32_t)delay);
 			++pnum;
 		} else {
 			/* timeout; dump data if new */
