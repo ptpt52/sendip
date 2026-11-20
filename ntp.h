@@ -11,11 +11,16 @@ typedef struct {
 /* NTP HEADER
  */
 typedef struct {
-	/* TODO BYTEORDER!!! */
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	u_int8_t status:6;
+	u_int8_t leap:2;
+#elif __BYTE_ORDER == __BIG_ENDIAN
 	u_int8_t leap:2;
 	u_int8_t status:6;
+#else
+#error Unsupported byte order
+#endif
 	u_int8_t type;
-	/* END TODO */
 
 	u_int16_t precision;
 	u_int32_t error;

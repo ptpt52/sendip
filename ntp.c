@@ -93,7 +93,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified|=NTP_MOD_TYPE;
 		break;
 	case 'p':  /* precision (16 bits, range +32 to -32) */
-		ntp->precision=htons((int8_t)strtol(arg,(char **)NULL,0));
+		ntp->precision=htons((int16_t)strtol(arg,(char **)NULL,0));
 		pack->modified|=NTP_MOD_PRECISION;
 		break;
 	case 'e':  /* esitmated error (32 bits, fixed point between bits 15/16) */
