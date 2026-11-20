@@ -28,7 +28,8 @@ initialize(void)
 	 * include the 4-byte reserved field. To get that, let's
 	 * just use the type 0 routing header as the allocation unit.
 	 */
-	route_header *route = malloc(sizeof(struct rt0_hdr));
+	struct rt0_hdr *storage=calloc(1, sizeof(*storage));
+	route_header *route=(void *)storage;
 
 	if (!ret || !route) {
 		free(route);
@@ -53,16 +54,20 @@ readaddrs(char *arg, sendip_data *pack)
 	char *addrs[ADDRMAX];
 
 	count = parsenargs(arg, addrs, ADDRMAX, ", ");
-	pack->data = realloc(pack->data,
-	                     sizeof(struct rt0_hdr)+count*sizeof(struct in6_addr));
-	rt = (struct rt0_hdr *)pack->data;
-	pack->alloc_len = sizeof(struct rt0_hdr)+count*sizeof(struct in6_addr);
-	for (i=0; i < count; ++i) {
-		if (!inet_pton(AF_INET6, addrs[i], &rt->addr[i])) {
+	size_t size=sizeof(*rt)+(size_t)count*sizeof(struct in6_addr);
+	rt=calloc(1, size);
+	if (!rt) return FALSE;
+	memcpy(rt, pack->data, sizeof(*rt));
+	for (i=0; i<count; ++i) {
+		if (inet_pton(AF_INET6, addrs[i], &rt->addr[i])!=1) {
+			free(rt);
 			usage_error("Can't parse address\n");
 			return FALSE;
 		}
 	}
+	free(pack->data);
+	pack->data=rt;
+	pack->alloc_len=size;
 	rt->rt_hdr.hdrlen = count*2;
 	return TRUE;
 }
