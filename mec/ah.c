@@ -47,6 +47,8 @@ initialize(void)
 	memset(ah,0,sizeof(ah_header));
 	memset(priv,0,sizeof(ah_private));
 	ah->hdrlen = 1;		/* RFC 4302 length with empty auth data */
+	ah->spi = htonl(1);
+	ah->seq_no = htonl(1);
 	ret->alloc_len = sizeof(ah_header);
 	ret->data = ah;
 	priv->type = IPPROTO_AH;
