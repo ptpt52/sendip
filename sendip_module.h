@@ -82,6 +82,12 @@ bool ipv6_pseudo_header(const char *hdrs, sendip_data *headers[],
                        int ip_index, int transport_index, int length,
                        u_int8_t protocol, struct ipv6_pseudo_hdr *pseudo);
 
+/* Read a well-formed Jumbo Payload option from the immediate Hop-by-Hop header.
+ * That header may not have been finalized yet; use its allocated wire extent.
+ */
+bool ipv6_jumbo_length(const char *hdrs, sendip_data *headers[], int ip_index,
+                       u_int32_t *length);
+
 extern u_int16_t csumv(const void *const packet[], const int packlen[]);
 /*@@ end added */
 

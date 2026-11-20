@@ -131,3 +131,40 @@ invalid:
 	usage_error("Cannot derive checksum destination from an invalid IPv6 route\n");
 	return FALSE;
 }
+
+/* RFC 2675: a Jumbo Payload option belongs to the immediate Hop-by-Hop
+ * header and cannot be combined with a Fragment header in this IPv6 packet.
+ */
+bool ipv6_jumbo_length(const char *hdrs, sendip_data *headers[], int ip_index,
+                       u_int32_t *length) {
+	if (!hdrs || !headers || !length || ip_index<0 || hdrs[ip_index]!='6' ||
+	    hdrs[ip_index+1]!='H' || !headers[ip_index+1]) return FALSE;
+	for (int i=ip_index+1;
+	     hdrs[i]=='H' || hdrs[i]=='d' || hdrs[i]=='o' ||
+	     hdrs[i]=='F' || hdrs[i]=='a' || hdrs[i]=='e'; ++i)
+		if (hdrs[i]=='F') return FALSE;
+	const sendip_data *hop=headers[ip_index+1];
+	if (!hop->data || hop->alloc_len<8 || hop->alloc_len>2048 || hop->alloc_len%8)
+		return FALSE;
+	const u_int8_t *wire=hop->data;
+	u_int32_t jumbo=0;
+	bool found=FALSE;
+	for (int offset=2; offset<hop->alloc_len;) {
+		if (!wire[offset]) { ++offset; continue; } /* Pad1 */
+		if (hop->alloc_len-offset<2) return FALSE;
+		int size=wire[offset+1];
+		if (size>hop->alloc_len-offset-2) return FALSE;
+		if (wire[offset]==194) { /* Jumbo Payload */
+			if (found || size!=4 || offset%4!=2) return FALSE;
+			jumbo=((u_int32_t)wire[offset+2]<<24) |
+			      ((u_int32_t)wire[offset+3]<<16) |
+			      ((u_int32_t)wire[offset+4]<<8) | wire[offset+5];
+			if (jumbo<=UINT16_MAX) return FALSE;
+			found=TRUE;
+		}
+		offset+=size+2;
+	}
+	if (!found) return FALSE;
+	*length=jumbo;
+	return TRUE;
+}

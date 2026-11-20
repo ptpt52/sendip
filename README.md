@@ -26,6 +26,12 @@ Modules without this optional entry point remain supported.
 This version adds the ability to dump packets to `stdout` rather than sending them to their
 destinations, with the `-D` flag.
 
+For IPv6 payloads larger than 65535 bytes, supply a matching Jumbo Payload
+option in the immediately following Hop-by-Hop header. Automatic IPv6 payload
+length is then zero; automatic UDP length is zero when the UDP datagram itself
+exceeds 65535 bytes. Explicit wire-length overrides remain available for packet
+experiments.
+
 For example, this will generate a TCP/IPv4 packet with 1000 bytes of random data and random
 source/dest addresses, and convert it to a PCAP file for analysis with wireshark or tcpdump.
 

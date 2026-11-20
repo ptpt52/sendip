@@ -109,8 +109,6 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	ipv6_header *ipv6 = (ipv6_header *)pack->data;
 
-	(void)headers;
-
 	if(!(pack->modified&IPV6_MOD_VERSION)) {
 		ipv6->ip6_vfc.version = 6;
 	}
@@ -122,7 +120,17 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		ipv6->ip6_flow &= htonl(~0x000FFFFFU);
 	}
 	if(!(pack->modified&IPV6_MOD_PLEN)) {
-		ipv6->ip6_plen = htons(data->alloc_len);
+		if (data->alloc_len>UINT16_MAX) {
+			u_int32_t jumbo;
+			if (!ipv6_jumbo_length(hdrs, headers, index, &jumbo) ||
+			    jumbo!=(u_int32_t)data->alloc_len) {
+				usage_error("Oversized IPv6 payload needs a matching Jumbo Payload option\n");
+				return FALSE;
+			}
+			ipv6->ip6_plen=0;
+		} else {
+			ipv6->ip6_plen = htons(data->alloc_len);
+		}
 	}
 	if(!(pack->modified&IPV6_MOD_NXT)) {
 		/*@@ipv6->ip6_nxt = (u_int8_t)IPPROTO_NONE;*/
