@@ -115,10 +115,16 @@ sendipman.html:	sendip.1
 	test -s "$$tmpdir/$@" && mv -f "$$tmpdir/$@" "$@"
 
 sendip.spec:	sendip.spec.in VERSION
-			{ source_version=$$(cat VERSION) && \
-			  printf '%%define source_version %s\n' "$$source_version" && \
-			  printf '%%define ver %s\n' "$$(printf '%s' "$$source_version" | tr '-' '.')" && \
-			  cat "$<"; } > "$@"
+	@tmpdir=$$(mktemp -d "$@.XXXXXXXX") || exit 1; \
+	trap 'rm -f "$$tmpdir/$@"; rmdir "$$tmpdir"' 0; \
+	trap 'exit 1' HUP INT TERM; \
+	source_version=$$(cat VERSION) || exit 1; \
+	if [ -z "$$source_version" ]; then printf '%s\n' 'VERSION is empty' >&2; exit 1; fi; \
+	rpm_version=$$(printf '%s' "$$source_version" | tr '-' '.') && \
+	{ printf '%%define source_version %s\n' "$$source_version" && \
+	  printf '%%define ver %s\n' "$$rpm_version" && \
+	  cat "$<"; } > "$$tmpdir/$@" && \
+	mv -f "$$tmpdir/$@" "$@"
 
 %.so: %.c $(LIBS)
 			$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
