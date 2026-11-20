@@ -549,11 +549,7 @@ int main(int argc, char *const argv[]) {
 			break;
 		case 'd':
 			if (!datarg && datafile == -1) {
-				datarg = gnuoptarg;	/* save for regen */
-				if (!set_payload(datarg, &data, &datalen)) {
-					status=1;
-					goto cleanup;
-				}
+				datarg = gnuoptarg; /* Select the source; decode in packet option order. */
 
 			} else {
 				fprintf(stderr,"Only one -d or -f option can be given\n");
@@ -661,6 +657,13 @@ int main(int argc, char *const argv[]) {
 			if (optc==EOF) break;
 			if (longindex<0) {
 				if (optc=='p') currentmod=currentmod ? currentmod->next : first;
+				else if (optc=='d') {
+					if (!set_payload(gnuoptarg, &data, &datalen)) {
+						unload_modules(TRUE, verbosity);
+						status=1;
+						goto cleanup;
+					}
+				}
 				else if (optc=='?' || optc==':') {
 					usage=TRUE;
 					status=1;
@@ -868,13 +871,6 @@ int main(int argc, char *const argv[]) {
 			}
 			free(packet.data);
 			if (status) goto cleanup;
-		}
-		/* @@ Regenerate data on subsequent loop calls */
-		if ((forever || loopcount) && datarg) {
-			if (!set_payload(datarg, &data, &datalen)) {
-				status=1;
-				goto cleanup;
-			}
 		}
 
 		/*@@ looping */
