@@ -601,7 +601,7 @@ int main(int argc, char *const argv[]) {
 				break;
 			default:
 				/*@@ check current mod first */
-				if (currentmod->optchar == optc)
+				if (currentmod && currentmod->optchar == optc)
 					mod = currentmod;
 				else {
 					for(mod=first; mod!=NULL; mod=mod->next) {
