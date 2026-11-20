@@ -49,29 +49,27 @@ int compact_string(char *data_out) {
 			i>>=1;  // i was a nibble count...
 			return i;
 		} else {
-			/* Octal */
-			unsigned char c='\0';
-			while(*data_in) {
-				if(*data_in>='0' && *data_in<='7') {
-					c+=*data_in-'0';
-				} else {
-					fprintf(stderr,"Character %c invalid in octal data stream\n",
-					        *data_in);
+			/* Three octal digits describe one byte; a final shorter
+			 * group is interpreted as its numeric byte value.
+			 */
+			int count=0;
+			while (*data_in) {
+				unsigned int value=0;
+				for (int digits=0; digits<3 && *data_in; ++digits, ++data_in) {
+					if (*data_in<'0' || *data_in>'7') {
+						usage_error("Invalid digit in octal data stream\n");
+						return -1;
+					}
+					value=value*8+(*data_in-'0');
+				}
+				if (value>255) {
+					usage_error("Octal data byte exceeds 0377\n");
 					return -1;
 				}
-				if( (i&3) == 3 ) {
-					*(data_out++)=c;  // output every 4th char
-					c='\0';
-				} else {        // otherwise just shift it up
-					c<<=2;
-				}
-				data_in++;
-				i++;
+				*data_out++=value;
+				++count;
 			}
-			*data_out=c;     // add partial last byte
-			i+=3;
-			i>>=2;
-			return i;
+			return count;
 		}
 	} else {
 		/* String */
