@@ -462,7 +462,7 @@ static void print_usage(void) {
 	fprintf(stderr, "specified as\n");
 	fprintf(stderr, " rN\tto generate N random(ish) data bytes;\n");
 	fprintf(stderr, " zN\tto generate N nul (zero) data bytes;\n");
-	fprintf(stderr, " tN\tto generate a timestamp (16 bytes) padded with N-16 nul (zero) bytes;\n");
+	fprintf(stderr, " tN\tto take N bytes of a native timeval timestamp, padded with zeros as needed;\n");
 	fprintf(stderr, " fF\tto read values from file F;\n");
 	fprintf(stderr, " 0x or 0X\tfollowed by hex digits;\n");
 	fprintf(stderr, " 0\tfollowed by octal digits;\n");

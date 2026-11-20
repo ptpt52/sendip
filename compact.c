@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <errno.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <ctype.h>
@@ -232,9 +233,8 @@ zerobytes(int length)
 	return answer;
 }
 
-/* Write out the current time. We always write 16 bytes into a zero-padded
- * buffer, in host byte order. The caller can use however many bytes
- * desired.
+/* Preserve the native timeval layout used by udptimer. Serialize only the
+ * members so any structure padding in the returned bytes stays zero.
  */
 u_int8_t *
 timestamp(int length)
@@ -246,15 +246,11 @@ timestamp(int length)
 		usage_error("Time data too long to be sane\n");
 		return NULL;
 	}
-	{
-		struct timeval now;
-		if (gettimeofday(&now, NULL) < 0) return NULL;
-		memcpy(answer, &now, sizeof(now));
-	}
-#ifdef notdef
-	/* Paranoia */
-	(void) memset((void *)answer, 0, MAXRAND);
-#endif
+	struct timeval now;
+	if (gettimeofday(&now, NULL) < 0) return NULL;
+	memset(answer, 0, (size_t)length);
+	memcpy(answer+offsetof(struct timeval, tv_sec), &now.tv_sec, sizeof(now.tv_sec));
+	memcpy(answer+offsetof(struct timeval, tv_usec), &now.tv_usec, sizeof(now.tv_usec));
 	return answer;
 }
 
