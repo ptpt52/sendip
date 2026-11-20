@@ -505,6 +505,7 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
                       int long_only)
 {
 	int print_errors = gnuopterr;
+	int new_element = 0;
 	if (optstring[0] == ':')
 		print_errors = 0;
 
@@ -608,6 +609,7 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 
 		nextchar = (argv[gnuoptind] + 1
 		            + (longopts != NULL && argv[gnuoptind][1] == '-'));
+		new_element = 1;
 	}
 
 	/* Decode the current option-ARGV-element.  */
@@ -625,7 +627,8 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 
 	   This distinction seems to be the most useful approach.  */
 
-	if (longopts != NULL
+	/* After falling back to a short-option group, keep parsing it as one. */
+	if (new_element && longopts != NULL
 	        && (argv[gnuoptind][1] == '-'
 	            || (long_only && (argv[gnuoptind][2] || !my_index (optstring, argv[gnuoptind][1])))))
 	{
