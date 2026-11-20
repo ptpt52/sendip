@@ -265,6 +265,7 @@ bool do_opt (char        *optstring,
 	int count;
 	bgp_state *state=pack->private;
 	u_int8_t nlri[256]; /* One prefix-length byte and up to 255 data bytes. */
+	u_int8_t marker[16];
 	int nlri_length=0;
 	size_t needed=0;
 
@@ -300,9 +301,10 @@ bool do_opt (char        *optstring,
 	switch (optstring[1]) {
 	case 'm':
 		rem_ptr = (u_int8_t *)pack->data;
-		count=bgp_parse_bytes(rem_ptr, optarg, &new_arg_ptr, 16, 16, ':', '\0');
+		count=bgp_parse_bytes(marker, optarg, &new_arg_ptr, 16, 16, ':', '\0');
 		if (count<0) return FALSE;
 		if (*new_arg_ptr) { usage_error("Too many BGP marker bytes\n"); return FALSE; }
+		memcpy(rem_ptr, marker, count);
 		break;
 	case 'l':
 		rem_ptr = (u_int8_t *)pack->data + 16;
