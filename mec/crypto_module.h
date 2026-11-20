@@ -5,6 +5,8 @@
 #include <config.h>
 #endif
 
+#include "../sendip_module.h"
+
 typedef struct crypto_module {
 	char *name;
 	void *handle;
