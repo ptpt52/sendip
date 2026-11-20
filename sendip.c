@@ -21,6 +21,7 @@
 /* socket stuff */
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <netdb.h>
 
@@ -152,32 +153,52 @@ static bool read_payload_file(const char *path, char **data, int *length) {
 		return false;
 	}
 	char *buffer=NULL;
-	off_t size;
-	if (fseeko(file, 0, SEEK_END)!=0 || (size=ftello(file))<0 ||
-	    fseeko(file, 0, SEEK_SET)!=0) {
-		perror("Couldn't determine data file size");
-		goto fail;
-	}
-	if (size>INT_MAX) {
-		usage_error("Data file is too large\n");
-		goto fail;
-	}
-	if (size) {
-		/* Use the same file bytes for every packet, even if the file changes. */
-		buffer=malloc((size_t)size);
-		if (!buffer) {
-			perror("Allocating packet data");
+	size_t size=0, capacity=0, reserve=0;
+	struct stat info;
+	if (fstat(fileno(file), &info)==0 && S_ISREG(info.st_mode)) {
+		if (info.st_size>INT_MAX) {
+			usage_error("Data file is too large\n");
 			goto fail;
 		}
-		if (fread(buffer, 1, (size_t)size, file)!=(size_t)size) {
-			if (ferror(file)) perror("Couldn't read data file");
-			else usage_error("Unexpected end of data file\n");
+		if (info.st_size>0) reserve=(size_t)info.st_size;
+	}
+	/* Cache the bytes through EOF. Only regular files provide a useful
+	 * size hint, and some virtual files report zero despite having data.
+	 */
+	char block[BUFSIZ];
+	for (;;) {
+		size_t received=fread(block, 1, sizeof(block), file);
+		if (ferror(file)) {
+			perror("Couldn't read data file");
 			goto fail;
 		}
-	} else {
-		usage_error("Data file is empty\nNo data will be included\n");
+		if (!received) break;
+		if (received>(size_t)INT_MAX-size) {
+			usage_error("Data file is too large\n");
+			goto fail;
+		}
+		size_t needed=size+received;
+		if (needed>capacity) {
+			size_t grown=capacity<=(size_t)INT_MAX/2 ? capacity*2 : INT_MAX;
+			if (grown<reserve) grown=reserve;
+			if (grown<needed) grown=needed;
+			char *replacement=realloc(buffer, grown);
+			if (!replacement) {
+				perror("Allocating packet data");
+				goto fail;
+			}
+			buffer=replacement;
+			capacity=grown;
+		}
+		memcpy(buffer+size, block, received);
+		size=needed;
 	}
-	fclose(file);
+	if (fclose(file)!=0) {
+		perror("Couldn't close data file");
+		free(buffer);
+		return false;
+	}
+	if (!size) usage_error("Data file is empty\nNo data will be included\n");
 	*data=buffer;
 	*length=(int)size;
 	return true;
