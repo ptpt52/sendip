@@ -56,21 +56,21 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 	switch(opt[1]) {
 	case 'f':
-		hdr->ip6_flow &= htonl(0x000FFFFF);
+		hdr->ip6_flow &= htonl(~0x000FFFFFU);
 		hdr->ip6_flow |= htonl(hostintegerargument(arg, 4) & 0x000FFFFF);
 		pack->modified |= IPV6_MOD_FLOW;
 		break;
 	case 't':
-		hdr->ip6_flow &= htonl(0x0FF00000);
+		hdr->ip6_flow &= htonl(~0x0FF00000U);
 		hdr->ip6_flow |= htonl((hostintegerargument(arg, 4) << 20) & 0x0FF00000);
 		pack->modified |= IPV6_MOD_FLOW;
 		break;
 	case 'v':
-		hdr->ip6_vfc.version |= (u_int8_t)(hostintegerargument(arg,1) & 0x0F);
+		hdr->ip6_vfc.version = (u_int8_t)(hostintegerargument(arg,1) & 0x0F);
 		pack->modified |= IPV6_MOD_VERSION;
 		break;
 	case 'p':
-		hdr->ip6_vfc.priority |= (u_int8_t)(hostintegerargument(arg, 1) & 0x0F);
+		hdr->ip6_vfc.priority = (u_int8_t)(hostintegerargument(arg, 1) & 0x0F);
 		pack->modified |= IPV6_MOD_PRIORITY;
 		break;
 	case 'l':
@@ -89,16 +89,20 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		break;
 	case 's':
 		/*@@ TODO: flexible address specification @@*/
-		if (inet_pton(AF_INET6, arg, &addr)) {
-			memcpy(&hdr->ip6_src, &addr, sizeof(struct in6_addr));
+		if (inet_pton(AF_INET6, arg, &addr)!=1) {
+			fprintf(stderr, "Invalid IPv6 address: %s\n", arg);
+			return FALSE;
 		}
+		memcpy(&hdr->ip6_src, &addr, sizeof(addr));
 		pack->modified |= IPV6_MOD_SRC;
 		break;
 	case 'd':
 		/*@@ TODO: flexible address specification @@*/
-		if (inet_pton(AF_INET6, arg, &addr)) {
-			memcpy(&hdr->ip6_dst, &addr, sizeof(struct in6_addr));
+		if (inet_pton(AF_INET6, arg, &addr)!=1) {
+			fprintf(stderr, "Invalid IPv6 address: %s\n", arg);
+			return FALSE;
 		}
+		memcpy(&hdr->ip6_dst, &addr, sizeof(addr));
 		pack->modified |= IPV6_MOD_DST;
 		break;
 	}
@@ -120,7 +124,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 			ipv6->ip6_vfc.priority = 0;
 	}
 	if(!(pack->modified&IPV6_MOD_FLOW)) {
-		ipv6->ip6_flow &= htonl(~0x00FFFFFF);
+		ipv6->ip6_flow &= htonl(~0x000FFFFFU);
 	}
 	if(!(pack->modified&IPV6_MOD_PLEN)) {
 		ipv6->ip6_plen = htons(data->alloc_len);
