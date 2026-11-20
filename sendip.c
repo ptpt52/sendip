@@ -581,7 +581,7 @@ int main(int argc, char *const argv[]) {
 	gnuoptind=0;
 	for (;;) {
 		longindex=-1;
-		optc=getopt_long_only(argc, argv, "-p:l:T:vd:hf:D", opts, &longindex);
+		optc=gnugetopt_long_only(argc, argv, "-p:l:T:vd:hf:D", opts, &longindex);
 		if (optc==EOF) break;
 		if (longindex>=0) continue;
 		if (optc=='p') {
@@ -599,8 +599,7 @@ int main(int argc, char *const argv[]) {
 			free_options(opts);
 			opts=updated;
 		} else if (optc=='?' || optc==':') {
-			if (nextchar && *nextchar) ++gnuoptind;
-			nextchar=NULL;
+			gnugetopt_discard_short_group();
 		}
 	}
 	if (!opts) {
@@ -619,7 +618,7 @@ int main(int argc, char *const argv[]) {
 	gnuoptind=0;
 	for (;;) {
 		longindex=-1;
-		optc=getopt_long_only(argc, argv, "p:l:T:vd:hf:D", opts, &longindex);
+		optc=gnugetopt_long_only(argc, argv, "p:l:T:vd:hf:D", opts, &longindex);
 		if (optc==EOF) break;
 		if (longindex>=0) continue;
 		switch(optc) {
@@ -755,7 +754,7 @@ int main(int argc, char *const argv[]) {
 		currentmod = NULL;
 		for (;;) {
 			longindex=-1;
-			optc=getopt_long_only(argc, packet_argv, "p:l:T:vd:hf:D", opts, &longindex);
+			optc=gnugetopt_long_only(argc, packet_argv, "p:l:T:vd:hf:D", opts, &longindex);
 			if (optc==EOF) break;
 			if (longindex<0) {
 				if (optc=='p') currentmod=currentmod ? currentmod->next : first;

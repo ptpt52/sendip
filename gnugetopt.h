@@ -51,12 +51,12 @@ extern int gnuopterr;
 
 extern int gnuoptopt;
 
-/* modification to getopt - allows us to skip options */
-extern char *nextchar;
+/* After a scan error, skip any remaining characters in this short option group. */
+extern void gnugetopt_discard_short_group(void);
 
 
 /* Describe the long-named options requested by the application.
-   The LONG_OPTIONS argument to getopt_long or getopt_long_only is a vector
+   The LONG_OPTIONS argument to gnugetopt_long or gnugetopt_long_only is a vector
    of `struct option' terminated by an element containing a name which is
    zero.
 
@@ -122,16 +122,16 @@ struct option
    `getopt'.  */
 
 extern int gnugetopt (int __argc, char *const *__argv, const char *__shortopts);
-extern int getopt_long (int __argc, char *const *__argv, const char *__shortopts,
-                        const struct option *__longopts, int *__longind);
-extern int getopt_long_only (int __argc, char *const *__argv,
-                             const char *__shortopts,
-                             const struct option *__longopts, int *__longind);
+extern int gnugetopt_long (int __argc, char *const *__argv, const char *__shortopts,
+                           const struct option *__longopts, int *__longind);
+extern int gnugetopt_long_only (int __argc, char *const *__argv,
+                                const char *__shortopts,
+                                const struct option *__longopts, int *__longind);
 
 /* Internal only.  Users should not call this directly.  */
-extern int _getopt_internal (int __argc, char *const *__argv,
-                             const char *__shortopts,
-                             const struct option *__longopts, int *__longind,
-                             int __long_only);
+extern int gnugetopt_internal (int __argc, char *const *__argv,
+                                const char *__shortopts,
+                                const struct option *__longopts, int *__longind,
+                                int __long_only);
 
 #endif /* getopt.h */

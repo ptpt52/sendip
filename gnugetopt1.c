@@ -67,22 +67,22 @@
 #define NULL 0
 #endif
 
-int getopt_long (int argc, char *const *argv, const char *options,
-                 const struct option *long_options, int *opt_index)
+int gnugetopt_long (int argc, char *const *argv, const char *options,
+                    const struct option *long_options, int *opt_index)
 {
-	return _getopt_internal (argc, argv, options, long_options, opt_index, 0);
+	return gnugetopt_internal (argc, argv, options, long_options, opt_index, 0);
 }
 
-/* Like getopt_long, but '-' as well as '--' can indicate a long option.
+/* Like gnugetopt_long, but '-' as well as '--' can indicate a long option.
    If an option that starts with '-' (not '--') doesn't match a long option,
    but does match a short option, it is parsed as a short option
    instead.  */
 
 int
-getopt_long_only (int argc, char *const *argv, const char *options,
-                  const struct option *long_options, int *opt_index)
+gnugetopt_long_only (int argc, char *const *argv, const char *options,
+                     const struct option *long_options, int *opt_index)
 {
-	return _getopt_internal (argc, argv, options, long_options, opt_index, 1);
+	return gnugetopt_internal (argc, argv, options, long_options, opt_index, 1);
 }
 
 
@@ -113,8 +113,8 @@ main (int argc, char **argv)
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long (argc, argv, "abc:d:0123456789",
-		                 long_options, &option_index);
+		c = gnugetopt_long (argc, argv, "abc:d:0123456789",
+		                    long_options, &option_index);
 		if (c == -1)
 			break;
 

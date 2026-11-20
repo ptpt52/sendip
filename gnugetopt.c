@@ -137,7 +137,7 @@ int gnuoptind = 1;
    causes problems with re-calling getopt as programs generally don't
    know that. */
 
-int __getopt_initialized;
+static int getopt_initialized;
 
 /* The next char to be scanned in the option-element
    in which the last option character we returned was found.
@@ -146,8 +146,14 @@ int __getopt_initialized;
    If this is zero, or a null string, it means resume the scan
    by advancing to the next ARGV-element.  */
 
-/* MODIFIED THIS LINE so that sendip can force skipping options */
-char *nextchar = NULL;
+static char *nextchar;
+
+void gnugetopt_discard_short_group(void)
+{
+	if (nextchar && *nextchar)
+		++gnuoptind;
+	nextchar = NULL;
+}
 
 /* Callers store zero here to inhibit the error message
    for unrecognized options.  */
@@ -500,9 +506,9 @@ _getopt_initialize (int argc, char *const *argv, const char *optstring)
    If LONG_ONLY is nonzero, '-' as well as '--' can introduce
    long-named options.  */
 
-int _getopt_internal (int argc, char *const *argv, const char *optstring,
-                      const struct option *longopts, int *longind,
-                      int long_only)
+int gnugetopt_internal (int argc, char *const *argv, const char *optstring,
+                        const struct option *longopts, int *longind,
+                        int long_only)
 {
 	int print_errors = gnuopterr;
 	int new_element = 0;
@@ -512,12 +518,12 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 
 	gnuoptarg = NULL;
 
-	if (gnuoptind == 0 || !__getopt_initialized)
+	if (gnuoptind == 0 || !getopt_initialized)
 	{
 		if (gnuoptind == 0)
 			gnuoptind = 1;	/* Don't scan ARGV[0], the program name.  */
 		optstring = _getopt_initialize (argc, argv, optstring);
-		__getopt_initialized = 1;
+		getopt_initialized = 1;
 	}
 	else if (optstring[0] == '-' || optstring[0] == '+')
 		++optstring;
@@ -970,10 +976,10 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 int
 gnugetopt (int argc, char *const *argv, const char *optstring)
 {
-	return _getopt_internal (argc, argv, optstring,
-	                         (const struct option *) 0,
-	                         (int *) 0,
-	                         0);
+	return gnugetopt_internal (argc, argv, optstring,
+	                           (const struct option *) 0,
+	                           (int *) 0,
+	                           0);
 }
 
 #endif	/* Not ELIDE_CODE.  */
