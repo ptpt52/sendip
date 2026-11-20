@@ -17,13 +17,24 @@
 # the hardware address of the NIC. This sequence can be encapsulated
 # in any kind of packet; I chose UDP to the discard port (9).
 
-if [ $# = 1 ]; then
-  ETHER=`awk "/$1/"' { gsub(":", "", $1); print $1; exit; }' /etc/ethers`
-  if [ -z $ETHER ]; then
-    echo "$0: host $1 is not in /etc/ethers" >&2
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ] || [ -z "$1" ]; then
+  printf 'Usage: %s <host> [MAC address]\n' "$0" >&2
+  exit 1
+fi
+host=$1
+
+if [ "$#" -eq 1 ]; then
+  ETHER=$(SENDIP_WAKE_HOST="$host" awk '
+    NF >= 2 && $1 !~ /^#/ && ("h" $2) == ("h" ENVIRON["SENDIP_WAKE_HOST"]) {
+      gsub(":", "", $1)
+      print $1
+      exit
+    }
+  ' /etc/ethers) || exit 1
+  if [ -z "$ETHER" ]; then
+    printf '%s: host %s is not in /etc/ethers\n' "$0" "$host" >&2
     exit 1
   fi
-  ETHER=`echo $ETHER | sed 's/://g'`
 else
   ETHER=$2
 fi
@@ -31,4 +42,4 @@ fi
 ETHER="${ETHER}${ETHER}${ETHER}${ETHER}"		# 4 x MAC
 ETHER="FFFFFFFFFFFF${ETHER}${ETHER}${ETHER}${ETHER}"	# Preamble + 16 x MAC
 
-sendip $1 -p ipv4 -p udp.so -ud 9 -d 0x"$ETHER"
+sendip -p ipv4 -p udp.so -ud 9 -d "0x$ETHER" -- "$host"
