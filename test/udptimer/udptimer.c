@@ -264,7 +264,7 @@ int main(int argc, char **argv)
 {
 	int sock, length;
 	struct sockaddr_in name, from;
-	struct timeval t, now, waittime;
+	struct timeval t, now;
 	int cc, pnum, lastpnum;
 	fd_set dset;
 	uint16_t port;
@@ -294,9 +294,9 @@ int main(int argc, char **argv)
 	 */
 	lastpnum=1;
 	for (pnum=1; ;) {
+		struct timeval waittime = { .tv_sec = 10, .tv_usec = 0 };
 		FD_ZERO(&dset);
 		FD_SET(sock, &dset);
-		waittime.tv_sec = 10;
 		if (select(sock+1, &dset, 0, 0, &waittime) < 0) {
 			perror("select");
 			continue;
