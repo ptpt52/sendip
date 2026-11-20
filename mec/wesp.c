@@ -147,8 +147,17 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	if (!(pack->modified&WESP_MOD_NEXTHDR)) {
 		if (wesp->encrypted || !nextesp)
 			wesp->nexthdr = 0;
-		else 	/* supposed to be the header after esp */
-			wesp->nexthdr = header_type_at(hdrs, index+2);
+		else {
+			/* ESP has finalized already. Mirror its actual trailer, including
+			 * an explicit Next Header override (RFC 5840 section 2).
+			 */
+			if (!priv || data->alloc_len<(int)sizeof(struct ip_esp_hdr)+2 ||
+			    priv->icvlen>(unsigned int)data->alloc_len-sizeof(struct ip_esp_hdr)-2) {
+				usage_error("Cannot locate the finalized ESP Next Header\n");
+				return FALSE;
+			}
+			wesp->nexthdr=((const u_int8_t *)data->data)[data->alloc_len-priv->icvlen-1];
+		}
 	}
 	if (!(pack->modified&WESP_MOD_HDRLEN)) {
 		if (wesp->encrypted)
