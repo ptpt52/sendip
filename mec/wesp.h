@@ -55,7 +55,7 @@ typedef struct SENDIP_PACKED ip_wesp_phdr {
 sendip_option wesp_opts[] = {
 	{"v",1,"WESP Version","0"},
 	{"e",1,"WESP Encrypted Payload flag","0"},
-	{"p",1,"WESP Padded flag (also adds 4 bytes padding)","0"},
+	{"p",1,"WESP Padded flag (also adds 4 bytes padding)","Correct for enclosing IP alignment"},
 	{"r",1,"WESP Reserved field","0"},
 	{"h",1,"WESP Header Length","Correct"},
 	{"t",1,"WESP Trailer Length","Correct"},

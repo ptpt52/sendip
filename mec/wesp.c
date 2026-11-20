@@ -23,15 +23,16 @@ sendip_data *
 initialize(void)
 {
 	sendip_data *ret = calloc(1, sizeof(sendip_data));
-	wesp_header *wesp = malloc(sizeof(wesp_header));
+	/* Reserve the optional padding until the final packet offset is known. */
+	wesp_header *wesp = malloc(sizeof(wesp_header)+4);
 
 	if (!ret || !wesp) {
 		free(wesp);
 		free(ret);
 		return NULL;
 	}
-	memset(wesp,0,sizeof(wesp_header));
-	ret->alloc_len = sizeof(wesp_header);
+	memset(wesp,0,sizeof(wesp_header)+4);
+	ret->alloc_len = sizeof(wesp_header)+4;
 	ret->data = wesp;
 	ret->modified=0;
 	return ret;
@@ -131,6 +132,48 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack)
 {
 	wesp_header *wesp = (wesp_header *)pack->data;
+	if (!(pack->modified&WESP_MOD_PADDED)) {
+		int ip=outer_header(hdrs, index, "i6");
+		if (ip<0 || !headers[ip] || !headers[ip]->data) return FALSE;
+		int padding=0;
+		if (hdrs[ip]=='6') {
+			/* Outer ESP/WESP finalizers have not run yet. Use their final
+			 * prefix sizes rather than offsets that they will later move.
+			 */
+			unsigned int offset=headers[ip]->alloc_len%8;
+			for (int i=ip+1; i<index; ++i) {
+				sendip_data *prefix=headers[i];
+				if (!prefix || prefix->alloc_len<0) return FALSE;
+				if (hdrs[i]=='e') {
+					esp_private *outer=prefix->private;
+					if (!outer || prefix->alloc_len<(int)sizeof(struct ip_esp_hdr) ||
+					    outer->ivlen>(unsigned int)prefix->alloc_len-sizeof(struct ip_esp_hdr))
+						return FALSE;
+					/* ESP's fixed prefix is eight bytes; its trailer moves past us. */
+					offset=(offset+outer->ivlen%8)%8;
+				} else if (hdrs[i]=='w' && !(prefix->modified&WESP_MOD_PADDED)) {
+					/* An automatic outer WESP will align the following ESP. */
+					if (offset%4) return FALSE;
+					offset=0;
+				} else {
+					offset=(offset+prefix->alloc_len%8)%8;
+				}
+			}
+			/* A preceding UDP protocol identifier already contributes four bytes. */
+			padding=(8-(offset+sizeof(*wesp))%8)%8;
+			if (padding!=0 && padding!=4) return FALSE;
+		}
+		int length=sizeof(*wesp)+padding;
+		if (pack->alloc_len<length || data->alloc_len<0) return FALSE;
+		int removed=pack->alloc_len-length;
+		if (removed) {
+			/* Finalizers may shrink a header if they move the following data. */
+			memmove((u_int8_t *)data->data-removed, data->data, data->alloc_len);
+			data->data=(u_int8_t *)data->data-removed;
+			pack->alloc_len=length;
+		}
+		wesp->padded=padding!=0;
+	}
 	/* Sanity check - if the user is doing something funky and
 	 * the next header is not esp, don't try to interpret it
 	 * as such.

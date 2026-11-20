@@ -37,6 +37,9 @@ Automatic protocol/next-header fields distinguish ICMP for IPv4 from ICMPv6,
 including behind AH/ESP and within nested IP packets. Explicit protocol and
 next-header overrides retain their supplied values.
 
+WESP chooses its default padding from the enclosing IP version and packet
+offset. Explicit `-wp` values still take precedence.
+
 ### File arguments
 
 The `fF` argument form reads text values one line at a time. LF and CRLF line
