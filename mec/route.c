@@ -79,6 +79,7 @@ readaddrs(char *arg, sendip_data *pack)
 bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
+	u_int32_t parsed;
 	route_header *route = (route_header *)pack->data;
 	/* We'll use the type 0 routing header to get at the
 	 * other fields.
@@ -108,7 +109,8 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= ROUTE_MOD_SEGMENTS;
 		break;
 	case 'r':	/* Reserved field (4 bytes) */
-		rt->reserved = integerargument(arg, 4);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		rt->reserved = parsed;
 		pack->modified |= ROUTE_MOD_RESV;
 		break;
 	case 'a':	/* address list */

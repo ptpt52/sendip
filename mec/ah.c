@@ -60,6 +60,7 @@ initialize(void)
 bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
+	u_int32_t parsed;
 	ah_header *ah = (ah_header *)pack->data;
 	ah_private *priv = (ah_private *)pack->private;
 	char *temp;
@@ -67,11 +68,13 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 	switch(opt[1]) {
 	case 's':	/* SPI (32 bits) */
-		ah->spi = integerargument(arg, 4);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		ah->spi = parsed;
 		pack->modified |= AH_MOD_SPI;
 		break;
 	case 'q':	/* Sequence number (32 bits) */
-		ah->seq_no = integerargument(arg, 4);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		ah->seq_no = parsed;
 		pack->modified |= AH_MOD_SEQUENCE;
 		break;
 	case 'd':	/* Authentication data (variable length) */

@@ -40,6 +40,11 @@ next-header overrides retain their supplied values.
 WESP chooses its default padding from the enclosing IP version and packet
 offset. Explicit `-wp` values still take precedence.
 
+Module authors can use `integerargument_checked` and
+`hostintegerargument_checked` to distinguish parse/file failures from valid
+zero values. These functions leave the output unchanged on failure. The legacy
+value-only entry points remain available for external modules.
+
 ### File arguments
 
 The `fF` argument form reads text values one line at a time. LF and CRLF line

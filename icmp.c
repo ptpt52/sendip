@@ -58,21 +58,25 @@ sendip_data *initialize(void) {
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
+	u_int32_t parsed;
 	icmp_header *icp = (icmp_header *)pack->data;
 	switch(opt[1]) {
 	case 't':
 		/*@@icp->type = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
-		icp->type = integerargument(arg, 1);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		icp->type = parsed;
 		pack->modified |= ICMP_MOD_TYPE;
 		break;
 	case 'd':
 		/*@@icp->code = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
-		icp->code = integerargument(arg, 1);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		icp->code = parsed;
 		pack->modified |= ICMP_MOD_CODE;
 		break;
 	case 'c':
 		/*@@icp->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		icp->check = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		icp->check = parsed;
 		pack->modified |= ICMP_MOD_CHECK;
 		break;
 	}

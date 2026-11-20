@@ -123,6 +123,7 @@ sctp_chunk_header *grow_chunk_round4(sendip_data *pack, sctp_chunk_header *chunk
 bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
+	u_int32_t parsed;
 	sctp_header *sctp = (sctp_header *)pack->data;
 	unsigned long svalue;
 	u_int32_t lvalue;
@@ -136,11 +137,13 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	/* Overall header arguments are lowercase; chunk args are upper */
 	case 's':	/* SCTP source port (16 bits) */
 		pack->modified |= SCTP_MOD_SOURCE;
-		sctp->source = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		sctp->source = parsed;
 		break;
 	case 'd':	/* SCTP destination port (16 bits) */
 		pack->modified |= SCTP_MOD_DEST;
-		sctp->dest = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		sctp->dest = parsed;
 		break;
 	case 'v':	/* SCTP vtag (32 bits) */
 		pack->modified |= SCTP_MOD_VTAG;
@@ -159,7 +162,8 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'c':	/* SCTP checksum (32 bits) */
 		pack->modified |= SCTP_MOD_CHECKSUM;
-		sctp->checksum = integerargument(arg, 4);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		sctp->checksum = parsed;
 		break;
 
 	case 'T':	/* SCTP chunk type (8 bits) */
@@ -228,25 +232,20 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		/* Note the cheesy reverse fallthrough */
 		switch (nargs) {
 		case 5:
-			init.initial_tsn =
-			    integerargument(strargs[4],
-			                    sizeof(init.initial_tsn));
+			if (!integerargument_checked(strargs[4], sizeof(init.initial_tsn), &parsed)) return FALSE;
+			init.initial_tsn = parsed;
 		case 4:
-			init.num_inbound_streams =
-			    integerargument(strargs[3],
-			                    sizeof(init.num_inbound_streams));
+			if (!integerargument_checked(strargs[3], sizeof(init.num_inbound_streams), &parsed)) return FALSE;
+			init.num_inbound_streams = parsed;
 		case 3:
-			init.num_outbound_streams =
-			    integerargument(strargs[2],
-			                    sizeof(init.num_outbound_streams));
+			if (!integerargument_checked(strargs[2], sizeof(init.num_outbound_streams), &parsed)) return FALSE;
+			init.num_outbound_streams = parsed;
 		case 2:
-			init.a_rwnd =
-			    integerargument(strargs[1],
-			                    sizeof(init.a_rwnd));
+			if (!integerargument_checked(strargs[1], sizeof(init.a_rwnd), &parsed)) return FALSE;
+			init.a_rwnd = parsed;
 		case 1:
-			init.init_tag =
-			    integerargument(strargs[0],
-			                    sizeof(init.init_tag));
+			if (!integerargument_checked(strargs[0], sizeof(init.init_tag), &parsed)) return FALSE;
+			init.init_tag = parsed;
 		}
 
 		currentchunk = grow_chunk(pack, currentchunk,

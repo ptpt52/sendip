@@ -287,17 +287,24 @@ requested_length(const char *input, int maximum, bool truncate)
 	return length>(unsigned long)maximum ? maximum : (int)length;
 }
 
-static u_int32_t
-random_integer(const char *input, int width)
+static bool
+random_integer_checked(const char *input, int width, u_int32_t *result)
 {
 	u_int32_t value=0;
 	int length=requested_length(input, width, true);
 	const u_int8_t *bytes;
-	if (length < 0) return 0;
+	if (length < 0) return FALSE;
 	bytes=randombytes(length);
-	if (!bytes) return 0;
+	if (!bytes) return FALSE;
 	for (int i=0; i<length; ++i)
 		value=(value<<8)|bytes[i];
+	*result=value;
+	return TRUE;
+}
+
+static u_int32_t random_integer(const char *input, int width) {
+	u_int32_t value=0;
+	(void)random_integer_checked(input, width, &value);
 	return value;
 }
 
@@ -381,6 +388,43 @@ bool uintargument(const char *input, unsigned long maximum, unsigned long *value
 	parsed=strtoul(input, &end, 0);
 	if (errno || end==input || *end || parsed>maximum) return FALSE;
 	*value=parsed;
+	return TRUE;
+}
+
+bool hostintegerargument_checked(const char *input, int length, u_int32_t *value) {
+	u_int32_t parsed;
+	if (!value || length<1 || length>4) return FALSE;
+	input=resolve_file_arguments(input);
+	if (!input) return FALSE;
+	if (*input=='r' && isdigit((unsigned char)input[1])) {
+		if (!random_integer_checked(input+1, length, &parsed)) return FALSE;
+	} else if (*input=='z') {
+		if (input[1] && (!isdigit((unsigned char)input[1]) ||
+		    requested_length(input+1, length, true)<0)) {
+			usage_error("Invalid zero-data length\n");
+			return FALSE;
+		}
+		parsed=0;
+	} else {
+		char *end;
+		errno=0;
+		unsigned long number=strtoul(input, &end, 0);
+		if (errno || end==input || *end) {
+			fprintf(stderr, "Invalid integer argument `%s'\n", input);
+			return FALSE;
+		}
+		parsed=number;
+	}
+	if (length==1) parsed=(u_int8_t)parsed;
+	else if (length==2) parsed=(u_int16_t)parsed;
+	*value=parsed;
+	return TRUE;
+}
+
+bool integerargument_checked(const char *input, int length, u_int32_t *value) {
+	u_int32_t parsed;
+	if (!value || !hostintegerargument_checked(input, length, &parsed)) return FALSE;
+	*value=length==1 ? parsed : length==2 ? htons((u_int16_t)parsed) : htonl(parsed);
 	return TRUE;
 }
 

@@ -47,34 +47,41 @@ bool set_addr(char *hostname, sendip_data *pack) {
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
+	u_int32_t parsed;
 	ipv6_header *hdr = (ipv6_header *)pack->data;
 	struct in6_addr addr;
 
 	switch(opt[1]) {
 	case 'f':
+		if (!hostintegerargument_checked(arg, 4, &parsed)) return FALSE;
 		hdr->ip6_flow &= htonl(~0x000FFFFFU);
-		hdr->ip6_flow |= htonl(hostintegerargument(arg, 4) & 0x000FFFFF);
+		hdr->ip6_flow |= htonl(parsed & 0x000FFFFF);
 		pack->modified |= IPV6_MOD_FLOW;
 		break;
 	case 't':
+		if (!hostintegerargument_checked(arg, 4, &parsed)) return FALSE;
 		hdr->ip6_flow &= htonl(~0x0FF00000U);
-		hdr->ip6_flow |= htonl((hostintegerargument(arg, 4) << 20) & 0x0FF00000);
+		hdr->ip6_flow |= htonl((parsed << 20) & 0x0FF00000);
 		pack->modified |= IPV6_MOD_FLOW;
 		break;
 	case 'v':
-		hdr->ip6_vfc.version = (u_int8_t)(hostintegerargument(arg,1) & 0x0F);
+		if (!hostintegerargument_checked(arg, 1, &parsed)) return FALSE;
+		hdr->ip6_vfc.version = (u_int8_t)(parsed & 0x0F);
 		pack->modified |= IPV6_MOD_VERSION;
 		break;
 	case 'p':
-		hdr->ip6_vfc.priority = (u_int8_t)(hostintegerargument(arg, 1) & 0x0F);
+		if (!hostintegerargument_checked(arg, 1, &parsed)) return FALSE;
+		hdr->ip6_vfc.priority = (u_int8_t)(parsed & 0x0F);
 		pack->modified |= IPV6_MOD_PRIORITY;
 		break;
 	case 'l':
-		hdr->ip6_plen = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		hdr->ip6_plen = parsed;
 		pack->modified |= IPV6_MOD_PLEN;
 		break;
 	case 'h':
-		hdr->ip6_hlim = hostintegerargument(arg, 1);
+		if (!hostintegerargument_checked(arg, 1, &parsed)) return FALSE;
+		hdr->ip6_hlim = parsed;
 		pack->modified |= IPV6_MOD_HLIM;
 		break;
 	case 'n':

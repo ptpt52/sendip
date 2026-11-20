@@ -131,6 +131,7 @@ gre_header *gre_resize(sendip_data *pack, u_int16_t flags, u_int16_t addflag) {
 bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
+	u_int32_t parsed;
 	gre_header *gre = (gre_header *)pack->data;
 	unsigned long svalue;
 
@@ -211,7 +212,8 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= GRE_MOD_VERSION;
 		break;
 	case 'p':
-		gre->gre_protocol = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		gre->gre_protocol = parsed;
 		pack->modified |= GRE_MOD_PROTOCOL;
 		break;
 	case 'o':

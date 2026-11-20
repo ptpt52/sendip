@@ -94,7 +94,8 @@ static int buildtimestamp(char *input, u_int8_t *output) {
 			field=strsep(&remaining, ":");
 		}
 		if (used>253-4) return 0;
-		u_int32_t timestamp=integerargument(field, 4);
+		u_int32_t timestamp;
+		if (!integerargument_checked(field, 4, &timestamp)) return 0;
 		memcpy(output+used, &timestamp, 4);
 		used+=4;
 	}
@@ -150,6 +151,7 @@ bool set_addr(char *hostname, sendip_data *pack) {
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
+	u_int32_t parsed;
 	ip_header *iph = (ip_header *)pack->data;
 	bool added=TRUE;
 	switch(opt[1]) {
@@ -176,13 +178,15 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified |= IP_MOD_TOS;
 		break;
 	case 'l':
-		iph->tot_len = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		iph->tot_len = parsed;
 
 		pack->modified |= IP_MOD_TOTLEN;
 		break;
 	case 'i':
 		/*@@iph->id = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		iph->id = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		iph->id = parsed;
 		pack->modified |= IP_MOD_ID;
 		break;
 
@@ -218,17 +222,20 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 	case 't':
 		/*@@iph->ttl = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
-		iph->ttl = integerargument(arg, 1);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		iph->ttl = parsed;
 		pack->modified |= IP_MOD_TTL;
 		break;
 	case 'p':
 		/*@@iph->protocol = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
-		iph->protocol = integerargument(arg, 1);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		iph->protocol = parsed;
 		pack->modified |= IP_MOD_PROTOCOL;
 		break;
 	case 'c':
 		/*@@iph->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		iph->check = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		iph->check = parsed;
 		pack->modified |= IP_MOD_CHECK;
 		break;
 
@@ -276,7 +283,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		} else if(!strcmp(opt+2, "sid")) {
 			/* Stream ID (RFC791) */
 			/*@@u_int16_t sid = htons(atoi(arg));*/
-			u_int16_t sid = integerargument(arg, 2);
+			if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+			u_int16_t sid = parsed;
 			added=addoption(1,0,8,4,(u_int8_t *)&sid,pack);
 		} else if(!strcmp(opt+2, "ssr")) {
 			u_int8_t data[253];

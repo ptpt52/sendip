@@ -97,28 +97,33 @@ sendip_data *initialize(void) {
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
+	u_int32_t parsed;
 	tcp_header *tcp = (tcp_header *)pack->data;
 	// opt[0]==t
 	bool added=TRUE;
 	switch(opt[1]) {
 	case 's':
 		/*@@tcp->source = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		tcp->source = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		tcp->source = parsed;
 		pack->modified |= TCP_MOD_SOURCE;
 		break;
 	case 'd':
 		/*@@tcp->dest = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		tcp->dest = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		tcp->dest = parsed;
 		pack->modified |= TCP_MOD_DEST;
 		break;
 	case 'n':
 		/*@@tcp->seq = htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));*/
-		tcp->seq = integerargument(arg, 4);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		tcp->seq = parsed;
 		pack->modified |= TCP_MOD_SEQ;
 		break;
 	case 'a':
 		/*@@tcp->ack_seq = htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));*/
-		tcp->ack_seq = integerargument(arg, 4);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		tcp->ack_seq = parsed;
 		pack->modified |= TCP_MOD_ACKSEQ;
 		if(!(pack->modified&TCP_MOD_ACK)) {
 			tcp->ack = 1;
@@ -127,12 +132,14 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		break;
 	case 't':
 		/*@@tcp->off = (u_int16_t)strtoul(arg, (char **)NULL, 0) &0xF;*/
-		tcp->off = (integerargument(arg, 1)&0xF);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		tcp->off = parsed&0xF;
 		pack->modified |= TCP_MOD_OFF;
 		break;
 	case 'r':
 		/*@@tcp->res = (u_int16_t)(strtoul(arg, (char **)NULL, 0) & 0x000F);*/
-		tcp->res = (integerargument(arg, 1)&0xF);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		tcp->res = parsed&0xF;
 		pack->modified |= TCP_MOD_RES;
 		break;
 	case 'f':
@@ -176,17 +183,20 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		break;
 	case 'w':
 		/*@@tcp->window = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		tcp->window = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		tcp->window = parsed;
 		pack->modified |= TCP_MOD_WINDOW;
 		break;
 	case 'c':
 		/*@@tcp->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		tcp->check = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		tcp->check = parsed;
 		pack->modified |= TCP_MOD_CHECK;
 		break;
 	case 'u':
 		/*@@tcp->urg_ptr = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		tcp->urg_ptr = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		tcp->urg_ptr = parsed;
 		pack->modified |= TCP_MOD_URGPTR;
 		if(!(pack->modified&TCP_MOD_URG)) {
 			tcp->urg = 1;
@@ -220,11 +230,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			added=addoption(1,1,NULL,pack);
 		} else if (!strcmp(opt+2, "mss")) {
 			/* Maximum segment size RFC 793 kind 2 */
-			u_int16_t mss=integerargument(arg, 2);
+			if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+			u_int16_t mss = parsed;
 			added=addoption(2,4,(u_int8_t *)&mss,pack);
 		} else if (!strcmp(opt+2, "wscale")) {
 			/* Window scale rfc1323 */
-			u_int8_t wscale=hostintegerargument(arg, 1);
+			if (!hostintegerargument_checked(arg, 1, &parsed)) return FALSE;
+			u_int8_t wscale = parsed;
 			added=addoption(3,3,&wscale,pack);
 		} else if (!strcmp(opt+2, "sackok")) {
 			/* Selective Acknowledge permitted rfc1323 */

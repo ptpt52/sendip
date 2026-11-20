@@ -88,6 +88,7 @@ static bool align_option(sendip_data *pack, int alignment, int offset) {
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
+	u_int32_t parsed;
 	hop_header *hop=pack->data;
 	u_int8_t storage[2+255]={0};
 	struct ipv6_hopopt *hopt=(void *)storage;
@@ -110,7 +111,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		break;
 	case 'r': {
 		alignment=2;
-		u_int16_t alert=integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		u_int16_t alert = parsed;
 		hopt->hopt_type=IPV6_TLV_ROUTERALERT;
 		hopt->hopt_len=sizeof(alert);
 		memcpy(hopt->hopt_data, &alert, sizeof(alert));
@@ -119,7 +121,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	case 'j': {
 		alignment=4;
 		offset=2;
-		u_int32_t jumbo=integerargument(arg, 4);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		u_int32_t jumbo = parsed;
 		hopt->hopt_type=IPV6_TLV_JUMBO;
 		hopt->hopt_len=sizeof(jumbo);
 		memcpy(hopt->hopt_data, &jumbo, sizeof(jumbo));

@@ -50,18 +50,21 @@ static bool add_entry(sendip_data *pack) {
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
+	u_int32_t parsed;
 	rip_header *rippack = (rip_header *)pack->data;
 	rip_options *ripopt;
 	char *fields[6], *remaining;
 	switch(opt[1]) {
 	case 'v': /* version */
 		/*@@rippack->version = (u_int8_t)strtoul(arg, (char **)0, 0);*/
-		rippack->version = integerargument(arg, 1);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		rippack->version = parsed;
 		pack->modified |= RIP_MOD_VERSION;
 		break;
 	case 'c': /* command */
 		/*@@rippack->command = (u_int8_t)strtoul(arg, (char **)0, 0);*/
-		rippack->command = integerargument(arg, 1);
+		if (!integerargument_checked(arg, 1, &parsed)) return FALSE;
+		rippack->command = parsed;
 		pack->modified |= RIP_MOD_COMMAND;
 		break;
 	case 'a': /* RFC 2453 simple-password authentication occupies one RTE. */

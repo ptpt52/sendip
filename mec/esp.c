@@ -84,6 +84,7 @@ static bool replace_components(sendip_data *pack, const void *iv, int ivlen,
 bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
+	u_int32_t parsed;
 	esp_header *esp = (esp_header *)pack->data;
 	esp_private *priv = (esp_private *)pack->private;
 	char *temp;
@@ -91,11 +92,13 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 	switch(opt[1]) {
 	case 's':	/* SPI (32 bits) */
-		esp->hdr.spi = integerargument(arg, 4);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		esp->hdr.spi = parsed;
 		pack->modified |= ESP_MOD_SPI;
 		break;
 	case 'q':	/* Sequence number (32 bits) */
-		esp->hdr.seq_no = integerargument(arg, 4);
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
+		esp->hdr.seq_no = parsed;
 		pack->modified |= ESP_MOD_SEQUENCE;
 		break;
 	case 'p': /* Explicit padding replaces the previous reservation. */

@@ -64,26 +64,31 @@ sendip_data *initialize(void) {
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
+	u_int32_t parsed;
 	udp_header *udp = (udp_header *)pack->data;
 	switch(opt[1]) {
 	case 's':
 		/*@@udp->source = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		udp->source = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		udp->source = parsed;
 		pack->modified |= UDP_MOD_SOURCE;
 		break;
 	case 'd':
 		/*@@udp->dest = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		udp->dest = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		udp->dest = parsed;
 		pack->modified |= UDP_MOD_DEST;
 		break;
 	case 'l':
 		/*@@udp->len = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		udp->len = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		udp->len = parsed;
 		pack->modified |= UDP_MOD_LEN;
 		break;
 	case 'c':
 		/*@@udp->check = htons((u_int16_t)strtoul(arg, (char **)NULL, 0));*/
-		udp->check = integerargument(arg, 2);
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
+		udp->check = parsed;
 		pack->modified |= UDP_MOD_CHECK;
 		break;
 	}
