@@ -450,6 +450,15 @@ _getopt_initialize (int argc, char *const *argv, const char *optstring)
 	return optstring;
 }
 
+static int conflicting_long_options(const struct option *first,
+                                    const struct option *second, int long_only)
+{
+	return first->has_arg != second->has_arg
+	       || first->flag != second->flag
+	       || first->val != second->val
+	       || (long_only && strcmp(first->name, second->name) != 0);
+}
+
 /* Scan elements of ARGV (whose length is ARGC) for option characters
    given in OPTSTRING.
 
@@ -672,10 +681,7 @@ int gnugetopt_internal (int argc, char *const *argv, const char *optstring,
 					indfound = option_index;
 				}
 				/* Repeated modules can register the same option more than once. */
-				else if (pfound->has_arg != p->has_arg
-				         || pfound->flag != p->flag
-				         || pfound->val != p->val
-				         || (long_only && strcmp (pfound->name, p->name) != 0))
+				else if (conflicting_long_options(pfound, p, long_only))
 					/* Second or later nonexact match found.  */
 					ambig = 1;
 			}
@@ -858,7 +864,7 @@ int gnugetopt_internal (int argc, char *const *argv, const char *optstring,
 						pfound = p;
 						indfound = option_index;
 					}
-					else
+					else if (conflicting_long_options(pfound, p, long_only))
 						/* Second or later nonexact match found.  */
 						ambig = 1;
 				}
