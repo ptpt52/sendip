@@ -338,22 +338,19 @@ static bool load_module(char *modname) {
 		goto fail;
 	}
 
-	if (!(newmod->initialize=dlsym(newmod->handle, "initialize")) ||
-	    !(newmod->do_opt=dlsym(newmod->handle, "do_opt")) ||
-	    !(newmod->finalize=dlsym(newmod->handle, "finalize")) ||
-	    !(n_opts=dlsym(newmod->handle, "num_opts")) ||
-	    !(get_opts=dlsym(newmod->handle, "get_opts")) ||
-	    !(get_optchar=dlsym(newmod->handle, "get_optchar"))) {
-		const char *error=dlerror();
-		fprintf(stderr, "Module %s is missing an entry point: %s\n", modname,
-		        error ? error : "null function pointer");
+	void *handle=newmod->handle;
+	if (!(newmod->initialize=require_module_symbol(handle, loaded_name, "initialize")) ||
+	    !(newmod->do_opt=require_module_symbol(handle, loaded_name, "do_opt")) ||
+	    !(newmod->finalize=require_module_symbol(handle, loaded_name, "finalize")) ||
+	    !(n_opts=require_module_symbol(handle, loaded_name, "num_opts")) ||
+	    !(get_opts=require_module_symbol(handle, loaded_name, "get_opts")) ||
+	    !(get_optchar=require_module_symbol(handle, loaded_name, "get_optchar")))
 		goto fail;
-	}
-	newmod->do_pad=dlsym(newmod->handle, "do_pad");
-	newmod->do_pad_ip=dlsym(newmod->handle, "do_pad_ip");
-	newmod->randomize_arg=dlsym(newmod->handle, "randomize_arg");
-	newmod->set_addr=dlsym(newmod->handle, "set_addr");
-	newmod->destroy=dlsym(newmod->handle, "destroy");
+	newmod->do_pad=dlsym(handle, "do_pad");
+	newmod->do_pad_ip=dlsym(handle, "do_pad_ip");
+	newmod->randomize_arg=dlsym(handle, "randomize_arg");
+	newmod->set_addr=dlsym(handle, "set_addr");
+	newmod->destroy=dlsym(handle, "destroy");
 	newmod->num_opts=n_opts();
 	newmod->optchar=get_optchar();
 	newmod->opts=get_opts();

@@ -51,13 +51,8 @@ load_crypto_module(char *modname)
 	}
 	newmod->handle=open_sendip_module(modname, &newmod->name);
 	if (!newmod->handle) goto fail;
-	newmod->cryptomod=dlsym(newmod->handle, "cryptomod");
-	if (!newmod->cryptomod) {
-		const char *error=dlerror();
-		fprintf(stderr, "Module %s has no cryptomod function: %s\n", modname,
-		        error ? error : "null function pointer");
-		goto fail;
-	}
+	newmod->cryptomod=require_module_symbol(newmod->handle, newmod->name, "cryptomod");
+	if (!newmod->cryptomod) goto fail;
 	/* Initialization is optional. */
 	newmod->cryptoinit=dlsym(newmod->handle, "cryptoinit");
 	return newmod;

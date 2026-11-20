@@ -74,4 +74,16 @@ static void *open_sendip_module(const char *name, char **loaded_name) {
 	return handle;
 }
 
+static void *require_module_symbol(void *handle, const char *module, const char *name) {
+	(void)dlerror();
+	void *symbol=dlsym(handle, name);
+	const char *error=dlerror();
+	if (!symbol || error) {
+		fprintf(stderr, "Module %s cannot use required entry point %s: %s\n",
+		        module, name, error ? error : "null function pointer");
+		return NULL;
+	}
+	return symbol;
+}
+
 #endif
