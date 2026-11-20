@@ -12,10 +12,11 @@
 #include <arpa/inet.h>
 #include "sendip_module.h"
 #include <errno.h>
+#include <stdint.h>
 
 typedef struct _filearray {
-	unsigned int length;
-	unsigned int index;
+	size_t length;
+	size_t index;
 	char *lines[0];
 } Filearray;
 
@@ -270,37 +271,66 @@ fa_close(void)
 	memset((void *)&fa_tab, 0, sizeof(fa_tab));
 }
 
+static void
+fa_free(Filearray *fa)
+{
+	if (!fa) return;
+	for (size_t i=0; i<fa->length; ++i)
+		free(fa->lines[i]);
+	free(fa);
+}
+
 Filearray *
 fa_create(const char *name)
 {
 	FILE *fp;
 	Filearray *answer;
-	unsigned int linelimit=0;
-	struct stat statbuf;
-	char line[BUFSIZ];
+	size_t linelimit=8, linecap=0;
+	char *line=NULL;
+	ssize_t length;
+	int error;
 
-	if (!(fp = fopen(name, "r")))
+	if (!(fp = fopen(name, "r"))) return NULL;
+	answer = malloc(sizeof(*answer)+linelimit*sizeof(answer->lines[0]));
+	if (!answer) {
+		fclose(fp);
 		return NULL;
-	/* guess a line count based on size */
-	if (stat(name, &statbuf) < 0)
-		return NULL;
-	linelimit = statbuf.st_size/5;
-	answer = (Filearray *)malloc(sizeof(struct _filearray)+linelimit*(sizeof(char *)));
-	if (!answer) return NULL;
-	/* read the lines into memory */
-	answer->index=0;
-	for (answer->length=0; fgets(line, BUFSIZ, fp); ++answer->length) {
-		if (answer->length >= linelimit-1) {
-			linelimit *= 2;
-			answer = (Filearray *)realloc(answer,
-			                              sizeof(struct _filearray)+linelimit*(sizeof(char *)));
-			if (!answer) return NULL;
-		}
-		line[strlen(line)-1] = '\0';
-		answer->lines[answer->length] = strdup(line);
 	}
+	answer->index=answer->length=0;
+	errno=0;
+	while ((length=getline(&line, &linecap, fp)) >= 0) {
+		if (answer->length == linelimit) {
+			Filearray *grown;
+			if (linelimit > (SIZE_MAX-sizeof(*answer))/sizeof(answer->lines[0])/2) {
+				errno=ENOMEM;
+				goto fail;
+			}
+			linelimit *= 2;
+			grown = realloc(answer, sizeof(*answer)+linelimit*sizeof(answer->lines[0]));
+			if (!grown) goto fail;
+			answer=grown;
+		}
+		if (length && line[length-1]=='\n') line[length-1]='\0';
+		answer->lines[answer->length]=strdup(line);
+		if (!answer->lines[answer->length]) goto fail;
+		++answer->length;
+	}
+	if (!feof(fp) || !answer->length) {
+		if (!answer->length && feof(fp)) errno=EINVAL;
+		else if (!errno) errno=EIO;
+		goto fail;
+	}
+	free(line);
 	fclose(fp);
 	return answer;
+
+fail:
+	error=errno;
+	free(line);
+	fa_free(answer);
+	fclose(fp);
+	errno=error;
+	return NULL;
 }
 
 /* Find the entry for a given file. If there isn't one,
@@ -327,6 +357,7 @@ fa_find(const char *name)
 			}
 			if (hsearch_r(item, ENTER, &found, &fa_tab) <= 0) {
 				perror(name);
+				fa_free(item.data);
 				return NULL;
 			}
 		}
