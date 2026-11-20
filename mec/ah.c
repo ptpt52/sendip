@@ -77,7 +77,10 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 * or a user-provided string.
 		 */
 		length = stringargument(arg, &temp);
-		pack->data = realloc(ah, sizeof(ah_header)+length);
+		if (!temp) return FALSE;
+		ah = realloc(ah, sizeof(ah_header)+length);
+		if (!ah) return FALSE;
+		pack->data = ah;
 		pack->alloc_len = sizeof(ah_header)+length;
 		ah = (ah_header *)pack->data;
 		memcpy(ah->auth_data, temp, length);
@@ -87,9 +90,11 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'k':       /* Key */
 		length = stringargument(arg, &temp);
-		priv->keylen = length;
+		if (!temp) return FALSE;
 		priv = (ah_private *)realloc(priv,
 		                             sizeof(ah_private) + length);
+		if (!priv) return FALSE;
+		priv->keylen = length;
 		memcpy(priv->key, temp, priv->keylen);
 		pack->private = priv;
 		pack->modified |= AH_MOD_KEY;
