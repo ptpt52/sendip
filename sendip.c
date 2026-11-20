@@ -355,13 +355,15 @@ static bool load_module(char *modname) {
 	newmod->optchar=get_optchar();
 	newmod->opts=get_opts();
 	if (newmod->num_opts<0 || newmod->num_opts>INT_MAX-num_opts-1 ||
-	    !newmod->optchar || (newmod->num_opts && !newmod->opts)) {
+	    !newmod->optchar || newmod->optchar=='=' ||
+	    (newmod->num_opts && !newmod->opts)) {
 		fprintf(stderr, "Module %s returned invalid option metadata\n", modname);
 		goto fail;
 	}
 	for (int i=0; i<newmod->num_opts; ++i) {
 		const sendip_option *option=&newmod->opts[i];
-		if (!option->optname || !*option->optname || !option->description) {
+		if (!option->optname || !*option->optname ||
+		    strchr(option->optname, '=') || !option->description) {
 			fprintf(stderr, "Module %s returned invalid option metadata\n", modname);
 			goto fail;
 		}

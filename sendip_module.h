@@ -12,7 +12,7 @@
 /* Options
  */
 typedef struct {
-	const char *optname;
+	const char *optname;	/* Nonempty suffix. '=' separates the option value. */
 	const bool arg;
 	const char *description;
 	const char *def;
