@@ -33,40 +33,23 @@
 #include <string.h>
 #include <ctype.h>
 #include "sendip_module.h"
+#include "module_loader.h"
 #include "ipv6ext.h"
 #include "ah.h"
 #include "esp.h"
 #define _CRYPTO_MAIN
 #include "crypto_module.h"
 
-/* This is patterned after the sendip load_module, but I made
- * it a bit more compact.
- */
 crypto_module *
 load_crypto_module(char *modname)
 {
-	static const char *patterns[]={"%s", "./%s.so", "%s/%s.so", "%s/%s"};
-	char *errors[4]={NULL};
 	crypto_module *newmod=calloc(1, sizeof(*newmod));
-	size_t namesize=strlen(modname)+strlen(SENDIP_LIBS)+6;
 
-	if (!newmod) return NULL;
-	newmod->name=malloc(namesize);
-	if (!newmod->name) goto fail;
-	for (int i=0; i<4; ++i) {
-		if (i<2) snprintf(newmod->name, namesize, patterns[i], modname);
-		else snprintf(newmod->name, namesize, patterns[i], SENDIP_LIBS, modname);
-		newmod->handle=dlopen(newmod->name, RTLD_NOW);
-		if (newmod->handle) break;
-		const char *error=dlerror();
-		errors[i]=strdup(error ? error : "unknown loader error");
+	if (!newmod) {
+		perror("Allocating crypto module");
+		return NULL;
 	}
-	if (!newmod->handle) {
-		fprintf(stderr, "Couldn't open module %s, tried:\n", modname);
-		for (int i=0; i<4; ++i)
-			fprintf(stderr, "  %s\n", errors[i] ? errors[i] : "loader error unavailable");
-	}
-	for (int i=0; i<4; ++i) free(errors[i]);
+	newmod->handle=open_sendip_module(modname, &newmod->name);
 	if (!newmod->handle) goto fail;
 	newmod->cryptomod=dlsym(newmod->handle, "cryptomod");
 	if (!newmod->cryptomod) {

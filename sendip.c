@@ -35,6 +35,7 @@
 #include <limits.h>
 #include <errno.h>
 #include "sendip_module.h"
+#include "module_loader.h"
 
 #ifdef __sun__  /* for EVILNESS workaround */
 #include "ipv4.h"
@@ -319,10 +320,8 @@ static bool conflicting_option_arity(const sendip_option *option,
 }
 
 static bool load_module(char *modname) {
-	static const char *patterns[]={"%s", "./%s.so", "%s/%s.so", "%s/%s"};
-	char *errors[4]={NULL};
 	sendip_module *newmod=calloc(1, sizeof(*newmod));
-	size_t namesize=strlen(modname)+strlen(SENDIP_LIBS)+6;
+	char *loaded_name=NULL;
 	int (*n_opts)(void);
 	sendip_option *(*get_opts)(void);
 	char (*get_optchar)(void);
@@ -331,24 +330,13 @@ static bool load_module(char *modname) {
 		perror("Allocating module");
 		return false;
 	}
-	newmod->name=malloc(namesize);
-	if (!newmod->name) goto fail;
-	for (int i=0; i<4; ++i) {
-		if (i<2) snprintf(newmod->name, namesize, patterns[i], modname);
-		else snprintf(newmod->name, namesize, patterns[i], SENDIP_LIBS, modname);
-		newmod->handle=dlopen(newmod->name, RTLD_NOW);
-		if (newmod->handle) break;
-		const char *error=dlerror();
-		errors[i]=strdup(error ? error : "unknown loader error");
-	}
-	if (!newmod->handle) {
-		fprintf(stderr, "Couldn't open module %s, tried:\n", modname);
-		for (int i=0; i<4; ++i)
-			fprintf(stderr, "  %s\n", errors[i] ? errors[i] : "loader error unavailable");
-	}
-	for (int i=0; i<4; ++i) free(errors[i]);
+	newmod->handle=open_sendip_module(modname, &loaded_name);
 	if (!newmod->handle) goto fail;
-	memcpy(newmod->name, modname, strlen(modname)+1);
+	newmod->name=strdup(modname);
+	if (!newmod->name) {
+		perror("Copying module name");
+		goto fail;
+	}
 
 	if (!(newmod->initialize=dlsym(newmod->handle, "initialize")) ||
 	    !(newmod->do_opt=dlsym(newmod->handle, "do_opt")) ||
@@ -395,10 +383,12 @@ static bool load_module(char *modname) {
 	if (last) last->next=newmod;
 	else first=newmod;
 	last=newmod;
+	free(loaded_name);
 	return true;
 
 fail:
 	if (newmod->handle) dlclose(newmod->handle);
+	free(loaded_name);
 	free(newmod->name);
 	free(newmod);
 	return false;
