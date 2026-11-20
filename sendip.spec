@@ -6,7 +6,7 @@ Summary: A command line tool to allow sending arbitrary IP packets
 Name: %name
 Version: %ver
 Release: 1
-Copyright: GPL
+License: GPL
 Group: Applications/Internet
 Source: http://www.earth.li/projectpurple/files/sendip-%{source_version}.tar.gz
 URL: http://www.earth.li/projectpurple/progs/sendip.html
@@ -65,7 +65,7 @@ data to be added to the packet.
 - RIP support (Richard Polton)
 - Bugfixes
 
-* Sat Jun 08 2000  Mike Ricketts <mike@earth.li>
+* Thu Jun 08 2000  Mike Ricketts <mike@earth.li>
 - Updated to version 1.0
 
 * Mon Apr 10 2000  Mike Ricketts <mike@earth.li>
