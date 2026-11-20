@@ -608,6 +608,11 @@ int main(int argc, char *const argv[]) {
 	}
 
 
+	if (usage) {
+		print_usage();
+		goto cleanup;
+	}
+
 	if(verbosity) fprintf(stderr, "Added %d options\n",num_opts);
 
 	/*@@ looping - needs to be after module loading, but before
