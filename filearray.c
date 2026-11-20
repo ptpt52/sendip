@@ -387,7 +387,10 @@ fa_find(const char *name)
 	 */
 	item.key = (char *)name;
 	item.data = NULL;
-	if (hsearch_r(item, FIND, &found, &fa_tab) <= 0) {
+	/* BSD implementations may report a successful FIND with a NULL result
+	 * when the key is absent. Check the result before dereferencing it.
+	 */
+	if (hsearch_r(item, FIND, &found, &fa_tab) <= 0 || !found) {
 		if (errno == ESRCH || !found) {
 			item.data = (void *)fa_create(name);
 			if (!item.data) {
