@@ -409,7 +409,8 @@ static struct option *module_options(void) {
 			snprintf(name, size, "%c%s", module->optchar, module->opts[j].optname);
 			options[i].name=name;
 			options[i].has_arg=module->opts[j].arg;
-			options[i].val=module->optchar;
+			/* Keep byte values distinct from getopt's end-of-options -1. */
+			options[i].val=(unsigned char)module->optchar;
 		}
 	}
 	return options;
