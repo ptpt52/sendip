@@ -118,6 +118,11 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		return FALSE;
 	}
 	if(hdrs[i]=='i') {
+		if (!(pack->modified&UDP_MOD_CHECK) &&
+		    (size_t)pack->alloc_len+(size_t)data->alloc_len>UINT16_MAX) {
+			usage_error("UDP over IPv4 exceeds the automatic checksum length field\n");
+			return FALSE;
+		}
 		unsigned int old_daddr = 0;
 		if(!(headers[i]->modified&IP_MOD_PROTOCOL)) {
 			((ip_header *)(headers[i]->data))->protocol=header_type(hdrs[i+1]);
