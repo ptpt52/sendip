@@ -42,6 +42,7 @@ PROTOS= $(BASEPROTOS) $(IPPROTOS) $(UDPPROTOS) $(TCPPROTOS)
 LIBS= libsendipaux.a
 LIBOBJS= csum.o compact.o protoname.o headers.o parseargs.o cryptomod.o crc32.o filearray.o
 SUBDIRS= mec
+LIBDIR_STAMP = .sendip-libdir
 
 include mec/modules.mk
 
@@ -54,6 +55,16 @@ sendip: sendip.o gnugetopt.o gnugetopt1.o compact.o filearray.o
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+# Both loaders embed LIBDIR. Keep the stamp's timestamp when it is unchanged.
+$(LIBDIR_STAMP): FORCE_LIBDIR
+	@tmp=$$(mktemp "$@.XXXXXXXX") || exit 1; \
+	trap 'rm -f "$$tmp"' 0; \
+	trap 'exit 1' HUP INT TERM; \
+	printf '%s\n' "$(LIBDIR)" > "$$tmp" && \
+	if ! cmp -s "$$tmp" "$@"; then mv -f "$$tmp" "$@"; fi
+
+sendip.o: $(LIBDIR_STAMP)
 
 libsendipaux.a: $(LIBOBJS)
 	$(AR) vr $@ $?
@@ -72,7 +83,7 @@ headers.o:	mec/headers.c
 parseargs.o:	mec/parseargs.c
 	$(CC) -o $@ -c -I. $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $<
 
-cryptomod.o:	mec/cryptomod.c
+cryptomod.o:	mec/cryptomod.c $(LIBDIR_STAMP)
 	$(CC) -o $@ -c -I. $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $<
 
 crc32.o: mec/crc32table.h mec/crc32.c
@@ -108,10 +119,10 @@ sendip.spec:	sendip.spec.in VERSION
 %.so: %.c $(LIBS)
 			$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
 
-.PHONY:	all subdirs man clean veryclean install
+.PHONY:	all subdirs man clean veryclean install FORCE_LIBDIR
 
 clean:
-			rm -f *.o *.o.d *.so.d *~ *.so $(PROTOS) $(PROGS) $(LIBS) core gmon.out
+			rm -f *.o *.o.d *.so.d *~ *.so $(PROTOS) $(PROGS) $(LIBS) $(LIBDIR_STAMP) core gmon.out
 			for subdir in $(SUBDIRS) ; do \
 				$(MAKE) -C "$$subdir" clean || exit $$?;\
 				done

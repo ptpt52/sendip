@@ -7,3 +7,4 @@ cscope.files
 cscope.out
 *.o.d
 *.so.d
+.sendip-libdir
