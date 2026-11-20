@@ -317,7 +317,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 
 	/* Set relevant fields */
 	if(!(pack->modified&TCP_MOD_SEQ)) {
-		tcp->seq = (u_int32_t)random();
+		tcp->seq = htonl((u_int32_t)random());
 	}
 	if(!(pack->modified&TCP_MOD_OFF)) {
 		if (pack->alloc_len>60) {
