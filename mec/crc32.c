@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <string.h>
 #if defined(__APPLE_CC__)
 #include <libkern/OSByteOrder.h>
 #else
@@ -128,7 +129,6 @@ u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len)
 u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len)
 {
 # if CRC_LE_BITS == 8
-	const u_int32_t      *b =(const u_int32_t *)(const void *)p;
 	const u_int32_t      *tab = crc32table_le;
 
 # ifdef __LITTLE_ENDIAN
@@ -138,36 +138,22 @@ u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len)
 # endif
 
 	crc = __cpu_to_le32(crc);
-	/* Align it */
-	if(unlikely(((long)b)&3 && len)) {
-		do {
-			u_int8_t *p = (u_int8_t *)b;
-			DO_CRC(*p++);
-			b = (void *)p;
-		} while ((--len) && ((long)b)&3 );
+	/* Input is an arbitrary byte buffer: do not form aligned word pointers
+	 * or move a pointer before the start of the object.
+	 */
+	while (len>=4) {
+		u_int32_t word;
+		memcpy(&word, p, sizeof(word));
+		crc ^= word;
+		DO_CRC(0);
+		DO_CRC(0);
+		DO_CRC(0);
+		DO_CRC(0);
+		p+=sizeof(word);
+		len-=sizeof(word);
 	}
-	if(likely(len >= 4)) {
-		/* load data 32 bits wide, xor data 32 bits wide. */
-		size_t save_len = len & 3;
-		len = len >> 2;
-		--b; /* use pre increment below(*++b) for speed */
-		do {
-			crc ^= *++b;
-			DO_CRC(0);
-			DO_CRC(0);
-			DO_CRC(0);
-			DO_CRC(0);
-		} while (--len);
-		b++; /* point to next byte(s) */
-		len = save_len;
-	}
-	/* And the last few bytes */
-	if(len) {
-		do {
-			u_int8_t *p = (u_int8_t *)b;
-			DO_CRC(*p++);
-			b = (void *)p;
-		} while (--len);
+	while (len--) {
+		DO_CRC(*p++);
 	}
 
 	return __le32_to_cpu(crc);
@@ -226,7 +212,6 @@ u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
 u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
 {
 # if CRC_BE_BITS == 8
-	const u_int32_t      *b =(const u_int32_t *)(const void *)p;
 	const u_int32_t      *tab = crc32table_be;
 
 # ifdef __LITTLE_ENDIAN
@@ -236,37 +221,24 @@ u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
 # endif
 
 	crc = __cpu_to_be32(crc);
-	/* Align it */
-	if(unlikely(((long)b)&3 && len)) {
-		do {
-			u_int8_t *p = (u_int8_t *)b;
-			DO_CRC(*p++);
-			b = (const u_int32_t *)(const void *)p;
-		} while ((--len) && ((long)b)&3 );
+	/* Input is an arbitrary byte buffer: do not form aligned word pointers
+	 * or move a pointer before the start of the object.
+	 */
+	while (len>=4) {
+		u_int32_t word;
+		memcpy(&word, p, sizeof(word));
+		crc ^= word;
+		DO_CRC(0);
+		DO_CRC(0);
+		DO_CRC(0);
+		DO_CRC(0);
+		p+=sizeof(word);
+		len-=sizeof(word);
 	}
-	if(likely(len >= 4)) {
-		/* load data 32 bits wide, xor data 32 bits wide. */
-		size_t save_len = len & 3;
-		len = len >> 2;
-		--b; /* use pre increment below(*++b) for speed */
-		do {
-			crc ^= *++b;
-			DO_CRC(0);
-			DO_CRC(0);
-			DO_CRC(0);
-			DO_CRC(0);
-		} while (--len);
-		b++; /* point to next byte(s) */
-		len = save_len;
+	while (len--) {
+		DO_CRC(*p++);
 	}
-	/* And the last few bytes */
-	if(len) {
-		do {
-			u_int8_t *p = (u_int8_t *)b;
-			DO_CRC(*p++);
-			b = (void *)p;
-		} while (--len);
-	}
+
 	return __be32_to_cpu(crc);
 #undef ENDIAN_SHIFT
 #undef DO_CRC
