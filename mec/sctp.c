@@ -166,7 +166,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 				 */
 				sctp->vtag = 0;
 			} else {
-				sctp->vtag = 1;
+				sctp->vtag = htonl(1);
 			}
 		}
 		break;
