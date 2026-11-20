@@ -555,41 +555,45 @@ bool resolve_address(const char *hostname, int family,
  * but then needed the others, with the noted restrictions, for a
  * particular project.
  *
- * This returns the address, in network byte order.
+ * Checked parsers store the address in network byte order and return status.
+ * Legacy wrappers return INADDR_NONE on failure.
  */
-in_addr_t
-cidrargument(const char *input, char *slashpoint, int length)
+static bool
+parse_cidr_argument(const char *input, char *slashpoint, int length, in_addr_t *value)
 {
 	char ipv4space[INET_ADDRSTRLEN];
-	in_addr_t host;
+	u_int32_t host;
 	in_addr_t hmask, smask;
 	struct in_addr cidrarg;
 	int slash;
 	long prefix;
 	char *end;
+	if (!input || !slashpoint || !value) return FALSE;
 	size_t address_length=slashpoint-input;
 
 	(void)length;
 
 	if (!address_length || address_length>=sizeof(ipv4space)) {
 		usage_error("Invalid IPv4 address in CIDR argument\n");
-		return INADDR_NONE;
+		return FALSE;
 	}
 	memcpy(ipv4space, input, address_length);
 	ipv4space[address_length]='\0';
 	if (inet_pton(AF_INET, ipv4space, &cidrarg) != 1) {
 		usage_error("Invalid IPv4 address in CIDR argument\n");
-		return INADDR_NONE;
+		return FALSE;
 	}
 	errno=0;
 	prefix=strtol(slashpoint+1, &end, 10);
 	if (errno || end==slashpoint+1 || *end) {
 		usage_error("Invalid CIDR prefix\n");
-		return INADDR_NONE;
+		return FALSE;
 	}
 	/* /0 covers all addresses; /32 and legacy out-of-range values are fixed. */
-	if (prefix < 0 || prefix >= 32)
-		return cidrarg.s_addr;
+	if (prefix < 0 || prefix >= 32) {
+		*value=cidrarg.s_addr;
+		return TRUE;
+	}
 	slash=(int)prefix;
 	/* The host and subnet parts, in host order for now */
 	hmask = UINT32_MAX >> slash;
@@ -600,58 +604,73 @@ cidrargument(const char *input, char *slashpoint, int length)
 	 */
 	do {
 		if (slash < 8) {
-			host = hostintegerargument("r4", 4);
+			if (!hostintegerargument_checked("r4", 4, &host)) return FALSE;
 		} else if (slash < 16) {
-			host = hostintegerargument("r3", 3);
+			if (!hostintegerargument_checked("r3", 3, &host)) return FALSE;
 		} else if (slash < 24) {
-			host = hostintegerargument("r2", 2);
+			if (!hostintegerargument_checked("r2", 2, &host)) return FALSE;
 		} else {
-			host = hostintegerargument("r1", 1);
+			if (!hostintegerargument_checked("r1", 1, &host)) return FALSE;
 		}
 		host &= hmask;
 	} while (slash < 31 && (host == 0 || host == hmask));
 	/* Now fold the random host into the output */
-	return ((cidrarg.s_addr&htonl(smask))|htonl(host));
+	*value=(cidrarg.s_addr&htonl(smask))|htonl(host);
+	return TRUE;
 }
 
-in_addr_t
-ipv4argument(const char *input, int length)
-{
-	static char ipv4space[BUFSIZ]; /* actual max around 40 */
-	u_int32_t a, b, c, d;
-	char *dotpoint, *slashpoint;
+in_addr_t cidrargument(const char *input, char *slashpoint, int length) {
+	in_addr_t value=INADDR_NONE;
+	(void)parse_cidr_argument(input, slashpoint, length, &value);
+	return value;
+}
 
+bool ipv4argument_checked(const char *input, int length, in_addr_t *value) {
+	if (!value) return FALSE;
 	input=resolve_file_arguments(input);
-	if (!input) return INADDR_NONE;
-	/* Special case for CIDR notation */
-	if ((slashpoint=strchr(input, '/'))) {
-		return cidrargument(input, slashpoint, length);
+	if (!input) return FALSE;
+	char *slash=strchr(input, '/');
+	if (slash) return parse_cidr_argument(input, slash, length, value);
+	if (!strchr(input, '.')) {
+		u_int32_t parsed;
+		if (!integerargument_checked(input, 4, &parsed)) return FALSE;
+		*value=parsed;
+		return TRUE;
 	}
 
-	/* This covers the rN and fixed methods of address specification */
-	if (!(dotpoint=strchr(input, '.')))	/* aaaaaaaa */
-		return integerargument(input, 4);	/* in network order */
-	a = hostintegerargument(input, 1);
-	input = dotpoint;
-	++input;
-	if (!(dotpoint=strchr(input, '.'))) {	/* aa.bbbbbb */
-		b = hostintegerargument(input, 3);
-		sprintf(ipv4space, "%d.%d", a, b);
-		return inet_addr(ipv4space);
+	/* Terminate each component before checked integer parsing. Preserve
+	 * the historical one/two/three/four-part address widths and rN forms.
+	 */
+	char *copy=strdup(input), *remaining=copy, *fields[4], *field;
+	u_int32_t parts[4], host;
+	int count=0;
+	bool valid=FALSE;
+	if (!copy) return FALSE;
+	while ((field=strsep(&remaining, "."))) {
+		if (count==4) goto out;
+		fields[count++]=field;
 	}
-	b = hostintegerargument(input, 1);
-	input = dotpoint;
-	++input;
-	if (!(dotpoint=strchr(input, '.'))) {	/* aa.bb.cccc */
-		c = hostintegerargument(input, 2);
-		sprintf(ipv4space, "%d.%d.%d", a, b, c);
-		return inet_addr(ipv4space);
+	if (count<2) goto out;
+	for (int i=0; i<count; ++i) {
+		int width=i==count-1 ? 5-count : 1;
+		if (!hostintegerargument_checked(fields[i], width, &parts[i])) goto out;
 	}
-	c = hostintegerargument(input, 1);
-	input = dotpoint;
-	++input;
-	d = hostintegerargument(input, 1);
-	sprintf(ipv4space, "%d.%d.%d.%d", a, b, c, d);
-	return inet_addr(ipv4space);
+	host=parts[count-1];
+	/* The three-byte shorthand component was not narrowed by the legacy
+	 * integer helper; inet_addr rejected values that exceed its 24 bits.
+	 */
+	if (count==2 && host>UINT32_C(0x00ffffff)) goto out;
+	for (int i=0; i<count-1; ++i) host|=parts[i]<<(24-8*i);
+	*value=htonl(host);
+	valid=TRUE;
+out:
+	free(copy);
+	if (!valid) usage_error("Invalid IPv4 address argument\n");
+	return valid;
 }
 
+in_addr_t ipv4argument(const char *input, int length) {
+	in_addr_t value=INADDR_NONE;
+	(void)ipv4argument_checked(input, length, &value);
+	return value;
+}

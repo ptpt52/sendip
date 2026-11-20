@@ -44,6 +44,8 @@ Module authors can use `integerargument_checked` and
 `hostintegerargument_checked` to distinguish parse/file failures from valid
 zero values. These functions leave the output unchanged on failure. The legacy
 value-only entry points remain available for external modules.
+`ipv4argument_checked` also reports failure separately from a valid broadcast
+address; IPv4 source, destination, route and timestamp options use it.
 
 ### File arguments
 

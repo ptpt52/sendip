@@ -46,7 +46,8 @@ static int buildroute(char *input, u_int8_t *output, sendip_data *pack) {
 	char *remaining=input+3, *address;
 	while ((address=strsep(&remaining, ":"))) {
 		if (!*address || used>253-4) return 0;
-		u_int32_t ip=ipv4argument(address, strlen(address));
+		in_addr_t ip;
+		if (!ipv4argument_checked(address, strlen(address), &ip)) return 0;
 		memcpy(output+used, &ip, 4);
 		used+=4;
 	}
@@ -88,7 +89,8 @@ static int buildtimestamp(char *input, u_int8_t *output) {
 		char *field=strsep(&remaining, ":");
 		if (flags) {
 			if (!remaining || used>253-8) return 0;
-			u_int32_t ip=ipv4argument(field, strlen(field));
+			in_addr_t ip;
+			if (!ipv4argument_checked(field, strlen(field), &ip)) return 0;
 			memcpy(output+used, &ip, 4);
 			used+=4;
 			field=strsep(&remaining, ":");
@@ -152,17 +154,20 @@ bool set_addr(char *hostname, sendip_data *pack) {
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	u_int32_t parsed;
+	in_addr_t address;
 	ip_header *iph = (ip_header *)pack->data;
 	bool added=TRUE;
 	switch(opt[1]) {
 	case 's':
 		/*@@iph->saddr = inet_addr(arg);*/
-		iph->saddr = ipv4argument(arg, strlen(arg));
+		if (!ipv4argument_checked(arg, strlen(arg), &address)) return FALSE;
+		iph->saddr = address;
 		pack->modified |= IP_MOD_SADDR;
 		break;
 	case 'd':
 		/*@@iph->daddr = inet_addr(arg);*/
-		iph->daddr = ipv4argument(arg, strlen(arg));
+		if (!ipv4argument_checked(arg, strlen(arg), &address)) return FALSE;
+		iph->daddr = address;
 		pack->modified |= IP_MOD_DADDR;
 		break;
 	case 'h':
