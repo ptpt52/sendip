@@ -62,9 +62,14 @@ const char opt_char='d';
 sendip_data *
 initialize(void)
 {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	hop_header *hop = malloc(HDR_ALLOC);
 
+	if (!ret || !hop) {
+		free(hop);
+		free(ret);
+		return NULL;
+	}
 	memset(hop,0,HDR_ALLOC);
 	hop->hdrlen = 0;
 	ret->modified = sizeof(hop_header);	/* for the opt header itself */

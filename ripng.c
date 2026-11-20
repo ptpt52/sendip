@@ -35,8 +35,13 @@ static struct in6_addr inet6_addr(char *hostname) {
 }
 
 sendip_data *initialize(void) {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	ripng_header *rip = malloc(sizeof(ripng_header));
+	if (!ret || !rip) {
+		free(rip);
+		free(ret);
+		return NULL;
+	}
 	memset(rip,0,sizeof(ripng_header));
 	ret->alloc_len = sizeof(ripng_header);
 	ret->data = (void *)rip;

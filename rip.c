@@ -22,8 +22,13 @@
 const char opt_char='r';
 
 sendip_data *initialize(void) {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	rip_header *rip = malloc(sizeof(rip_header));
+	if (!ret || !rip) {
+		free(rip);
+		free(ret);
+		return NULL;
+	}
 	memset(rip,0,sizeof(rip_header));
 	ret->alloc_len = sizeof(rip_header);
 	ret->data = (void *)rip;

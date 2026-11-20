@@ -26,10 +26,16 @@ crypto_module *cryptoah;
 sendip_data *
 initialize(void)
 {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	ah_header *ah = malloc(sizeof(ah_header));
 	ah_private *priv = malloc(sizeof(ah_private));
 
+	if (!ret || !ah || !priv) {
+		free(priv);
+		free(ah);
+		free(ret);
+		return NULL;
+	}
 	memset(ah,0,sizeof(ah_header));
 	memset(priv,0,sizeof(ah_private));
 	ah->hdrlen = 1;		/* RFC 4302 length with empty auth data */

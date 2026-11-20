@@ -109,8 +109,13 @@
 const char opt_char='dummy';
 
 sendip_data *initialize(void) {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	dummy_header *dummy = malloc(sizeof(dummy_header));
+	if (!ret || !dummy) {
+		free(dummy);
+		free(ret);
+		return NULL;
+	}
 	memset(dummy,0,sizeof(dummy_header));
 	ret->alloc_len = sizeof(dummy_header);
 	ret->data = dummy;

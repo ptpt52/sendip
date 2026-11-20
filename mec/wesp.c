@@ -22,9 +22,14 @@ const char opt_char='w';
 sendip_data *
 initialize(void)
 {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	wesp_header *wesp = malloc(sizeof(wesp_header));
 
+	if (!ret || !wesp) {
+		free(wesp);
+		free(ret);
+		return NULL;
+	}
 	memset(wesp,0,sizeof(wesp_header));
 	ret->alloc_len = sizeof(wesp_header);
 	ret->data = wesp;

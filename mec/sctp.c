@@ -23,9 +23,14 @@ const char opt_char='s';
 sendip_data *
 initialize(void)
 {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	sctp_header *sctp = malloc(sizeof(sctp_header));
 
+	if (!ret || !sctp) {
+		free(sctp);
+		free(ret);
+		return NULL;
+	}
 	memset(sctp,0,sizeof(sctp_header));
 	ret->alloc_len = sizeof(sctp_header);
 	ret->data = sctp;

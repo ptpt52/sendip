@@ -80,8 +80,13 @@ static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
 }
 
 sendip_data *initialize(void) {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	udp_header *udp = malloc(sizeof(udp_header));
+	if (!ret || !udp) {
+		free(udp);
+		free(ret);
+		return NULL;
+	}
 	memset(udp,0,sizeof(udp_header));
 	ret->alloc_len = sizeof(udp_header);
 	ret->data = (void *)udp;

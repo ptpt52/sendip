@@ -26,7 +26,7 @@ crypto_module *authesp, *cryptoesp;
 sendip_data *
 initialize(void)
 {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	/* We allocate an additional 4 bytes to ensure we have
 	 * enough space for any padding in finalize(). In reality,
 	 * we will only need at most 3 bytes, but this should
@@ -35,6 +35,12 @@ initialize(void)
 	esp_header *esp = malloc(sizeof(esp_header) + ESP_MIN_PADDING);
 	esp_private *priv = malloc(sizeof(esp_private));
 
+	if (!ret || !esp || !priv) {
+		free(priv);
+		free(esp);
+		free(ret);
+		return NULL;
+	}
 	memset(esp,0,sizeof(esp_header)+ESP_MIN_PADDING);
 	memset(priv,0,sizeof(esp_private));
 	ret->alloc_len = sizeof(esp_header)+ESP_MIN_PADDING;

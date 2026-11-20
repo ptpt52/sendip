@@ -98,8 +98,13 @@ static void addoption(u_int8_t opt, u_int8_t len, u_int8_t *data,
 }
 
 sendip_data *initialize(void) {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	tcp_header *tcp = malloc(sizeof(tcp_header));
+	if (!ret || !tcp) {
+		free(tcp);
+		free(ret);
+		return NULL;
+	}
 	memset(tcp,0,sizeof(tcp_header));
 	ret->alloc_len = sizeof(tcp_header);
 	ret->data = (void *)tcp;

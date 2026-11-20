@@ -100,8 +100,13 @@ static void addoption(u_int8_t copy, u_int8_t class, u_int8_t num,
 }
 
 sendip_data *initialize(void) {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	ip_header *ip = malloc(sizeof(ip_header));
+	if (!ret || !ip) {
+		free(ip);
+		free(ret);
+		return NULL;
+	}
 	memset(ip,0,sizeof(ip_header));
 	ret->alloc_len = sizeof(ip_header);
 	ret->data = (void *)ip;

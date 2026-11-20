@@ -86,8 +86,13 @@ bool make_ts(ntp_ts *dest, char *src) {
 }
 
 sendip_data *initialize(void) {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	ntp_header *ntp = malloc(sizeof(ntp_header));
+	if (!ret || !ntp) {
+		free(ntp);
+		free(ret);
+		return NULL;
+	}
 	memset(ntp,0,sizeof(ntp_header));
 	ret->alloc_len = sizeof(ntp_header);
 	ret->data = (void *)ntp;

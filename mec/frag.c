@@ -22,9 +22,14 @@ const char opt_char='F';	/* -f is load from file */
 sendip_data *
 initialize(void)
 {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	frag_header *frag = malloc(sizeof(frag_header));
 
+	if (!ret || !frag) {
+		free(frag);
+		free(ret);
+		return NULL;
+	}
 	memset(frag,0,sizeof(frag_header));
 	ret->alloc_len = sizeof(frag_header);
 	ret->data = frag;

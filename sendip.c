@@ -425,7 +425,11 @@ int main(int argc, char *const argv[]) {
 	srandom(time(NULL) ^ (getpid()+(42<<15)));
 
 	/*@@ init global tools */
-	fa_init();
+	if (!fa_init()) {
+		perror("Initializing file arguments");
+		status=1;
+		goto cleanup;
+	}
 
 	/* First, get all the builtin options, and load the modules */
 	gnuopterr=0;
@@ -550,12 +554,22 @@ int main(int argc, char *const argv[]) {
 	 * module option processing ... */
 	while (--loopcount >= 0) {
 
+		/* Discard all previous packet views before any initializer can fail. */
+		for (mod=first; mod; mod=mod->next) {
+			free(mod->pack);
+			mod->pack=NULL;
+		}
+
 		/* Initialize all */
 		for(mod=first; mod!=NULL; mod=mod->next) {
 			if(verbosity) fprintf(stderr, "Initializing module %s\n",mod->name);
-			/*@@ if looping, check if reloading */
-			/*@@*/if (mod->pack) free(mod->pack);
 			mod->pack=mod->initialize();
+			if (!mod->pack) {
+				perror("Initializing protocol module");
+				unload_modules(TRUE, verbosity);
+				status=1;
+				goto cleanup;
+			}
 		}
 
 		/* Do the get opt */

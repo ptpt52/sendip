@@ -23,13 +23,18 @@ const char opt_char='o';	/* r'o'uting - r and R already used */
 sendip_data *
 initialize(void)
 {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	/* Note the Linux generic routing header structure doesn't
 	 * include the 4-byte reserved field. To get that, let's
 	 * just use the type 0 routing header as the allocation unit.
 	 */
 	route_header *route = malloc(sizeof(struct rt0_hdr));
 
+	if (!ret || !route) {
+		free(route);
+		free(ret);
+		return NULL;
+	}
 	memset(route,0,sizeof(struct rt0_hdr));
 	ret->alloc_len = sizeof(struct rt0_hdr);
 	ret->data = route;

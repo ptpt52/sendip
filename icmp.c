@@ -70,8 +70,13 @@ static void icmp6csum(struct in6_addr *src, struct in6_addr *dst,
 }
 
 sendip_data *initialize(void) {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	icmp_header *icmp = malloc(sizeof(icmp_header));
+	if (!ret || !icmp) {
+		free(icmp);
+		free(ret);
+		return NULL;
+	}
 	memset(icmp,0,sizeof(icmp_header));
 	ret->alloc_len = sizeof(icmp_header);
 	ret->data = (void *)icmp;

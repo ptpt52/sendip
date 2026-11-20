@@ -19,8 +19,13 @@
 const char opt_char='6';
 
 sendip_data *initialize(void) {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	ipv6_header *ipv6 = malloc(sizeof(ipv6_header));
+	if (!ret || !ipv6) {
+		free(ipv6);
+		free(ret);
+		return NULL;
+	}
 	memset(ipv6,0,sizeof(ipv6_header));
 	ret->alloc_len = sizeof(ipv6_header);
 	ret->data = (void *)ipv6;

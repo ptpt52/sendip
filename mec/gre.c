@@ -28,8 +28,13 @@ const char opt_char='g';
 sendip_data *
 initialize(void)
 {
-	sendip_data *ret = malloc(sizeof(sendip_data));
+	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	gre_header *gre = malloc(sizeof(gre_header));
+	if (!ret || !gre) {
+		free(gre);
+		free(ret);
+		return NULL;
+	}
 	memset(gre,0,sizeof(gre_header));
 	ret->alloc_len = sizeof(gre_header);
 	ret->data = gre;
