@@ -353,7 +353,7 @@ bool do_opt (char        *optstring,
 				ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFF, 16, '\0');
 
 				if (!len_mod) {
-					*(rem_ptr + 1) = ptr - rem_ptr;
+					*(rem_ptr + 1) = ptr - rem_ptr - 2;
 				}
 				if (!(pack->modified & BGP_MOD_OPT_LEN)) {
 					*state->opt_len_ptr += ptr - rem_ptr;
