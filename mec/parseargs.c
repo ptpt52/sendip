@@ -36,24 +36,22 @@ parseargs(char *string, char *args[], const char *seps)
 	return i;
 }
 
-/* Same as above, but with an array limit. If we hit the limit,
- * the rest gets dumped into the final arg.
+/* Bounded tokenizer: terminate every token and reject excess arguments.
+ * Return -1 on invalid arguments or if the token count exceeds limit.
  */
 int
 parsenargs(char *string, char *args[], int limit, const char *seps)
 {
-	int i;
-
-	for (i=0; *string && i < limit; ++i) {
-		while (*string && mstrchr(seps, *string))
-			*string++ = '\0';
-		if (!*string)
-			break;
-		args[i] = string;
-		while (*string && !mstrchr(seps, *string))
-			++string;
+	int count=0;
+	if (!string || limit<0 || (limit && !args)) return -1;
+	for (;;) {
+		while (*string && mstrchr(seps, *string)) *string++='\0';
+		if (!*string) return count;
+		if (count==limit) return -1;
+		args[count++]=string;
+		while (*string && !mstrchr(seps, *string)) ++string;
+		if (*string) *string++='\0';
 	}
-	return i;
 }
 
 #ifdef TEST

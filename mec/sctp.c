@@ -223,6 +223,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		init.initial_tsn = __constant_htonl(1);
 
 		nargs = parsenargs(arg, strargs, INITFIELDS, " ,:.");
+		if (nargs<0) return FALSE;
 		/* Note the cheesy reverse fallthrough */
 		switch (nargs) {
 		case 5:
@@ -345,6 +346,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		supportedaddrs.param_hdr.type =
 		    SCTP_PARAM_SUPPORTED_ADDRESS_TYPES;
 		naddrs = parsenargs(arg, straddrs, MAXSUPPORTEDADDRS, " ,:.");
+		if (naddrs<0) return FALSE;
 		for (i=0; i < naddrs; ++i)
 			addrs[i] = htons(atoi(straddrs[i]));
 		addrs[i] = 0;

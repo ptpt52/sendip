@@ -54,6 +54,10 @@ readaddrs(char *arg, sendip_data *pack)
 	char *addrs[ADDRMAX];
 
 	count = parsenargs(arg, addrs, ADDRMAX, ", ");
+	if (count<0) {
+		usage_error("Too many routing addresses\n");
+		return FALSE;
+	}
 	size_t size=sizeof(*rt)+(size_t)count*sizeof(struct in6_addr);
 	rt=calloc(1, size);
 	if (!rt) return FALSE;
