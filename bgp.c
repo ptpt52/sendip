@@ -646,21 +646,19 @@ bool do_opt (char        *optstring,
 			rc = FALSE;
 		} else {
 			arg_ptr = optarg;
-			*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 10);
-			if (*arg_ptr != '\0') {
-				arg_ptr++;
-			}
-
-			*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 10);
-			if (*arg_ptr != '\0') {
-				arg_ptr++;
-			}
-
-			count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFFFF, 16, ':', '\0');
+			if (!bgp_scalar_field(&arg_ptr, 10, FALSE, 0, &scalar,
+			                      &specified, &separator)) return FALSE;
+			u_int8_t code=(u_int8_t)scalar;
+			if (!bgp_scalar_field(&arg_ptr, 10, FALSE, 0, &scalar,
+			                      &specified, &separator)) return FALSE;
+			u_int8_t subcode=(u_int8_t)scalar;
+			count=bgp_parse_bytes(ptr+2, arg_ptr, &new_arg_ptr,
+			                      UINT16_MAX, 16, ':', '\0');
 			if (count<0) return FALSE;
-			ptr+=count;
 			if (*new_arg_ptr) { usage_error("Too many BGP notification bytes\n"); return FALSE; }
-
+			ptr[0]=code;
+			ptr[1]=subcode;
+			ptr+=count+2;
 			state->prev_part = BGP_NOTFN;
 		}
 		break;
