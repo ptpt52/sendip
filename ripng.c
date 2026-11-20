@@ -20,20 +20,6 @@
  */
 const char opt_char='R';
 
-static struct in6_addr inet6_addr(char *hostname) {
-	struct hostent *host = gethostbyname2(hostname,AF_INET6);
-	struct in6_addr ret;
-	if(host==NULL) {
-		fprintf(stderr,"RIPNG: Couldn't get address for %s defaulting to loopback",hostname);
-		return in6addr_loopback;
-	}
-	if(host->h_length != sizeof(struct in6_addr)) {
-		fprintf(stderr,"RIPNG: IPV6 address is the wrong size: defaulting to loopback");
-		return in6addr_loopback;
-	}
-	memcpy(&ret,host->h_addr,sizeof(ret));
-	return ret;
-}
 
 sendip_data *initialize(void) {
 	sendip_data *ret = calloc(1, sizeof(sendip_data));
@@ -103,9 +89,16 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			usage_error("Too many fields in RIPNG entry\n");
 			return FALSE;
 		}
+		struct in6_addr prefix=in6addr_any;
+		if (*fields[0]) {
+			struct sockaddr_storage address;
+			socklen_t length;
+			if (!resolve_address(fields[0], AF_INET6, &address, &length)) return FALSE;
+			prefix=((struct sockaddr_in6 *)&address)->sin6_addr;
+		}
 		if (!add_entry(pack)) return FALSE;
 		ripopt=RIPNG_ENTRY(pack);
-		ripopt->prefix=*fields[0] ? inet6_addr(fields[0]) : in6addr_any;
+		ripopt->prefix=prefix;
 		ripopt->tag=htons(*fields[1] ? strtoul(fields[1], NULL, 0) : 0);
 		ripopt->len=*fields[2] ? strtoul(fields[2], NULL, 0) : 128;
 		ripopt->metric=*fields[3] ? strtoul(fields[3], NULL, 0) : 16;
