@@ -370,6 +370,16 @@ static struct option *module_options(void) {
 	return options;
 }
 
+static sendip_module *find_option_module(sendip_module *current, int optchar) {
+	/* Prefer the most recent matching selector, including the current one. */
+	for (sendip_module *mod=current; mod; mod=mod->prev)
+		if (mod->optchar==optchar) return mod;
+	/* Options can also precede the first selector for their module. */
+	for (sendip_module *mod=current ? current->next : first; mod; mod=mod->next)
+		if (mod->optchar==optchar) return mod;
+	return NULL;
+}
+
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
@@ -714,15 +724,7 @@ int main(int argc, char *const argv[]) {
 				}
 				continue;
 			}
-			/*@@ check current mod first */
-			if (currentmod && currentmod->optchar == optc)
-				mod = currentmod;
-			else {
-				for(mod=first; mod!=NULL; mod=mod->next) {
-					if(mod->optchar==optc)
-						break;
-				}
-			}
+			mod=find_option_module(currentmod, optc);
 			if (mod) {
 				/* Random option arguments */
 				if(gnuoptarg != NULL && !strcmp(gnuoptarg,"r")) {
