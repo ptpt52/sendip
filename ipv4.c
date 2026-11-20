@@ -175,24 +175,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified |= IP_MOD_TOS;
 		break;
 	case 'l':
-		/*@@ For reasons unbeknownst to science, the tot_len and
-		 * frag_off fields in FreeBSD have to be passed in
-		 * host, rather than network byte order. They are flipped
-		 * (if need be) in the kernel before transmission.
-		 */
-		/*@@
-		 * 		iph->tot_len = (u_int16_t)strtoul(arg, (char **)NULL, 0);
-		 * #ifndef __FreeBSD__
-		 * #ifndef __FreeBSD
-		 * 		iph->tot_len = htons(iph->tot_len);
-		 * #endif
-		 * #endif
-		 */
-#if defined(__FreeBSD__) || defined(__FreeBSD)
-		iph->tot_len = hostintegerargument(arg, 2);
-#else
 		iph->tot_len = integerargument(arg, 2);
-#endif
 
 		pack->modified |= IP_MOD_TOTLEN;
 		break;
@@ -224,9 +207,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 				break;
 			}
 		} else {
-			/*@@ The define for this has to make FreeBSD
-			 * adjustments.
-			 */
+			/* Preserve the flags when setting the wire-format offset. */
 			IP_SET_FRAGOFF(iph,(u_int16_t)strtoul(arg, (char **)NULL, 0) &
 			               (u_int16_t)0x1FFF);
 			pack->modified |= IP_MOD_FRAGOFF;
@@ -344,11 +325,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 			return FALSE;
 		}
 		iph->tot_len=pack->alloc_len + data->alloc_len;
-#ifndef __FreeBSD__
-#ifndef __FreeBSD
 		iph->tot_len = htons(iph->tot_len);
-#endif
-#endif
 	}
 	if(!(pack->modified & IP_MOD_ID)) {
 		iph->id = rand();

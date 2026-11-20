@@ -2,11 +2,6 @@
  */
 #ifndef _SENDIP_IP_H
 #define _SENDIP_IP_H
-#if defined(__APPLE__)
-#ifndef __FreeBSD__
-#define __FreeBSD__
-#endif
-#endif
 
 /* IP HEADER
  * Taken from glibc 2.2, and modified
@@ -24,18 +19,8 @@ typedef struct SENDIP_PACKED {
 	u_int8_t tos;
 	u_int16_t tot_len;
 	u_int16_t id;
-	/*@@ In FreeBSD, for historical reasons, fragment offsets (and also tot_len)
-	 * are specified in *host* byte order at user level; the kernel then does
-	 * byte swapping before sending. So for FreeBSD only, we use the same
-	 * bitfield ordering and IP_SET_FRAGOFF macro for both little and big endian.
-	 */
-#if defined(__FreeBSD__) || defined(__FreeBSD)
-	u_int16_t res:1;
-	u_int16_t df:1;
-	u_int16_t mf:1;
-	u_int16_t frag_off:13;
-#define IP_SET_FRAGOFF(ip,v) (ip)->frag_off=(v)
-#elif __BYTE_ORDER == __LITTLE_ENDIAN
+	/* Fragment flags and offset are serialized in network byte order. */
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 	u_int16_t frag_off1:5;
 	u_int16_t mf:1;
 	u_int16_t df:1;

@@ -140,11 +140,7 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	if (!(ipack->modified & IP_MOD_TOTLEN)) {
 		pseudoip.tot_len = (u_int8_t *)pack->data-(u_int8_t *)ipack->data +
 		                   pack->alloc_len + data->alloc_len;
-#ifndef __FreeBSD__
-#ifndef __FreeBSD
 		pseudoip.tot_len = htons(pseudoip.tot_len);
-#endif
-#endif
 	} else
 		pseudoip.tot_len = realip->tot_len;
 	/* Here there's an issue, since the ipv4 module inserts a

@@ -27,6 +27,13 @@ range. SendIP still passes a decimal string to `do_opt`; explicit arguments
 retain their normal validation. Modules without this callback keep the legacy
 32-bit random value.
 
+### IPv4 byte order
+
+Assembled and dumped IPv4 headers use network byte order on every platform,
+including encapsulated headers. The outer header is temporarily adapted only
+when sending through Darwin or pre-11 FreeBSD raw sockets; FreeBSD 11 and later
+use network order directly.
+
 ### Enhancements
 
 This version adds the ability to dump packets to `stdout` rather than sending them to their

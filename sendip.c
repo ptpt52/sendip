@@ -43,6 +43,34 @@
 #include "ipv4.h"
 #endif /* __sun__ */
 
+/* FreeBSD 11+ accepts network-order fields; older FreeBSD and Darwin
+ * expect host-order ip_len/ip_off at the raw-socket boundary only.
+ */
+#if defined(__FreeBSD__) || defined(__FreeBSD)
+#include <sys/param.h>
+#endif
+#if defined(__APPLE__) || ((defined(__FreeBSD__) || defined(__FreeBSD)) && \
+    defined(__FreeBSD_version) && __FreeBSD_version < 1100000)
+#define SENDIP_RAW_IPV4_HOST_ORDER 1
+#else
+#define SENDIP_RAW_IPV4_HOST_ORDER 0
+#endif
+
+#if SENDIP_RAW_IPV4_HOST_ORDER
+static void raw_ipv4_host_order(void *packet) {
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	unsigned char *wire=packet;
+	/* Swap just the two socket-specific 16-bit words, without alignment
+	 * assumptions. This operation is its own inverse.
+	 */
+	unsigned char byte=wire[2]; wire[2]=wire[3]; wire[3]=byte;
+	byte=wire[6]; wire[6]=wire[7]; wire[7]=byte;
+#else
+	(void)packet;
+#endif
+}
+#endif
+
 /* Use our own getopt to ensure consistent behaviour on all platforms */
 #include "gnugetopt.h"
 
@@ -185,8 +213,26 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 	}
 #endif /* __sun__ */
 
+	/* The assembled packet, dumps and encapsulated headers stay in wire
+	 * order. Adapt only the outer header temporarily for legacy raw APIs.
+	 */
+#if SENDIP_RAW_IPV4_HOST_ORDER
+	unsigned char wire_prefix[8];
+	bool host_order=af_type==AF_INET && data->alloc_len>=20;
+	if (host_order) {
+		memcpy(wire_prefix, data->data, sizeof(wire_prefix));
+		raw_ipv4_host_order(data->data);
+	}
+#endif
 	/* Send the packet */
 	sent = sendto(s, (char *)data->data, data->alloc_len, 0, (const struct sockaddr *)&to, tolen);
+#if SENDIP_RAW_IPV4_HOST_ORDER
+	if (host_order) {
+		int saved_errno=errno;
+		memcpy(data->data, wire_prefix, sizeof(wire_prefix));
+		errno=saved_errno;
+	}
+#endif
 	if (sent == data->alloc_len) {
 		if(verbose) fprintf(stderr, "Sent %d bytes to %s\n",sent,hostname);
 	} else {
