@@ -91,14 +91,22 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			usage_error("Too many fields in RIP entry\n");
 			return FALSE;
 		}
+		struct in_addr addresses[3];
+		const char *defaults[]={"0.0.0.0", "255.255.255.0", "0.0.0.0"};
+		for (size_t i=0; i<3; ++i) {
+			if (!inet_aton(*fields[i+2] ? fields[i+2] : defaults[i], &addresses[i])) {
+				usage_error("Invalid IPv4 address in RIP entry\n");
+				return FALSE;
+			}
+		}
 		if (!add_entry(pack)) return FALSE;
 		ripopt=RIP_OPTION(pack);
 		ripopt->addressFamily=htons(*fields[0] ? strtoul(fields[0], NULL, 0) : 2);
 		ripopt->routeTagOrAuthenticationType=htons(*fields[1] ? strtoul(fields[1], NULL, 0) : 0);
 		pack->modified |= RIP_MOD_ADDRFAM|RIP_MOD_ROUTETAG;
-		ripopt->address=inet_addr(*fields[2] ? fields[2] : "0.0.0.0");
-		ripopt->subnetMask=inet_addr(*fields[3] ? fields[3] : "255.255.255.0");
-		ripopt->nextHop=inet_addr(*fields[4] ? fields[4] : "0.0.0.0");
+		ripopt->address=addresses[0].s_addr;
+		ripopt->subnetMask=addresses[1].s_addr;
+		ripopt->nextHop=addresses[2].s_addr;
 		ripopt->metric=htonl(*fields[5] ? strtoul(fields[5], NULL, 0) : 16);
 		break;
 	case 'd': /* default request */
