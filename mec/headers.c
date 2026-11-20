@@ -43,6 +43,15 @@ header_type(const char hdr_char)
 	return IPPROTO_NONE;
 }
 
+/* The ICMP module represents both protocol 1 (IPv4) and 58 (IPv6). */
+u_int8_t header_type_at(const char *hdrs, int index) {
+	if (hdrs[index]=='c') {
+		int parent=outer_header(hdrs, index, "i6");
+		if (parent>=0 && hdrs[parent]=='i') return IPPROTO_ICMP;
+	}
+	return header_type(hdrs[index]);
+}
+
 int
 outer_header(const char *hdrs, int index, const char *choices)
 {

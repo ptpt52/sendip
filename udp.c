@@ -125,7 +125,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		}
 		unsigned int old_daddr = 0;
 		if(!(headers[i]->modified&IP_MOD_PROTOCOL)) {
-			((ip_header *)(headers[i]->data))->protocol=header_type(hdrs[i+1]);
+			((ip_header *)(headers[i]->data))->protocol=header_type_at(hdrs, i+1);
 			headers[i]->modified |= IP_MOD_PROTOCOL;
 		}
 		//replace ip daddr

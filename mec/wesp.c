@@ -148,7 +148,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		if (wesp->encrypted || !nextesp)
 			wesp->nexthdr = 0;
 		else 	/* supposed to be the header after esp */
-			wesp->nexthdr = header_type(hdrs[index+2]);
+			wesp->nexthdr = header_type_at(hdrs, index+2);
 	}
 	if (!(pack->modified&WESP_MOD_HDRLEN)) {
 		if (wesp->encrypted)

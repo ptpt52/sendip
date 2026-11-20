@@ -134,7 +134,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	frag_header *frag = (frag_header *)pack->data;
 
 	if (!(pack->modified&FRAG_MOD_NEXTHDR))
-		frag->nexthdr = header_type(hdrs[index+1]);
+		frag->nexthdr = header_type_at(hdrs, index+1);
 	return TRUE;
 }
 

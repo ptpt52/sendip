@@ -158,7 +158,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	hop_header *hop=pack->data;
 	if (!(pack->modified&HOP_MOD_NEXTHDR))
-		hop->nexthdr=header_type(hdrs[index+1]);
+		hop->nexthdr=header_type_at(hdrs, index+1);
 	hop->hdrlen=pack->alloc_len/HDR_ALLOC-1;
 	return TRUE;
 }

@@ -154,7 +154,7 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	int ret = TRUE;
 
 	if (!(pack->modified&AH_MOD_NEXTHDR))
-		ah->nexthdr = header_type(hdrs[index+1]);
+		ah->nexthdr = header_type_at(hdrs, index+1);
 	/* If there's a crypto module, give it the packet to fill
 	 * in the auth data.
 	 */

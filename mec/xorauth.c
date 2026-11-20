@@ -155,7 +155,7 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 		pseudoip.id = realip->id;
 	if (!(ipack->modified&IP_MOD_PROTOCOL)) {
 		/* New default: actual type of following header */
-		pseudoip.protocol = header_type(hdrs[index+1]);
+		pseudoip.protocol = header_type_at(hdrs, index+1);
 	} else
 		pseudoip.protocol = realip->protocol;
 	/* set_addr is called before finalize, so we know the
@@ -215,7 +215,7 @@ ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 		pseudoip.ip6_plen = realip->ip6_plen;
 	if (!(ipack->modified&IPV6_MOD_NXT)) {
 		/* New default: actual type of following header */
-		pseudoip.ip6_nxt = header_type(hdrs[index+1]);
+		pseudoip.ip6_nxt = header_type_at(hdrs, index+1);
 	} else
 		pseudoip.ip6_nxt = realip->ip6_nxt;
 	/* set_addr is called before finalize, so we know the

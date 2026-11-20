@@ -127,7 +127,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	route_header *route = (route_header *)pack->data;
 
 	if (!(pack->modified&ROUTE_MOD_NEXTHDR))
-		route->nexthdr = header_type(hdrs[index+1]);
+		route->nexthdr = header_type_at(hdrs, index+1);
 	return TRUE;
 }
 

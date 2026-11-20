@@ -33,6 +33,10 @@ IPv6 (`6`) module. Existing `do_pad` callbacks run first and remain supported.
 AH uses this callback to add zero padding and compute a representable length for
 the enclosing IP version.
 
+Automatic protocol/next-header fields distinguish ICMP for IPv4 from ICMPv6,
+including behind AH/ESP and within nested IP packets. Explicit protocol and
+next-header overrides retain their supplied values.
+
 ### File arguments
 
 The `fF` argument form reads text values one line at a time. LF and CRLF line

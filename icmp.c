@@ -101,7 +101,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	if(hdrs[i]=='i') {
 		// ipv4
 		if(!(headers[i]->modified&IP_MOD_PROTOCOL)) {
-			((ip_header *)(headers[i]->data))->protocol=hdrs[i+1]=='c' ? IPPROTO_ICMP : header_type(hdrs[i+1]);
+			((ip_header *)(headers[i]->data))->protocol=header_type_at(hdrs, i+1);
 			headers[i]->modified |= IP_MOD_PROTOCOL;
 		}
 	} else if(hdrs[i]=='6') {

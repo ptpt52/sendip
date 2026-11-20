@@ -188,7 +188,7 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	int ret = TRUE;
 
 	if (!(pack->modified&ESP_MOD_NEXTHDR))
-		esp->tail.nexthdr = header_type(hdrs[index+1]);
+		esp->tail.nexthdr = header_type_at(hdrs, index+1);
 	/* @@ figure out padding if not already set */
 	if (!(pack->modified&ESP_MOD_PADDING)) {
 		/* We need to pad out IV+packet data length

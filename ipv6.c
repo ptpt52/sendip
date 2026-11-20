@@ -135,7 +135,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	if(!(pack->modified&IPV6_MOD_NXT)) {
 		/*@@ipv6->ip6_nxt = (u_int8_t)IPPROTO_NONE;*/
 		/* New default: actual type of following header */
-		ipv6->ip6_nxt = header_type(hdrs[index+1]);
+		ipv6->ip6_nxt = header_type_at(hdrs, index+1);
 	}
 	if(!(pack->modified&IPV6_MOD_HLIM)) {
 		ipv6->ip6_hlim = 32;
