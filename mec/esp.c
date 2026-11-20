@@ -288,16 +288,14 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	pack->alloc_len = sizeof(struct ip_esp_hdr);
 	data->alloc_len += priv->ivlen + padlen + priv->icvlen + 2;
 
-	/* Call any authentication and/or encryption modules, in
-	 * that order, and let them work their magic.
-	 */
-	if (priv->auth && priv->auth->cryptomod) {
-		ret = (*priv->auth->cryptomod)(priv, hdrs, headers, index,
+	/* Separate ESP algorithms authenticate the ciphertext (RFC 4303). */
+	if (priv->crypto && priv->crypto->cryptomod) {
+		ret = (*priv->crypto->cryptomod)(priv, hdrs, headers, index,
 		                            data, pack);
 	}
 	if (ret == TRUE) {
-		if (priv->crypto && priv->crypto->cryptomod) {
-			ret = (*priv->crypto->cryptomod)(priv, hdrs, headers,
+		if (priv->auth && priv->auth->cryptomod) {
+			ret = (*priv->auth->cryptomod)(priv, hdrs, headers,
 			                              index, data, pack);
 		}
 	}
