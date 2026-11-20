@@ -89,9 +89,10 @@ sendipman.html:	sendip.1
 	-man2html sendip.1 | tail -n +2 > sendipman.html
 
 sendip.spec:	sendip.spec.in VERSION
-			echo -n '%define ver ' >sendip.spec
-			cat VERSION >>sendip.spec
-			cat sendip.spec.in >>sendip.spec
+			{ source_version=$$(cat VERSION) && \
+			  printf '%%define source_version %s\n' "$$source_version" && \
+			  printf '%%define ver %s\n' "$$(printf '%s' "$$source_version" | tr '-' '.')" && \
+			  cat "$<"; } > "$@"
 
 %.so: %.c $(LIBS)
 			$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)

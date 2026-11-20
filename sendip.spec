@@ -1,4 +1,5 @@
-%define ver 2.5-mec-3
+%define source_version 2.5-mec-3
+%define ver 2.5.mec.3
 %define name sendip
 
 Summary: A command line tool to allow sending arbitrary IP packets
@@ -7,7 +8,7 @@ Version: %ver
 Release: 1
 Copyright: GPL
 Group: Applications/Internet
-Source: http://www.earth.li/projectpurple/files/sendip-%ver.tar.gz
+Source: http://www.earth.li/projectpurple/files/sendip-%{source_version}.tar.gz
 URL: http://www.earth.li/projectpurple/progs/sendip.html
 Vendor: Project Purple <projectpurple@earth.li>
 Packager: Mike Ricketts <mike@earth.li>
@@ -74,7 +75,7 @@ data to be added to the packet.
 - First RPM release.
 
 %prep
-%setup
+%setup -n %{name}-%{source_version}
 
 %build
 mkdir -p $RPM_BUILD_ROOT/usr/bin $RPM_BUILD_ROOT/usr/share/man/man1
