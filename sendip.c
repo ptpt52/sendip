@@ -242,117 +242,70 @@ static void unload_modules(bool freeit, int verbosity) {
 }
 
 static bool load_module(char *modname) {
-	sendip_module *newmod = malloc(sizeof(sendip_module));
-	/*@@
-		sendip_module *cur;
-	@@*/
+	static const char *patterns[]={"%s", "./%s.so", "%s/%s.so", "%s/%s"};
+	char *errors[4]={NULL};
+	sendip_module *newmod=calloc(1, sizeof(*newmod));
+	size_t namesize=strlen(modname)+strlen(SENDIP_LIBS)+6;
 	int (*n_opts)(void);
-	sendip_option * (*get_opts)(void);
+	sendip_option *(*get_opts)(void);
 	char (*get_optchar)(void);
 
-	/*@@
-	 * 	We allow multiple loads for the same module in case they
-	 * 	use static storage for stuff. Is this really necessary?
-	 *
-		for(cur=first;cur!=NULL;cur=cur->next) {
-			if(!strcmp(modname,cur->name)) {
-				memcpy(newmod,cur,sizeof(sendip_module));
-				newmod->num_opts=0;
-				goto out;
-			}
-		}
-	@@*/
-	newmod->name=malloc(strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6);
-	if (newmod->name == NULL) {
-		fprintf(stderr, "Out of memory!\n");
-		free(newmod);
-		return FALSE;
+	if (!newmod) {
+		perror("Allocating module");
+		return false;
 	}
-	snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "%s", modname);
-	if(NULL==(newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
-		char *error0=strdup(dlerror());
-		snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "./%s.so",modname);
-		if(NULL==(newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
-			char *error1=strdup(dlerror());
-			snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "%s/%s.so",SENDIP_LIBS,modname);
-			if(NULL==(newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
-				char *error2=strdup(dlerror());
-				snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "%s/%s",SENDIP_LIBS,modname);
-				if(NULL==(newmod->handle=dlopen(newmod->name,RTLD_NOW))) {
-					char *error3=strdup(dlerror());
-					fprintf(stderr,"Couldn't open module %s, tried:\n",modname);
-					fprintf(stderr,"  %s\n  %s\n  %s\n  %s\n", error0, error1,
-					        error2, error3);
-					free(newmod->name);
-					free(newmod);
-					free(error3);
-					return FALSE;
-				}
-				free(error2);
-			}
-			free(error1);
-		}
-		free(error0);
+	newmod->name=malloc(namesize);
+	if (!newmod->name) goto fail;
+	for (int i=0; i<4; ++i) {
+		if (i<2) snprintf(newmod->name, namesize, patterns[i], modname);
+		else snprintf(newmod->name, namesize, patterns[i], SENDIP_LIBS, modname);
+		newmod->handle=dlopen(newmod->name, RTLD_NOW);
+		if (newmod->handle) break;
+		const char *error=dlerror();
+		errors[i]=strdup(error ? error : "unknown loader error");
 	}
-	snprintf(newmod->name, strlen(modname)+strlen(SENDIP_LIBS)+strlen(".so")+6, "%s", modname);
-	if(NULL==(newmod->initialize=dlsym(newmod->handle,"initialize"))) {
-		fprintf(stderr,"%s doesn't have an initialize function: %s\n",modname,
-		        dlerror());
-		dlclose(newmod->handle);
-		free(newmod);
-		return FALSE;
+	if (!newmod->handle) {
+		fprintf(stderr, "Couldn't open module %s, tried:\n", modname);
+		for (int i=0; i<4; ++i)
+			fprintf(stderr, "  %s\n", errors[i] ? errors[i] : "loader error unavailable");
 	}
-	if(NULL==(newmod->do_opt=dlsym(newmod->handle,"do_opt"))) {
-		fprintf(stderr,"%s doesn't contain a do_opt function: %s\n",modname,
-		        dlerror());
-		dlclose(newmod->handle);
-		free(newmod);
-		return FALSE;
+	for (int i=0; i<4; ++i) free(errors[i]);
+	if (!newmod->handle) goto fail;
+	memcpy(newmod->name, modname, strlen(modname)+1);
+
+	if (!(newmod->initialize=dlsym(newmod->handle, "initialize")) ||
+	    !(newmod->do_opt=dlsym(newmod->handle, "do_opt")) ||
+	    !(newmod->finalize=dlsym(newmod->handle, "finalize")) ||
+	    !(n_opts=dlsym(newmod->handle, "num_opts")) ||
+	    !(get_opts=dlsym(newmod->handle, "get_opts")) ||
+	    !(get_optchar=dlsym(newmod->handle, "get_optchar"))) {
+		const char *error=dlerror();
+		fprintf(stderr, "Module %s is missing an entry point: %s\n", modname,
+		        error ? error : "null function pointer");
+		goto fail;
 	}
-	newmod->do_pad=dlsym(newmod->handle,"do_pad");
-	newmod->set_addr=dlsym(newmod->handle,"set_addr"); // don't care if fails
-	if(NULL==(newmod->finalize=dlsym(newmod->handle,"finalize"))) {
-		fprintf(stderr,"%s\n",dlerror());
-		dlclose(newmod->handle);
-		free(newmod);
-		return FALSE;
-	}
-	if(NULL==(n_opts=dlsym(newmod->handle,"num_opts"))) {
-		fprintf(stderr,"%s\n",dlerror());
-		dlclose(newmod->handle);
-		free(newmod);
-		return FALSE;
-	}
-	if(NULL==(get_opts=dlsym(newmod->handle,"get_opts"))) {
-		fprintf(stderr,"%s\n",dlerror());
-		dlclose(newmod->handle);
-		free(newmod);
-		return FALSE;
-	}
-	if(NULL==(get_optchar=dlsym(newmod->handle,"get_optchar"))) {
-		fprintf(stderr,"%s\n",dlerror());
-		dlclose(newmod->handle);
-		free(newmod);
-		return FALSE;
-	}
-	newmod->num_opts = n_opts();
+	newmod->do_pad=dlsym(newmod->handle, "do_pad");
+	newmod->set_addr=dlsym(newmod->handle, "set_addr");
+	newmod->num_opts=n_opts();
 	newmod->optchar=get_optchar();
-	/* TODO: check uniqueness */
-	newmod->opts = get_opts();
-
+	newmod->opts=get_opts();
+	if (newmod->num_opts<0 || newmod->num_opts>INT_MAX-num_opts ||
+	    !newmod->optchar || (newmod->num_opts && !newmod->opts)) {
+		fprintf(stderr, "Module %s returned invalid option metadata\n", modname);
+		goto fail;
+	}
 	num_opts+=newmod->num_opts;
-
-	/*@@
-	out:
-	@@*/
-	newmod->pack=NULL;
 	newmod->prev=last;
-	newmod->next=NULL;
-	last = newmod;
-	if(last->prev) last->prev->next = last;
-	if(!first) first=last;
+	if (last) last->next=newmod;
+	else first=newmod;
+	last=newmod;
+	return true;
 
-	return TRUE;
+fail:
+	if (newmod->handle) dlclose(newmod->handle);
+	free(newmod->name);
+	free(newmod);
+	return false;
 }
 
 static void print_usage(void) {
@@ -483,8 +436,11 @@ int main(int argc, char *const argv[]) {
 			dump=TRUE;
 			break;
 		case 'p':
-			if(load_module(gnuoptarg))
-				num_modules++;
+			if (!load_module(gnuoptarg)) {
+				status=1;
+				goto cleanup;
+			}
+			++num_modules;
 			break;
 		case 'l':
 			loopcount = atoi(gnuoptarg);
