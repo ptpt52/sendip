@@ -355,6 +355,10 @@ int main(int argc, char **argv)
 				report_pending = true;
 		} else if (report_pending) {
 			printtimes();
+			if (fflush(stdout) == EOF || ferror(stdout)) {
+				perror("writing UDP timer report");
+				break;
+			}
 			report_pending = false;
 		}
 	}
