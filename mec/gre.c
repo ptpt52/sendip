@@ -245,18 +245,17 @@ finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
 	 * IP one! Because it's "generic," you see.
 	 */
 	if (!(pack->modified&GRE_MOD_PROTOCOL)) {
-		int inner=inner_header(hdrs, index, "i6");
-		if (inner<0) {
-			usage_error("Specify the GRE payload protocol when no inner IP header is present\n");
-			return FALSE;
-		}
-		switch (hdrs[inner]) {
+		/* Protocol Type describes the immediate payload, not a deeper IP. */
+		switch (hdrs[index+1]) {
 		case 'i':
 			gre->gre_protocol = htons(ETH_P_IP);
 			break;
 		case '6':
 			gre->gre_protocol = htons(ETH_P_IPV6);
 			break;
+		default:
+			usage_error("Specify the GRE payload protocol when the next header is not IP\n");
+			return FALSE;
 		}
 	}
 	if ((gre->gre_flag&GRE_CSUM) && !(pack->modified&GRE_MOD_CHECKSUM)) {
