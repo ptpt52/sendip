@@ -5,10 +5,8 @@
 # CHANGES:
 #    executable hardcoded to be ./sendip with optional protocol modules
 #    uses -h instead of --help
-#    version hardcoded rather than --version
+#    reads VERSION instead of using --version
 #    puts options in OPTIONS rather than in DESCRIPTION
-my $version=`cat VERSION`;
-chop $version;
 
 # Generate a short man page from --help and --version output.
 # Copyright © 1997, 1998, 1999, 2000 Free Software Foundation, Inc.
@@ -82,6 +80,15 @@ GetOptions (
     help		=> sub { print $help_info; exit },
     version		=> sub { print $version_info; exit },
 ) or die $help_info;
+
+open VERSION_FILE, '<VERSION'
+    or die "$this_program: can't open VERSION ($!)\n";
+my $version = <VERSION_FILE>;
+close VERSION_FILE
+    or die "$this_program: can't close VERSION ($!)\n";
+defined $version or die "$this_program: missing version in VERSION\n";
+$version =~ s/\r?\n\z//;
+length $version or die "$this_program: empty version in VERSION\n";
 
 my %include = ();
 my %append = ();
