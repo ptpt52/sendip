@@ -45,18 +45,11 @@ static void tcpcsum(sendip_data *ip_hdr, sendip_data *tcp_hdr,
 	tcp->check=csumv(blocks, lengths);
 }
 
-static void tcp6csum(sendip_data *ipv6_hdr, sendip_data *tcp_hdr,
+static void tcp6csum(const struct ipv6_pseudo_hdr *phdr, sendip_data *tcp_hdr,
                      sendip_data *data) {
 	tcp_header *tcp=tcp_hdr->data;
-	ipv6_header *ipv6=ipv6_hdr->data;
-	struct ipv6_pseudo_hdr phdr;
-	memset(&phdr, 0, sizeof(phdr));
-	phdr.source=ipv6->ip6_src;
-	phdr.destination=ipv6->ip6_dst;
-	phdr.ulp_length=htonl(tcp_hdr->alloc_len+data->alloc_len);
-	phdr.nexthdr=IPPROTO_TCP;
-	const void *blocks[]={&phdr, tcp_hdr->data, data->data};
-	int lengths[]={sizeof(phdr), tcp_hdr->alloc_len, data->alloc_len, 0};
+	const void *blocks[]={phdr, tcp_hdr->data, data->data};
+	int lengths[]={sizeof(*phdr), tcp_hdr->alloc_len, data->alloc_len, 0};
 	tcp->check=0;
 	tcp->check=csumv(blocks, lengths);
 }
@@ -331,7 +324,11 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		//	headers[i]->modified |= IPV6_MOD_NXT;
 		//}
 		if(!(pack->modified&TCP_MOD_CHECK)) {
-			tcp6csum(headers[i],pack,data);
+			struct ipv6_pseudo_hdr phdr;
+			if (!ipv6_pseudo_header(hdrs, headers, i, index,
+			                       pack->alloc_len+data->alloc_len, IPPROTO_TCP, &phdr))
+				return FALSE;
+			tcp6csum(&phdr, pack, data);
 		}
 	} else {
 		if(!(pack->modified&TCP_MOD_CHECK)) {

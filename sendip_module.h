@@ -28,6 +28,15 @@ typedef struct {
 	void *private;		/* Owned by the module; released by optional destroy(). */
 } sendip_data;
 
+/* Wire layout shared by IPv6 transport checksum calculations. */
+struct ipv6_pseudo_hdr {
+	struct in6_addr source;
+	struct in6_addr destination;
+	u_int32_t ulp_length;
+	u_int32_t zero:24,
+	          nexthdr:8;
+};
+
 /* Prototypes */
 #ifndef _SENDIP_MAIN
 sendip_data *initialize(void);
@@ -66,6 +75,9 @@ u_int8_t name_to_proto(char *s);
 u_int8_t header_type(const char hdr_char);
 int outer_header(const char *hdrs, int index, const char *choices);
 int inner_header(const char *hdrs, int index, const char *choices);
+bool ipv6_pseudo_header(const char *hdrs, sendip_data *headers[],
+                       int ip_index, int transport_index, int length,
+                       u_int8_t protocol, struct ipv6_pseudo_hdr *pseudo);
 
 extern u_int16_t csumv(const void *const packet[], const int packlen[]);
 /*@@ end added */

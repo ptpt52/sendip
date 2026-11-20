@@ -3,16 +3,6 @@
 #ifndef _SENDIP_IPV6_H
 #define _SENDIP_IPV6_H
 
-/* Pseudo header used for checksumming ICMP, TCP, UDP etc
- */
-struct ipv6_pseudo_hdr {
-	struct in6_addr source;
-	struct in6_addr destination;
-	u_int32_t ulp_length;
-	u_int32_t  zero: 24,
-	           nexthdr:  8;
-};
-
 /* Header taken from glibc 2.2
  */
 typedef struct {

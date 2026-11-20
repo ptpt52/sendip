@@ -38,18 +38,11 @@ static void udpcsum(sendip_data *ip_hdr, sendip_data *udp_hdr,
 	if (!udp->check) udp->check=htons(0xffff);
 }
 
-static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
+static void udp6csum(const struct ipv6_pseudo_hdr *phdr, sendip_data *udp_hdr,
                      sendip_data *data) {
 	udp_header *udp=udp_hdr->data;
-	ipv6_header *ipv6=ipv6_hdr->data;
-	struct ipv6_pseudo_hdr phdr;
-	memset(&phdr, 0, sizeof(phdr));
-	phdr.source=ipv6->ip6_src;
-	phdr.destination=ipv6->ip6_dst;
-	phdr.ulp_length=htonl(udp_hdr->alloc_len+data->alloc_len);
-	phdr.nexthdr=IPPROTO_UDP;
-	const void *blocks[]={&phdr, udp_hdr->data, data->data};
-	int lengths[]={sizeof(phdr), udp_hdr->alloc_len, data->alloc_len, 0};
+	const void *blocks[]={phdr, udp_hdr->data, data->data};
+	int lengths[]={sizeof(*phdr), udp_hdr->alloc_len, data->alloc_len, 0};
 	udp->check=0;
 	udp->check=csumv(blocks, lengths);
 	if (!udp->check) udp->check=htons(0xffff);
@@ -141,7 +134,11 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		//	headers[i]->modified |= IPV6_MOD_NXT;
 		//}
 		if(!(pack->modified&UDP_MOD_CHECK)) {
-			udp6csum(headers[i],pack,data);
+			struct ipv6_pseudo_hdr phdr;
+			if (!ipv6_pseudo_header(hdrs, headers, i, index,
+			                       pack->alloc_len+data->alloc_len, IPPROTO_UDP, &phdr))
+				return FALSE;
+			udp6csum(&phdr, pack, data);
 		}
 
 	} else {

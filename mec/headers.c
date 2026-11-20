@@ -66,3 +66,41 @@ inner_header(const char *hdrs, int index, const char *choices)
 	}
 	return -1;
 }
+
+/* Resolve the final destination before enclosing routing headers finalize.
+ * Read wire bytes rather than assuming their alignment inside the packet.
+ */
+bool ipv6_pseudo_header(const char *hdrs, sendip_data *headers[],
+                       int ip_index, int transport_index, int length,
+                       u_int8_t protocol, struct ipv6_pseudo_hdr *pseudo) {
+	if (ip_index<0 || transport_index<=ip_index || hdrs[ip_index]!='6' ||
+	    !headers[ip_index] || headers[ip_index]->alloc_len<40 || length<0)
+		return FALSE;
+	const u_int8_t *ip=headers[ip_index]->data;
+	memset(pseudo, 0, sizeof(*pseudo));
+	memcpy(&pseudo->source, ip+8, sizeof(pseudo->source));
+	memcpy(&pseudo->destination, ip+24, sizeof(pseudo->destination));
+	pseudo->ulp_length=htonl(length);
+	pseudo->nexthdr=protocol;
+
+	for (int i=ip_index+1; i<transport_index; ++i) {
+		if (hdrs[i]!='o') continue;
+		if (!headers[i] || headers[i]->alloc_len<4) goto invalid;
+		const u_int8_t *route=headers[i]->data;
+		if (!route[3]) continue; /* No remaining route segments. */
+		if (route[2]!=IPV6_SRCRT_TYPE_0 && route[2]!=IPV6_SRCRT_TYPE_2) {
+			usage_error("Supply a checksum for an unsupported IPv6 routing type\n");
+			return FALSE;
+		}
+		int addresses=route[1]/2;
+		if ((route[1]&1) || !addresses || route[3]>addresses ||
+		    (route[2]==IPV6_SRCRT_TYPE_2 && addresses!=1) ||
+		    headers[i]->alloc_len<8+16*addresses) goto invalid;
+		memcpy(&pseudo->destination, route+8+16*(addresses-1),
+		       sizeof(pseudo->destination));
+	}
+	return TRUE;
+invalid:
+	usage_error("Cannot derive checksum destination from an invalid IPv6 route\n");
+	return FALSE;
+}

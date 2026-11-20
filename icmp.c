@@ -33,17 +33,11 @@ static void icmpcsum(sendip_data *hdr, sendip_data *data) {
 	icmp->check=csumv(blocks, lengths);
 }
 
-static void icmp6csum(struct in6_addr *src, struct in6_addr *dst,
+static void icmp6csum(const struct ipv6_pseudo_hdr *phdr,
                      sendip_data *hdr, sendip_data *data) {
 	icmp_header *icmp=hdr->data;
-	struct ipv6_pseudo_hdr phdr;
-	memset(&phdr, 0, sizeof(phdr));
-	phdr.source=*src;
-	phdr.destination=*dst;
-	phdr.ulp_length=htonl(hdr->alloc_len+data->alloc_len);
-	phdr.nexthdr=IPPROTO_ICMPV6;
-	const void *blocks[]={&phdr, hdr->data, data->data};
-	int lengths[]={sizeof(phdr), hdr->alloc_len, data->alloc_len, 0};
+	const void *blocks[]={phdr, hdr->data, data->data};
+	int lengths[]={sizeof(*phdr), hdr->alloc_len, data->alloc_len, 0};
 	icmp->check=0;
 	icmp->check=csumv(blocks, lengths);
 }
@@ -131,10 +125,11 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	if(!(pack->modified&ICMP_MOD_CHECK)) {
 		if (hdrs[i] == '6') {
 			// ipv6
-			struct in6_addr *src, *dst;
-			src = (struct in6_addr *)&(((ipv6_header *)(headers[i]->data))->ip6_src);
-			dst = (struct in6_addr *)&(((ipv6_header *)(headers[i]->data))->ip6_dst);
-			icmp6csum(src, dst, pack, data);
+			struct ipv6_pseudo_hdr phdr;
+			if (!ipv6_pseudo_header(hdrs, headers, i, index,
+			                       pack->alloc_len+data->alloc_len, IPPROTO_ICMPV6, &phdr))
+				return FALSE;
+			icmp6csum(&phdr, pack, data);
 		} else {
 			// ipv4 or anything else
 			icmpcsum(pack,data);
