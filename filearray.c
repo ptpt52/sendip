@@ -368,49 +368,49 @@ fail:
 	return NULL;
 }
 
-/* Find the entry for a given file. If there isn't one,
- * create it.
- */
+static bool insert_file(struct hsearch_data *table, Filearray *file) {
+	ENTRY item = { .key=file->name, .data=file };
+	ENTRY *found=NULL;
+	errno=0;
+	if (hsearch_r(item, ENTER, &found, table)>0 && found && found->data==file)
+		return TRUE;
+	if (!errno) errno=EIO;
+	return FALSE;
+}
+
+/* Find the cache entry or load it on a miss. */
 Filearray *
 fa_find(const char *name)
 {
-	ENTRY item, *found=NULL;
-	Filearray *fa;
-
 	if (!fa_ready || !name) {
 		errno=EINVAL;
 		return NULL;
 	}
-
-	/* Yes, this cast "throws away" the const, but in fact, the
-	 * name is not altered in any way by being entered into the
-	 * hash table. It's just I can't muck with the declaration
-	 * in search.h.
-	 */
-	item.key = (char *)name;
-	item.data = NULL;
 	/* BSD implementations may report a successful FIND with a NULL result
-	 * when the key is absent. Check the result before dereferencing it.
+	 * when the key is absent. FIND does not modify the search key.
 	 */
-	if (hsearch_r(item, FIND, &found, &fa_tab) <= 0 || !found) {
-		if (errno == ESRCH || !found) {
-			item.data = (void *)fa_create(name);
-			if (!item.data) {
-				perror(name);
-				return NULL;
-			}
-			fa=item.data;
-			item.key=fa->name;
-			if (hsearch_r(item, ENTER, &found, &fa_tab) <= 0) {
-				perror(name);
-				fa_free(item.data);
-				return NULL;
-			}
-			fa->next=fa_files;
-			fa_files=fa;
-		}
+	ENTRY item = { .key=(char *)name };
+	ENTRY *found=NULL;
+	errno=0;
+	int result=hsearch_r(item, FIND, &found, &fa_tab);
+	if (result>0 && found) return found->data;
+	if (result<=0 && errno && errno!=ESRCH) {
+		perror(name);
+		return NULL;
 	}
-	return (Filearray *)found->data;
+
+	Filearray *fa=fa_create(name);
+	if (!fa || !insert_file(&fa_tab, fa)) {
+		int error=errno;
+		fa_free(fa);
+		errno=error;
+		perror(name);
+		errno=error;
+		return NULL;
+	}
+	fa->next=fa_files;
+	fa_files=fa;
+	return fa;
 }
 
 
