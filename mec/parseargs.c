@@ -55,37 +55,36 @@ parsenargs(char *string, char *args[], int limit, const char *seps)
 }
 
 #ifdef TEST
-static void
-printargs(char *args[], int n)
+static int
+printargs(char *string, const char *seps)
 {
-	int i;
-
-	for (i=0; i < n; ++i)
+	char *args[BUFSIZ];
+	int n = parsenargs(string, args, sizeof(args)/sizeof(args[0]), seps);
+	if (n < 0) {
+		fputs("Too many input tokens\n", stderr);
+		return 1;
+	}
+	for (int i=0; i < n; ++i)
 		fprintf(stderr, "%d %s ", i, args[i]);
 	fprintf(stderr, "\n");
+	return 0;
 }
 
 int main(int argc, char **argv)
 {
-	int i, n;
 	char buffer[BUFSIZ];
-	char *args[BUFSIZ];
-
-	if (argc > 1) {
-		if (argc > 2) {
-			for (i=2; i < argc; ++i) {
-				n = parseargs(argv[i], args, argv[1]);
-				printargs(args, n);
-			}
-		} else {
-			n = parseargs(argv[1], args, NULL);
-			printargs(args, n);
-		}
-	} else while (fgets(buffer, sizeof(buffer), stdin)) {
+	if (argc == 2)
+		return printargs(argv[1], NULL);
+	if (argc > 2) {
+		for (int i=2; i < argc; ++i)
+			if (printargs(argv[i], argv[1])) return 1;
+	} else {
+		while (fgets(buffer, sizeof(buffer), stdin)) {
 			buffer[strcspn(buffer, "\n")] = '\0';
-			n = parseargs(buffer, args, NULL);
-			printargs(args, n);
+			if (printargs(buffer, NULL)) return 1;
 		}
+	}
+	return 0;
 }
 #endif
 
