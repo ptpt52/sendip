@@ -24,6 +24,10 @@ int compact_string(char *data_out) {
 			/* Hex */
 			unsigned char c='\0';
 			data_in++;
+			if (strlen(data_in)&1U) {
+				usage_error("Hex data stream has an incomplete byte\n");
+				return -1;
+			}
 			while(*data_in) {
 				if(*data_in>='0' && *data_in<='9') {
 					c+=*data_in-'0';
