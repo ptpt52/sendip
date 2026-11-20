@@ -3,6 +3,8 @@
  */
 
 #include <stdlib.h>
+#include <limits.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -20,13 +22,20 @@
  */
 const char opt_char='s';
 
+void destroy(sendip_data *pack) {
+	free(pack->private);
+	pack->private=NULL;
+}
+
 sendip_data *
 initialize(void)
 {
 	sendip_data *ret = calloc(1, sizeof(sendip_data));
 	sctp_header *sctp = malloc(sizeof(sctp_header));
+	int *current_offset=calloc(1, sizeof(*current_offset));
 
-	if (!ret || !sctp) {
+	if (!ret || !sctp || !current_offset) {
+		free(current_offset);
 		free(sctp);
 		free(ret);
 		return NULL;
@@ -34,6 +43,7 @@ initialize(void)
 	memset(sctp,0,sizeof(sctp_header));
 	ret->alloc_len = sizeof(sctp_header);
 	ret->data = sctp;
+	ret->private=current_offset;
 	ret->modified=0;
 	return ret;
 }
@@ -43,87 +53,58 @@ initialize(void)
  * returned. Note these routines may change pack->data.
  */
 
-sctp_chunk_header *
-add_chunk(sendip_data *pack, u_int8_t type)
-{
-	sctp_header *sctp = (sctp_header *)pack->data;
-	sctp_chunk_header *chunk;
+static int round4(int length) {
+	return (length+3)&~3;
+}
 
-	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
-	                    pack->alloc_len + sizeof(sctp_chunk_header));
-	chunk = (sctp_chunk_header *)(void *)((u_int8_t *)sctp + pack->alloc_len);
-	pack->alloc_len += sizeof(sctp_chunk_header);
-	memset(chunk, 0, sizeof(sctp_chunk_header));
-	chunk->type = type;
-	chunk->length = ntohs(sizeof(sctp_chunk_header));
-	fprintf(stderr, "Adding %ld byte SCTP chunk header, total SCTP length %d\n", (long)sizeof(sctp_chunk_header), pack->alloc_len);
+sctp_chunk_header *add_chunk(sendip_data *pack, u_int8_t type) {
+	if (pack->alloc_len>INT_MAX-7) return NULL;
+	int start=round4(pack->alloc_len);
+	int size=start+sizeof(sctp_chunk_header);
+	void *replacement=realloc(pack->data, size);
+	if (!replacement) return NULL;
+	memset((u_int8_t *)replacement+pack->alloc_len, 0, size-pack->alloc_len);
+	pack->data=replacement;
+	pack->alloc_len=size;
+	sctp_chunk_header *chunk=(void *)((u_int8_t *)replacement+start);
+	chunk->type=type;
+	chunk->length=htons(sizeof(*chunk));
 	return chunk;
 }
 
-/* Add in data space */
-sctp_chunk_header *
-grow_chunk(sendip_data *pack, sctp_chunk_header *chunk,
-           u_int16_t length, void *data)
-{
-	sctp_header *sctp = (sctp_header *)pack->data;
-	/* urp */
-	int offset = (u_int8_t *)chunk - (u_int8_t *)sctp;
-
-	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
-	                    pack->alloc_len + length);
-	chunk = (sctp_chunk_header *)(void *)((u_int8_t *)sctp + offset);
-	pack->alloc_len += length;
-	offset = ntohs(chunk->length);
-	chunk->length = htons(offset+length);
-	if (data)
-		memcpy((void *)((u_int8_t *)chunk+offset), data, length);
-	fprintf(stderr, "Adding %d data bytes, total SCTP length %d\n", length, pack->alloc_len);
+sctp_chunk_header *grow_chunk(sendip_data *pack, sctp_chunk_header *chunk,
+                              int length, const void *data) {
+	if (length<0 || length>UINT16_MAX || pack->alloc_len>INT_MAX-length) return NULL;
+	if (!chunk) {
+		chunk=add_chunk(pack, 0);
+		if (!chunk) return NULL;
+	}
+	int offset=(u_int8_t *)chunk-(u_int8_t *)pack->data;
+	int used=pack->alloc_len-offset;
+	if (used>(int)UINT16_MAX-length || pack->alloc_len>INT_MAX-length) return NULL;
+	void *replacement=realloc(pack->data, (size_t)pack->alloc_len+length);
+	if (!replacement) return NULL;
+	pack->data=replacement;
+	chunk=(void *)((u_int8_t *)replacement+offset);
+	/* An explicitly malformed wire length never becomes a memory offset. */
+	if (data) memcpy((u_int8_t *)chunk+used, data, length);
+	else memset((u_int8_t *)chunk+used, 0, length);
+	pack->alloc_len+=length;
+	chunk->length=htons(ntohs(chunk->length)+length);
 	return chunk;
 }
 
-/* Chunks and parameters in them need to be rounded up to 4 byte boundaries.
- * The chunks headers are already the right size, but some of the parameters
- * are arbitrary lengths. Somewhat inconveniently, RFC 4960 says that the
- * chunk length must include the padding of all but the last parameter
- * in the chunk. (The padding needs to be there, just not included in
- * the length.) The lengths in the individual TLV parameters should not
- * include the padding.
- */
-int
-round2(int number)
-{
-	return (number&1) ? (number + 1) : number;
+static int round2(int length) {
+	return (length+1)&~1;
 }
 
-int
-round4(int number)
-{
-	return (number&3) ? (number + 4-(number&3)) : number;
-}
-
-/* Add in data space, rounded up to 4-byte boundary */
-sctp_chunk_header *
-grow_chunk_round4(sendip_data *pack, sctp_chunk_header *chunk,
-                  u_int16_t length, void *data)
-{
-	sctp_header *sctp = (sctp_header *)pack->data;
-	/* urp */
-	int offset = (u_int8_t *)chunk - (u_int8_t *)sctp;
-	u_int16_t roundup;
-
-	roundup = round4(length);
-	if (roundup == length) return grow_chunk(pack, chunk, length, data);
-
-	pack->data = sctp = (sctp_header *)realloc((void *)sctp,
-	                    pack->alloc_len + roundup);
-	chunk = (sctp_chunk_header *)(void *)((u_int8_t *)sctp + offset);
-	pack->alloc_len += roundup;
-	offset = ntohs(chunk->length);
-	chunk->length = htons(offset+roundup);
-	if (data)
-		memcpy((void *)((u_int8_t *)chunk+offset), data, length);
-	fprintf(stderr, "Rounding %d to %d data bytes, total SCTP length %d\n", length, roundup, pack->alloc_len);
-	memset((void *)((u_int8_t *)chunk+offset+length), 0, roundup-length);
+sctp_chunk_header *grow_chunk_round4(sendip_data *pack, sctp_chunk_header *chunk,
+                                     int length, const void *data) {
+	if (length<0 || length>UINT16_MAX) return NULL;
+	int rounded=round4(length);
+	chunk=grow_chunk(pack, chunk, rounded, NULL);
+	if (!chunk) return NULL;
+	if (data) memcpy((u_int8_t *)pack->data+pack->alloc_len-rounded, data, length);
 	return chunk;
 }
 
@@ -135,7 +116,9 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	u_int32_t lvalue;
 	char *temp;
 	int length;
-	static sctp_chunk_header *currentchunk;
+	int *current_offset=pack->private;
+	sctp_chunk_header *currentchunk=*current_offset ?
+	    (void *)((u_int8_t *)pack->data+*current_offset) : NULL;
 
 	switch(opt[1]) {
 	/* Overall header arguments are lowercase; chunk args are upper */
@@ -154,6 +137,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 * however.
 		 */
 		length = stringargument(arg, &temp);
+		if (!temp) return FALSE;
 		if (length < sizeof(u_int32_t)) {
 			sctp->vtag = 0;
 			memcpy((void *)&sctp->vtag, temp, length);
@@ -173,6 +157,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			return FALSE;
 		}
 		currentchunk = add_chunk(pack, svalue);
+		if (!currentchunk) return FALSE;
 		if (!(pack->modified&SCTP_MOD_VTAG)) {
 			/* Be careful - add_chunk may have moved things */
 			sctp = (sctp_header *)pack->data;
@@ -194,6 +179,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		}
 		if (!currentchunk ) {
 			currentchunk = add_chunk(pack, 0);
+		if (!currentchunk) return FALSE;
 		}
 		currentchunk->flags = svalue;
 		break;
@@ -201,21 +187,24 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		svalue = strtoul(arg, (char **)NULL, 0);
 		if (!currentchunk ) {
 			currentchunk = add_chunk(pack, 0);
+		if (!currentchunk) return FALSE;
 		}
 		/* Be careful! Adding a fake chunk length does not change
-		 * the size of the packet, but may affect the placement
-		 * of later data. If you're going to muck with the length,
-		 * do it after all the other fields.
+		 * the size of the packet or placement of later data.
+		 * Specify it after other fields to override their computed length.
 		 */
 		currentchunk->length = htons(svalue);
 		break;
 	case 'D':	/* arbitrary SCTP chunk data */
 		length = stringargument(arg, &temp);
+		if (!temp) return FALSE;
 		if (!currentchunk ) {
 			currentchunk = add_chunk(pack, 0);
+		if (!currentchunk) return FALSE;
 		}
 		currentchunk = grow_chunk(pack, currentchunk, length,
 		                          (void *)temp);
+		if (!currentchunk) return FALSE;
 		break;
 
 	case 'I':	/* SCTP Init chunk (complete) */
@@ -226,6 +215,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		int nargs;
 
 		currentchunk = add_chunk(pack, SCTP_CID_INIT);
+		if (!currentchunk) return FALSE;
 		/* set up defaults first, then overwrite with any others */
 		init.init_tag = __constant_htonl(1);
 		init.a_rwnd = __constant_htonl(0x1000);
@@ -260,6 +250,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_inithdr_t), (void *)&init);
+		if (!currentchunk) return FALSE;
 		break;
 	}
 	case '4':	/* IPv4 address parameter */
@@ -277,6 +268,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		}
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_ipv4addr_param_t), (void *)&v4param);
+		if (!currentchunk) return FALSE;
 	}
 	break;
 
@@ -295,6 +287,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		}
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_ipv6addr_param_t), (void *)&v6param);
+		if (!currentchunk) return FALSE;
 	}
 	break;
 	case 'C':	/* Cookie preservative */
@@ -309,11 +302,13 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_cookie_preserve_param_t),
 		                          (void *)&cookieparam);
+		if (!currentchunk) return FALSE;
 	}
 	break;
 	case 'H':	/* Host name address */
 	{
 		sctp_hostname_param_t hostnameparam;
+		if (strlen(arg)>UINT16_MAX-sizeof(hostnameparam)-1) return FALSE;
 
 		/* From RFC 4960: "At least one null terminator is included
 		 * in the Host Name string and must be included in the length."
@@ -327,8 +322,10 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_hostname_param_t),
 		                          (void *)&hostnameparam);
+		if (!currentchunk) return FALSE;
 		currentchunk = grow_chunk_round4(pack, currentchunk,
 		                                 strlen(arg)+1, (void *)arg);
+		if (!currentchunk) return FALSE;
 	}
 	break;
 
@@ -358,8 +355,10 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_supported_addrs_param_t),
 		                          (void *)&supportedaddrs);
+		if (!currentchunk) return FALSE;
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          2*round2(naddrs), addrs);
+		if (!currentchunk) return FALSE;
 		break;
 	}
 
@@ -377,6 +376,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_ecn_capable_param_t),
 		                          (void *)&ecncapable);
+		if (!currentchunk) return FALSE;
 		break;
 	}
 
@@ -393,6 +393,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_forward_tsn_param_t),
 		                          (void *)&forward_tsn);
+		if (!currentchunk) return FALSE;
 		break;
 	}
 	case 'Y':	/* Adaptation layer indication */
@@ -413,10 +414,12 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		currentchunk = grow_chunk(pack, currentchunk,
 		                          sizeof(sctp_adaptation_ind_param_t),
 		                          (void *)&adaptationparam);
+		if (!currentchunk) return FALSE;
 	}
 	break;
 
 	}
+	*current_offset=currentchunk ? (u_int8_t *)currentchunk-(u_int8_t *)pack->data : 0;
 	return TRUE;
 }
 
