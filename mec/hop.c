@@ -77,14 +77,22 @@ static bool parse_value(const char *arg, unsigned long maximum,
 	return !errno && *end!=arg && *value<=maximum;
 }
 
-static bool align_option(sendip_data *pack, int alignment, int offset) {
+static bool append_aligned_option(sendip_data *pack, struct ipv6_hopopt *opt,
+                                  int alignment, int offset) {
+	u_int8_t bytes[HDR_ALLOC+2+UINT8_MAX]={0};
 	int padding=(alignment+offset-pack->alloc_len%alignment)%alignment;
-	if (!padding) return TRUE;
-	if (padding==1) return addopt(pack, NULL);
-	u_int8_t bytes[8]={IPV6_TLV_PADN};
-	struct ipv6_hopopt *pad=(void *)bytes;
-	pad->hopt_len=padding-2;
-	return addopt(pack, pad);
+	int length=0;
+	if (padding==1) {
+		bytes[length++]=IPV6_TLV_PAD0;
+	} else if (padding>1) {
+		struct ipv6_hopopt *pad=(void *)bytes;
+		pad->hopt_type=IPV6_TLV_PADN;
+		pad->hopt_len=padding-2;
+		length=padding;
+	}
+	int option_length=opt->hopt_type ? opt->hopt_len+2 : 1;
+	memcpy(bytes+length, opt, option_length);
+	return append_bytes(pack, bytes, length+option_length);
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
@@ -154,7 +162,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	default:
 		return FALSE;
 	}
-	return align_option(pack, alignment, offset) && addopt(pack, hopt);
+	return append_aligned_option(pack, hopt, alignment, offset);
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
