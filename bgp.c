@@ -251,7 +251,8 @@ bool do_opt (char        *optstring,
 	switch (optstring[1]) {
 	case 'm':
 		rem_ptr = (u_int8_t *)pack->data;
-		(void)bgp_parse_bytes(rem_ptr, optarg, NULL, 16, 16, '\0');
+		(void)bgp_parse_bytes(rem_ptr, optarg, &new_arg_ptr, 16, 16, '\0');
+		if (*new_arg_ptr) { usage_error("Too many BGP marker bytes\n"); return FALSE; }
 		break;
 	case 'l':
 		rem_ptr = (u_int8_t *)pack->data + 16;
@@ -350,7 +351,8 @@ bool do_opt (char        *optstring,
 					arg_ptr++;
 				}
 
-				ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFF, 16, '\0');
+				ptr += bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFF, 16, '\0');
+				if (*new_arg_ptr) { usage_error("Too many BGP value bytes\n"); return FALSE; }
 
 				if (!len_mod) {
 					*(rem_ptr + 1) = ptr - rem_ptr - 2;
@@ -508,10 +510,12 @@ bool do_opt (char        *optstring,
 				}
 
 				if (bytes == 1) {
-					ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFF, 16, '\0');
+					ptr += bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFF, 16, '\0');
+					if (*new_arg_ptr) { usage_error("Too many BGP value bytes\n"); return FALSE; }
 				} else {
-					ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFFFF, 16,
+					ptr += bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFFFF, 16,
 					                       '\0');
+					if (*new_arg_ptr) { usage_error("Too many BGP attribute bytes\n"); return FALSE; }
 				}
 
 				if (!len_mod) {
@@ -581,7 +585,8 @@ bool do_opt (char        *optstring,
 				arg_ptr++;
 			}
 
-			ptr += bgp_parse_bytes(ptr, arg_ptr, NULL, 0xFFFF, 16, '\0');
+			ptr += bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFFFF, 16, '\0');
+			if (*new_arg_ptr) { usage_error("Too many BGP notification bytes\n"); return FALSE; }
 
 			state->prev_part = BGP_NOTFN;
 		}
