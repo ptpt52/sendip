@@ -71,6 +71,16 @@ espcrypto(esp_private *epriv, sendip_data *data, sendip_data *pack)
 	static u_int8_t fakekey;
 	struct ip_esp_hdr *esp = (struct ip_esp_hdr *)pack->data;
 
+	/* Finalize exposes the eight-byte ESP header separately from the IV,
+	 * payload, encrypted trailer and trailing ICV. Check before subtracting.
+	 */
+	if (pack->alloc_len!=(int)sizeof(*esp) || data->alloc_len<2 ||
+	    epriv->ivlen>(u_int32_t)data->alloc_len-2 ||
+	    epriv->icvlen>(u_int32_t)data->alloc_len-2-epriv->ivlen) {
+		usage_error("Invalid ESP encryption extent\n");
+		return FALSE;
+	}
+
 	if (!epriv->keylen) {	/* This isn't going to be very productive... */
 		key = &fakekey;
 		keylen = 1;
@@ -78,11 +88,10 @@ espcrypto(esp_private *epriv, sendip_data *data, sendip_data *pack)
 		key = (u_int8_t *)epriv->key;
 		keylen = epriv->keylen;
 	}
-	/* Encrypt everything past the ESP header */
+	/* The explicit IV and ICV stay clear; transform payload and trailer. */
 	xorcrypto(key, keylen,
-	          (u_int8_t *)esp->enc_data,
-	          pack->alloc_len + data->alloc_len -
-	          sizeof(struct ip_esp_hdr));
+	          (u_int8_t *)esp->enc_data+epriv->ivlen,
+	          data->alloc_len-epriv->ivlen-epriv->icvlen);
 	return TRUE;
 }
 
