@@ -36,7 +36,8 @@ static void icmpcsum(sendip_data *hdr, sendip_data *data) {
 static void icmp6csum(struct in6_addr *src, struct in6_addr *dst,
                      sendip_data *hdr, sendip_data *data) {
 	icmp_header *icmp=hdr->data;
-	struct ipv6_pseudo_hdr phdr={0};
+	struct ipv6_pseudo_hdr phdr;
+	memset(&phdr, 0, sizeof(phdr));
 	phdr.source=*src;
 	phdr.destination=*dst;
 	phdr.ulp_length=htonl(hdr->alloc_len+data->alloc_len);

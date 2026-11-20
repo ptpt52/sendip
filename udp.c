@@ -42,7 +42,8 @@ static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
                      sendip_data *data) {
 	udp_header *udp=udp_hdr->data;
 	ipv6_header *ipv6=ipv6_hdr->data;
-	struct ipv6_pseudo_hdr phdr={0};
+	struct ipv6_pseudo_hdr phdr;
+	memset(&phdr, 0, sizeof(phdr));
 	phdr.source=ipv6->ip6_src;
 	phdr.destination=ipv6->ip6_dst;
 	phdr.ulp_length=htonl(udp_hdr->alloc_len+data->alloc_len);
