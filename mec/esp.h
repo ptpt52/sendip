@@ -32,6 +32,8 @@ typedef struct ip_esp_private {		/* keep track of things privately */
 	u_int32_t ivlen;	/* length of IV portion */
 	u_int32_t icvlen;	/* length of ICV portion */
 	u_int32_t keylen;	/* length of "key" (not transmitted data) */
+	struct crypto_module *auth;
+	struct crypto_module *crypto;
 	u_int32_t key[0];	/* key itself */
 } esp_private;
 

@@ -85,3 +85,10 @@ fail:
 	free(newmod);
 	return NULL;
 }
+
+void unload_crypto_module(crypto_module *module) {
+	if (!module) return;
+	if (module->handle) dlclose(module->handle);
+	free(module->name);
+	free(module);
+}

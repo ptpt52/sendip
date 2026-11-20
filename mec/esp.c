@@ -21,7 +21,16 @@
  */
 const char opt_char='e';
 
-crypto_module *authesp, *cryptoesp;
+
+
+void destroy(sendip_data *pack) {
+	esp_private *priv=pack->private;
+	if (!priv) return;
+	unload_crypto_module(priv->auth);
+	unload_crypto_module(priv->crypto);
+	free(priv);
+	pack->private=NULL;
+}
 
 sendip_data *
 initialize(void)
@@ -128,22 +137,28 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= ESP_MOD_KEY;
 		break;
 	case 'a':	/* Authentication module */
-		authesp = load_crypto_module(arg);
-		if (!authesp)
-			return FALSE;
+		{
+			crypto_module *module=load_crypto_module(arg);
+			if (!module) return FALSE;
+			unload_crypto_module(priv->auth);
+			priv->auth=module;
+		}
 		/* Call any init routine */
 		pack->modified |= ESP_MOD_AUTH;
-		if (authesp->cryptoinit)
-			return (*authesp->cryptoinit)(pack);
+		if (priv->auth->cryptoinit)
+			return (*priv->auth->cryptoinit)(pack);
 		break;
 	case 'c':	/* Cryptographic (encryption/privacy) module */
-		cryptoesp = load_crypto_module(arg);
-		if (!cryptoesp)
-			return FALSE;
+		{
+			crypto_module *module=load_crypto_module(arg);
+			if (!module) return FALSE;
+			unload_crypto_module(priv->crypto);
+			priv->crypto=module;
+		}
 		/* Call any init routine */
 		pack->modified |= ESP_MOD_CRYPT;
-		if (cryptoesp->cryptoinit)
-			return (*cryptoesp->cryptoinit)(pack);
+		if (priv->crypto->cryptoinit)
+			return (*priv->crypto->cryptoinit)(pack);
 		break;
 	case 'n':	/* Next header */
 		esp->tail.nexthdr = name_to_proto(arg);
@@ -267,20 +282,17 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	/* Call any authentication and/or encryption modules, in
 	 * that order, and let them work their magic.
 	 */
-	if (authesp && authesp->cryptomod) {
-		ret = (*authesp->cryptomod)(priv, hdrs, headers, index,
+	if (priv->auth && priv->auth->cryptomod) {
+		ret = (*priv->auth->cryptomod)(priv, hdrs, headers, index,
 		                            data, pack);
 	}
 	if (ret == TRUE) {
-		if (cryptoesp && cryptoesp->cryptomod) {
-			ret = (*cryptoesp->cryptomod)(priv, hdrs, headers,
+		if (priv->crypto && priv->crypto->cryptomod) {
+			ret = (*priv->crypto->cryptomod)(priv, hdrs, headers,
 			                              index, data, pack);
 		}
 	}
 
-	/* @@ We can't free the private data, as WESP needs it */
-	/* free((void *)priv);
-	pack->private = NULL; */
 	return ret;
 }
 

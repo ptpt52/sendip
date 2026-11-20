@@ -21,6 +21,7 @@ typedef struct ip_auth_hdr ah_header;
 typedef struct ip_ah_private {         /* keep track of things privately */
 	u_int32_t type;		/* type = IPPROTO_AH */
 	u_int32_t keylen;       /* length of "key" (not transmitted data) */
+	struct crypto_module *crypto;
 	u_int32_t key[0];       /* key itself */
 } ah_private;
 

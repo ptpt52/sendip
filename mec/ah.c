@@ -21,7 +21,15 @@
  */
 const char opt_char='a';
 
-crypto_module *cryptoah;
+
+
+void destroy(sendip_data *pack) {
+	ah_private *priv=pack->private;
+	if (!priv) return;
+	unload_crypto_module(priv->crypto);
+	free(priv);
+	pack->private=NULL;
+}
 
 sendip_data *
 initialize(void)
@@ -87,12 +95,15 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= AH_MOD_KEY;
 		break;
 	case 'm':       /* Cryptographic module */
-		cryptoah = load_crypto_module(arg);
-		if (!cryptoah)
-			return FALSE;
+		{
+			crypto_module *module=load_crypto_module(arg);
+			if (!module) return FALSE;
+			unload_crypto_module(priv->crypto);
+			priv->crypto=module;
+		}
 		/* Call any init routine */
-		if (cryptoah->cryptoinit)
-			return (*cryptoah->cryptoinit)(pack);
+		if (priv->crypto->cryptoinit)
+			return (*priv->crypto->cryptoinit)(pack);
 		break;
 
 	case 'n':	/* Next header */
@@ -117,13 +128,10 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	/* If there's a crypto module, give it the packet to fill
 	 * in the auth data.
 	 */
-	if (cryptoah && cryptoah->cryptomod) {
-		ret = (*cryptoah->cryptomod)(priv, hdrs, headers, index,
+	if (priv->crypto && priv->crypto->cryptomod) {
+		ret = (*priv->crypto->cryptomod)(priv, hdrs, headers, index,
 		                             data, pack);
 	}
-	/* Free the private data as no longer required */
-	free((void *)priv);
-	pack->private = NULL;
 	return ret;
 }
 

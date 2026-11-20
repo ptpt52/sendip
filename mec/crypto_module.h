@@ -5,7 +5,7 @@
 #include <config.h>
 #endif
 
-typedef struct {
+typedef struct crypto_module {
 	char *name;
 	void *handle;
 	bool (*cryptoinit)(sendip_data *pack);
@@ -14,6 +14,7 @@ typedef struct {
 } crypto_module;
 
 crypto_module *load_crypto_module(char *modname);
+void unload_crypto_module(crypto_module *module);
 
 /* Prototypes */
 #ifndef _CRYPTO_MAIN
