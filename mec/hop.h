@@ -51,7 +51,6 @@ struct ipv6_hopopt {
 
 /* Defines for which parts have been modified
  */
-#define HOP_LEN_FRAG	(HDR_ALLOC-1)	/* First 3 bits are part of length */
 /* Hop-by-hop options we have defined. The flags don't serve
  * much purpose here, but we'll include them for the sake
  * of reference.
@@ -68,7 +67,7 @@ struct ipv6_hopopt {
  */
 sendip_option hop_opts[] = {
 	{"n",1,"Option next header","Correct"},
-	{"0",0,"Option pad 0 (1 byte padding)"},
+	{"0",0,"Option pad 0 (1 byte padding)",NULL},
 	{"p",1,"Option pad N bytes","2"},
 	{"r",1,"Option router alert","0"},
 	{	"j",1,"Option jumbo frame length"
