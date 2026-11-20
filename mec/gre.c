@@ -104,6 +104,23 @@ static u_int16_t allocated_flags(const sendip_data *pack) {
 	return pack->modified>>16;
 }
 
+static u_int32_t gre_read32(const gre_header *gre, size_t index) {
+	u_int32_t value;
+	memcpy(&value, (const u_int8_t *)gre+sizeof(*gre)+
+	               index*sizeof(value), sizeof(value));
+	return value;
+}
+
+static void gre_write32(gre_header *gre, size_t index, u_int32_t value) {
+	memcpy((u_int8_t *)gre+sizeof(*gre)+index*sizeof(value),
+	       &value, sizeof(value));
+}
+
+static void gre_write16(gre_header *gre, size_t index, u_int16_t value) {
+	memcpy((u_int8_t *)gre+sizeof(*gre)+index*sizeof(value),
+	       &value, sizeof(value));
+}
+
 gre_header *gre_resize(sendip_data *pack, u_int16_t flags, u_int16_t addflag) {
 	(void)flags;
 	u_int16_t oldflags=allocated_flags(pack), newflags=oldflags|addflag;
@@ -119,8 +136,8 @@ gre_header *gre_resize(sendip_data *pack, u_int16_t flags, u_int16_t addflag) {
 	memcpy(replacement, old, sizeof(*old));
 	for (size_t i=0; i<sizeof(fields)/sizeof(fields[0]); ++i)
 		if (oldflags&fields[i])
-			replacement->gre_info.thirtytwo[gre_where(newflags, fields[i])]=
-			    old->gre_info.thirtytwo[gre_where(oldflags, fields[i])];
+			gre_write32(replacement, gre_where(newflags, fields[i]),
+			            gre_read32(old, gre_where(oldflags, fields[i])));
 	free(old);
 	pack->data=replacement;
 	pack->alloc_len=size;
@@ -146,7 +163,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		if (!gre) return FALSE;
 		gre->gre_flag |= GRE_CSUM;
 		/* There's only one place for the checksum field to go! */
-		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] = parsed;
+		gre_write16(gre, GRE_CHECKSUM_FIELD, parsed);
 		pack->modified |= GRE_MOD_CHECKSUM;
 		break;
 	case 'C':
@@ -166,8 +183,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
 		gre = gre_resize(pack, gre->gre_flag, GRE_ROUTING);
 		if (!gre) return FALSE;
-		gre->gre_info.thirtytwo[gre_where(allocated_flags(pack), GRE_ROUTING)] =
-		    parsed;
+		gre_write32(gre, gre_where(allocated_flags(pack), GRE_ROUTING), parsed);
 		gre->gre_flag |= GRE_ROUTING;
 		pack->modified |= GRE_MOD_ROUTING;
 		break;
@@ -175,8 +191,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
 		gre = gre_resize(pack, gre->gre_flag, GRE_KEY);
 		if (!gre) return FALSE;
-		gre->gre_info.thirtytwo[gre_where(allocated_flags(pack), GRE_KEY)] =
-		    parsed;
+		gre_write32(gre, gre_where(allocated_flags(pack), GRE_KEY), parsed);
 		gre->gre_flag |= GRE_KEY;
 		pack->modified |= GRE_MOD_KEY;
 		break;
@@ -184,8 +199,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
 		gre = gre_resize(pack, gre->gre_flag, GRE_SEQ);
 		if (!gre) return FALSE;
-		gre->gre_info.thirtytwo[gre_where(allocated_flags(pack), GRE_SEQ)] =
-		    parsed;
+		gre_write32(gre, gre_where(allocated_flags(pack), GRE_SEQ), parsed);
 		gre->gre_flag |= GRE_SEQ;
 		pack->modified |= GRE_MOD_SEQUENCE;
 		break;
@@ -232,7 +246,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		gre = gre_resize(pack, gre->gre_flag, GRE_CSUM);
 		if (!gre) return FALSE;
 		/* There's only one place for the offset field to go! */
-		gre->gre_info.sixteen[GRE_OFFSET_FIELD] = parsed;
+		gre_write16(gre, GRE_OFFSET_FIELD, parsed);
 		pack->modified |= GRE_MOD_OFFSET;
 		break;
 	}
@@ -274,8 +288,8 @@ finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
 		lens[1] = data->alloc_len;
 		vec[2] = NULL;
 		lens[2] = 0;
-		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] = 0;
-		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] = csumv(vec, lens);
+		gre_write16(gre, GRE_CHECKSUM_FIELD, 0);
+		gre_write16(gre, GRE_CHECKSUM_FIELD, csumv(vec, lens));
 	}
 	return TRUE;
 
