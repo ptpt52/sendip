@@ -10,6 +10,8 @@ sendip
 SendIP and its modules use the standard C `bool` type from `<stdbool.h>`.
 After upgrading from a version that used `typedef int bool`, rebuild SendIP
 and all protocol and crypto modules together to match the new module ABI.
+The AH/ESP private structures also contain per-instance crypto module pointers;
+rebuild external crypto modules whenever these module headers change.
 
 Protocol modules may export `void destroy(sendip_data *pack)` to release their
 private per-packet state. SendIP calls it before replacing or unloading a packet,

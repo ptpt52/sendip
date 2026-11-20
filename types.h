@@ -7,6 +7,10 @@
 #ifndef _SENDIP_TYPES_H
 #define _SENDIP_TYPES_H
 
+#include <stdint.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <stdbool.h>
 #ifndef FALSE
 #define TRUE  true
