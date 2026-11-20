@@ -35,6 +35,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <ctype.h> /* isprint */
+#include <limits.h>
 #include "sendip_module.h"
 
 #ifdef __sun__  /* for EVILNESS workaround */
@@ -511,32 +512,42 @@ int main(int argc, char *const argv[]) {
 			usage=TRUE;
 			break;
 		case 'f':
-			if(data == NULL) {
+			if(data == NULL && datafile == -1) {
+				off_t file_length;
 				datafile=open(gnuoptarg,O_RDONLY);
 				if(datafile == -1) {
 					perror("Couldn't open data file");
-					fprintf(stderr,"No data will be included\n");
+					status=1;
+					goto cleanup;
 				} else {
-					datalen = lseek(datafile,0,SEEK_END);
-					if(datalen == -1) {
+					file_length = lseek(datafile,0,SEEK_END);
+					if(file_length == (off_t)-1) {
 						perror("Error reading data file: lseek()");
-						fprintf(stderr,"No data will be included\n");
-						datalen=0;
-					} else if(datalen == 0) {
+						status=1;
+						goto cleanup;
+					}
+					if (file_length > INT_MAX) {
+						fprintf(stderr,"Data file is too large\n");
+						status=1;
+						goto cleanup;
+					}
+					datalen=(int)file_length;
+					if(datalen == 0) {
 						fprintf(stderr,"Data file is empty\nNo data will be included\n");
 					} else {
 						data = mmap(NULL,datalen,PROT_READ,MAP_SHARED,datafile,0);
 						if(data == MAP_FAILED) {
 							perror("Couldn't read data file: mmap()");
-							fprintf(stderr,"No data will be included\n");
 							data = NULL;
-							datalen=0;
+							status=1;
+							goto cleanup;
 						}
 					}
 				}
 			} else {
 				fprintf(stderr,"Only one -d or -f option can be given\n");
 				usage = TRUE;
+				status=1;
 			}
 			break;
 		case '?':
