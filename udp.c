@@ -23,60 +23,33 @@ const char opt_char='u';
 
 static void udpcsum(sendip_data *ip_hdr, sendip_data *udp_hdr,
                     sendip_data *data) {
-	udp_header *udp = (udp_header *)udp_hdr->data;
-	ip_header  *ip  = (ip_header *)ip_hdr->data;
-	u_int16_t *buf = malloc(12+udp_hdr->alloc_len+data->alloc_len);
-	u_int8_t *tempbuf = (u_int8_t *)buf;
+	udp_header *udp=udp_hdr->data;
+	ip_header *ip=ip_hdr->data;
+	u_int8_t pseudo[12]={0};
+	u_int16_t length=htons(udp_hdr->alloc_len+data->alloc_len);
+	memcpy(pseudo, &ip->saddr, 4);
+	memcpy(pseudo+4, &ip->daddr, 4);
+	pseudo[9]=ip->protocol;
+	memcpy(pseudo+10, &length, 2);
+	u_int16_t *blocks[]={(u_int16_t *)pseudo, udp_hdr->data, data->data};
+	int lengths[]={sizeof(pseudo), udp_hdr->alloc_len, data->alloc_len, 0};
 	udp->check=0;
-	if(tempbuf == NULL) {
-		fprintf(stderr,"Out of memory: UDP checksum not computed\n");
-		return;
-	}
-	/* Set up the pseudo header */
-	memcpy(tempbuf,&(ip->saddr),sizeof(u_int32_t));
-	memcpy(&(tempbuf[4]),&(ip->daddr),sizeof(u_int32_t));
-	tempbuf[8]=0;
-	tempbuf[9]=(u_int16_t)ip->protocol;
-	tempbuf[10]=(u_int16_t)((udp_hdr->alloc_len+data->alloc_len)&0xFF00)>>8;
-	tempbuf[11]=(u_int16_t)((udp_hdr->alloc_len+data->alloc_len)&0x00FF);
-	/* Copy the UDP header and data */
-	memcpy(tempbuf+12,udp_hdr->data,udp_hdr->alloc_len);
-	memcpy(tempbuf+12+udp_hdr->alloc_len,data->data,data->alloc_len);
-	/* CheckSum it */
-	udp->check = csum(buf,12+udp_hdr->alloc_len+data->alloc_len);
-	free(buf);
+	udp->check=csumv(blocks, lengths);
 }
 
 static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
                      sendip_data *data) {
-	udp_header *udp = (udp_header *)udp_hdr->data;
-	ipv6_header  *ipv6  = (ipv6_header *)ipv6_hdr->data;
-	struct ipv6_pseudo_hdr phdr;
-
-	u_int16_t *buf = malloc(sizeof(phdr)+udp_hdr->alloc_len+data->alloc_len);
-	u_int8_t *tempbuf = (u_int8_t *)buf;
-	udp->check=0;
-	if(tempbuf == NULL) {
-		fprintf(stderr,"Out of memory: UDP checksum not computed\n");
-		return;
-	}
-
-	/* Set up the pseudo header */
-	memset(&phdr,0,sizeof(phdr));
-	memcpy(&phdr.source,&ipv6->ip6_src,sizeof(struct in6_addr));
-	memcpy(&phdr.destination,&ipv6->ip6_dst,sizeof(struct in6_addr));
+	udp_header *udp=udp_hdr->data;
+	ipv6_header *ipv6=ipv6_hdr->data;
+	struct ipv6_pseudo_hdr phdr={0};
+	phdr.source=ipv6->ip6_src;
+	phdr.destination=ipv6->ip6_dst;
 	phdr.ulp_length=htonl(udp_hdr->alloc_len+data->alloc_len);
 	phdr.nexthdr=IPPROTO_UDP;
-
-	memcpy(tempbuf,&phdr,sizeof(phdr));
-
-	/* Copy the UDP header and data */
-	memcpy(tempbuf+sizeof(phdr),udp_hdr->data,udp_hdr->alloc_len);
-	memcpy(tempbuf+sizeof(phdr)+udp_hdr->alloc_len,data->data,data->alloc_len);
-
-	/* CheckSum it */
-	udp->check = csum(buf,sizeof(phdr)+udp_hdr->alloc_len+data->alloc_len);
-	free(buf);
+	u_int16_t *blocks[]={(u_int16_t *)&phdr, udp_hdr->data, data->data};
+	int lengths[]={sizeof(phdr), udp_hdr->alloc_len, data->alloc_len, 0};
+	udp->check=0;
+	udp->check=csumv(blocks, lengths);
 }
 
 sendip_data *initialize(void) {
