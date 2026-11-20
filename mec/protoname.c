@@ -79,7 +79,7 @@ name_to_proto(char *s)
 	struct protoent *pent;
 
 	/* Check for a number */
-	if (isdigit(*s))
+	if (isdigit((unsigned char)*s))
 		return (u_int8_t)strtoul(s, (char **)NULL, 0);
 	/* If we have /etc/protocols, use that */
 	if ((pent = getprotobyname(s)))

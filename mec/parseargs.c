@@ -6,7 +6,7 @@
 static int
 mstrchr(const char *s, int c)
 {
-	if (!s) return isspace(c);
+	if (!s) return isspace((unsigned char)c);
 	return strchr(s, c) != NULL;
 }
 
