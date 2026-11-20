@@ -117,6 +117,11 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			unsigned int previous_modified=pack->modified;
 			priv->crypto=module;
 			bool ready=initialize_crypto_module(module, pack);
+			if (ready && (!pack->data || pack->alloc_len<(int)sizeof(ah_header))) {
+				fprintf(stderr, "Crypto module %s left invalid AH header storage\n",
+				        module->name);
+				ready=FALSE;
+			}
 			priv=pack->private;
 			if (priv) priv->crypto=ready ? module : previous;
 			if (!ready) {
