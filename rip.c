@@ -9,6 +9,7 @@
  */
 
 #include <stdlib.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -36,10 +37,20 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
+static bool add_entry(sendip_data *pack) {
+	if (pack->alloc_len > INT_MAX-(int)sizeof(rip_options)) return FALSE;
+	void *data=realloc(pack->data, (size_t)pack->alloc_len+sizeof(rip_options));
+	if (!data) return FALSE;
+	pack->data=data;
+	memset((char *)data+pack->alloc_len, 0, sizeof(rip_options));
+	pack->alloc_len+=sizeof(rip_options);
+	return TRUE;
+}
+
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	rip_header *rippack = (rip_header *)pack->data;
 	rip_options *ripopt;
-	char *p, *q;
+	char *fields[6], *remaining;
 	switch(opt[1]) {
 	case 'v': /* version */
 		/*@@rippack->version = (u_int8_t)strtoul(arg, (char **)0, 0);*/
@@ -60,39 +71,29 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		memcpy((char *)pack->data+pack->alloc_len,arg,strlen(arg));
 		pack->alloc_len += strlen(arg);
 		break;
-	case 'e': /* rip entry */
-		if(RIP_NUM_ENTRIES(pack)==25) {
-			usage_error("Warning: a real RIP packet contains no more than 25 entries.\n");
+	case 'e': /* Split and validate every field before growing the packet. */
+		remaining=arg;
+		for (size_t i=0; i<sizeof(fields)/sizeof(fields[0]); ++i) {
+			fields[i]=strsep(&remaining, ":");
+			if (!fields[i]) {
+				usage_error("Malformed RIP entry\n");
+				return FALSE;
+			}
 		}
-		RIP_ADD_ENTRY(pack);
-		ripopt = RIP_OPTION(pack);
-		p=q=arg;
-		/* TODO: if arg is malformed, this could segfault */
-		while(*(q++)!=':') /* do nothing */;
-		*(--q)='\0';
-		rippack->addressFamily= htons((p==q)?2:(u_int16_t)strtoul(p, (char **)0, 0));
-		pack->modified |= RIP_MOD_ADDRFAM;
-		p=++q;
-		while(*(q++)!=':') /* do nothing */;
-		*(--q)='\0';
-		rippack->routeTagOrAuthenticationType=htons((p==q)?0:(u_int16_t)strtoul(p, (char **)0,0));
-		pack->modified |= RIP_MOD_ROUTETAG;
-		p=++q;
-		while(*(q++)!=':') /* do nothing */;
-		*(--q)='\0';
-		ripopt->address=(p==q)?inet_addr("0.0.0.0"):inet_addr(p);
-		p=++q;
-		while(*(q++)!=':') /* do nothing */;
-		*(--q)='\0';
-		ripopt->subnetMask=(p==q)?inet_addr("255.255.255.0"):inet_addr(p);
-		p=++q;
-		while(*(q++)!=':') /* do nothing */;
-		*(--q)='\0';
-		ripopt->nextHop=(p==q)?inet_addr("0.0.0.0"):inet_addr(p);
-		p=++q;
-		while(*(q++)!='\0') /* do nothing */;
-		*(--q)='\0';
-		ripopt->metric=htonl((p==q)?16:(u_int32_t)strtoul(p,(char **)0, 0));
+		if (remaining) {
+			usage_error("Too many fields in RIP entry\n");
+			return FALSE;
+		}
+		if (!add_entry(pack)) return FALSE;
+		rippack=pack->data;
+		ripopt=RIP_OPTION(pack);
+		rippack->addressFamily=htons(*fields[0] ? strtoul(fields[0], NULL, 0) : 2);
+		rippack->routeTagOrAuthenticationType=htons(*fields[1] ? strtoul(fields[1], NULL, 0) : 0);
+		pack->modified |= RIP_MOD_ADDRFAM|RIP_MOD_ROUTETAG;
+		ripopt->address=inet_addr(*fields[2] ? fields[2] : "0.0.0.0");
+		ripopt->subnetMask=inet_addr(*fields[3] ? fields[3] : "255.255.255.0");
+		ripopt->nextHop=inet_addr(*fields[4] ? fields[4] : "0.0.0.0");
+		ripopt->metric=htonl(*fields[5] ? strtoul(fields[5], NULL, 0) : 16);
 		break;
 	case 'd': /* default request */
 		if(RIP_NUM_ENTRIES(pack) != 0) {
@@ -101,7 +102,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		rippack->command = (u_int8_t)1;
 		rippack->addressFamily = (u_int16_t)0;
 		rippack->routeTagOrAuthenticationType = (u_int16_t)0;
-		RIP_ADD_ENTRY(pack);
+		if (!add_entry(pack)) return FALSE;
 		ripopt=RIP_OPTION(pack);
 		ripopt->address=inet_addr("0.0.0.0");
 		ripopt->subnetMask=inet_addr("0.0.0.0");

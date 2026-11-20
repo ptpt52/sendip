@@ -42,6 +42,5 @@ sendip_option rip_opts[] = {
 
 /* Helpful macros */
 #define RIP_NUM_ENTRIES(d) (((d)->alloc_len-sizeof(rip_header))/sizeof(rip_options))
-#define RIP_ADD_ENTRY(d) { (d)->data = realloc((d)->data,(d)->alloc_len+sizeof(rip_options)); (d)->alloc_len+=sizeof(rip_options); }
 #define RIP_OPTION(d) ((rip_options *)((u_int32_t *)((d)->data)+((d)->alloc_len>>2)-(sizeof(rip_options)>>2)))
 #endif  /* _SENDIP_RIP_H */

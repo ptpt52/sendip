@@ -6,6 +6,7 @@
  */
 
 #include <stdlib.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -49,10 +50,20 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
+static bool add_entry(sendip_data *pack) {
+	if (pack->alloc_len > INT_MAX-(int)sizeof(ripng_entry)) return FALSE;
+	void *data=realloc(pack->data, (size_t)pack->alloc_len+sizeof(ripng_entry));
+	if (!data) return FALSE;
+	pack->data=data;
+	memset((char *)data+pack->alloc_len, 0, sizeof(ripng_entry));
+	pack->alloc_len+=sizeof(ripng_entry);
+	return TRUE;
+}
+
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	ripng_header *rippack = (ripng_header *)pack->data;
 	ripng_entry *ripopt;
-	char *p, *q;
+	char *fields[4], *remaining;
 	switch(opt[1]) {
 	case 'v': /* version */
 		rippack->version = (u_int8_t)strtoul(arg, (char **)0, 0);
@@ -77,29 +88,25 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	pack->alloc_len += strlen(arg);
 	break;
 	*/
-	case 'e': /* rip entry */
-		RIPNG_ADD_ENTRY(pack);
-		ripopt = RIPNG_ENTRY(pack);
-		p=q=arg;
-		/* TODO: if arg is malformed, this could segfault */
-		while(*(q++)!='/') /* do nothing */;
-		*(--q)='\0';
-		ripopt->prefix = (p==q)?in6addr_any:inet6_addr(p);
-
-		p=++q;
-		while(*(q++)!='/') /* do nothing */;
-		*(--q)='\0';
-		ripopt->tag=htons( (p==q)?0:(u_int16_t)strtoul(p, (char **)0,0));
-
-		p=++q;
-		while(*(q++)!='/') /* do nothing */;
-		*(--q)='\0';
-		ripopt->len=(p==q)?(u_int8_t)128:(u_int8_t)strtoul(p, (char **)0,0);
-
-		p=++q;
-		while(*(q++)!='\0') /* do nothing */;
-		*(--q)='\0';
-		ripopt->metric=(p==q)?(u_int8_t)16:(u_int8_t)strtoul(p,(char **)0, 0);
+	case 'e': /* Split and validate every field before growing the packet. */
+		remaining=arg;
+		for (size_t i=0; i<sizeof(fields)/sizeof(fields[0]); ++i) {
+			fields[i]=strsep(&remaining, "/");
+			if (!fields[i]) {
+				usage_error("Malformed RIPNG entry\n");
+				return FALSE;
+			}
+		}
+		if (remaining) {
+			usage_error("Too many fields in RIPNG entry\n");
+			return FALSE;
+		}
+		if (!add_entry(pack)) return FALSE;
+		ripopt=RIPNG_ENTRY(pack);
+		ripopt->prefix=*fields[0] ? inet6_addr(fields[0]) : in6addr_any;
+		ripopt->tag=htons(*fields[1] ? strtoul(fields[1], NULL, 0) : 0);
+		ripopt->len=*fields[2] ? strtoul(fields[2], NULL, 0) : 128;
+		ripopt->metric=*fields[3] ? strtoul(fields[3], NULL, 0) : 16;
 		break;
 	case 'd': /* default request */
 		if(RIPNG_NUM_ENTRIES(pack) != 0) {
@@ -109,7 +116,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		rippack->version = (u_int8_t)1;
 		rippack->res = (u_int16_t)0;
 		pack->modified|=RIPNG_MOD_COMMAND|RIPNG_MOD_VERSION|RIPNG_MOD_RESERVED;
-		RIPNG_ADD_ENTRY(pack);
+		if (!add_entry(pack)) return FALSE;
 		ripopt=RIPNG_ENTRY(pack);
 		ripopt->prefix=in6addr_any;
 		ripopt->tag=(u_int16_t)0;
