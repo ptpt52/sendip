@@ -10,7 +10,7 @@ INSTALL ?= install
 CFLAGS +=	-pipe -Wall -Wpointer-arith -Wwrite-strings \
 	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O3 -Wcast-align
 # Required flags remain present when callers supply CFLAGS/CPPFLAGS.
-SENDIP_CPPFLAGS = -I.. -DSENDIP_LIBS=\"$(LIBDIR)\"
+SENDIP_CPPFLAGS = -I.. "-DSENDIP_LIBS=\"$(LIBDIR)\""
 SENDIP_CFLAGS = -fPIC -fsigned-char
 #-Wcast-align causes problems on solaris, but not serious ones
 LDFLAGS ?=
