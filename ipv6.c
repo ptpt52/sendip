@@ -27,6 +27,7 @@ sendip_data *initialize(void) {
 		return NULL;
 	}
 	memset(ipv6,0,sizeof(ipv6_header));
+	ipv6->ip6_src=in6addr_loopback;
 	ret->alloc_len = sizeof(ipv6_header);
 	ret->data = (void *)ipv6;
 	ret->modified=0;

@@ -130,6 +130,7 @@ sendip_data *initialize(void) {
 		return NULL;
 	}
 	memset(ip,0,sizeof(ip_header));
+	ip->saddr=htonl(INADDR_LOOPBACK);
 	ret->alloc_len = sizeof(ip_header);
 	ret->data = (void *)ip;
 	ret->modified=0;
