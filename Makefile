@@ -13,12 +13,18 @@ CFLAGS +=	-fPIC -fsigned-char -pipe -Wall -Wextra -Wno-unused-parameter -Wpointe
 			-Wcast-align -O3 \
 			-DSENDIP_LIBS=\"$(LIBDIR)\"
 #-Wcast-align causes problems on solaris, but not serious ones
-LDFLAGS=	-rdynamic -lm
-#LDFLAGS_SOLARIS= -lsocket -lnsl -lm
-LDFLAGS_SOLARIS= -lsocket -lnsl -lm -ldl
-#LDFLAGS_LINUX= -rdynamic -lm -ldl
-# @@ Needed some flag fixes for Ubuntu; these are ok for Fedora, also
-LDFLAGS_LINUX= -rdynamic -Wl,--no-as-needed -lm -ldl
+LDFLAGS ?=
+LDLIBS ?=
+UNAME_S ?= $(shell uname -s)
+SENDIP_LDFLAGS = -rdynamic
+SENDIP_LDLIBS = -lm
+ifeq ($(UNAME_S),Linux)
+SENDIP_LDFLAGS += -Wl,--no-as-needed
+SENDIP_LDLIBS += -ldl
+else ifeq ($(UNAME_S),SunOS)
+SENDIP_LDFLAGS =
+SENDIP_LDLIBS += -lsocket -lnsl -ldl
+endif
 LIBCFLAGS= -shared
 CC ?=	gcc
 AR ?=	ar
@@ -38,15 +44,8 @@ all:	$(LIBS) subdirs sendip $(PROTOS)
 
 man: sendip.1 sendip.spec sendipman.html
 
-#there has to be a nice way to do this
-sendip:	sendip.o	gnugetopt.o gnugetopt1.o compact.o filearray.o
-	sh -c "if [ `uname` = Linux ] ; then \
-$(CC) -o $@ $(LDFLAGS_LINUX) $(CFLAGS) $+ ; \
-elif [ `uname` = SunOS ] ; then \
-$(CC) -o $@ $(LDFLAGS_SOLARIS) $(CFLAGS) $+ ;\
-else \
-$(CC) -o $@ $(LDFLAGS) $(CFLAGS) $+ ; \
-fi"
+sendip: sendip.o gnugetopt.o gnugetopt1.o compact.o filearray.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SENDIP_LDFLAGS) -o $@ $^ $(SENDIP_LDLIBS) $(LDLIBS)
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) -c -o $@ $<
@@ -93,7 +92,7 @@ sendip.spec:	sendip.spec.in VERSION
 			cat sendip.spec.in >>sendip.spec
 
 %.so: %.c $(LIBS)
-			$(CC) -o $@ $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $< $(LIBS)
+			$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
 
 .PHONY:	all subdirs man clean veryclean install
 

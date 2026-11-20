@@ -12,10 +12,8 @@ CFLAGS +=	-I.. -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
 	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O3 -Wcast-align \
 	-DSENDIP_LIBS=\"$(LIBDIR)\"
 #-Wcast-align causes problems on solaris, but not serious ones
-LDFLAGS=	-rdynamic -lm
-#LDFLAGS_SOLARIS= -lsocket -lnsl -lm
-LDFLAGS_SOLARIS= -lsocket -lnsl -lm -ldl
-LDFLAGS_LINUX= -rdynamic -ldl -lm
+LDFLAGS ?=
+LDLIBS ?=
 LIBCFLAGS= -shared
 CC ?=	gcc
 AR ?=	ar
@@ -32,13 +30,13 @@ LIBS= ../libsendipaux.a
 all:	$(PROTOS) $(CRYPTOS)
 
 %.so: %.c $(LIBS)
-			$(CC) -o $@ $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $< $(LIBS)
+			$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
 
 hop.so: hop.c $(LIBS)
-			$(CC) -DHOP_OPT -o $@ $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $< $(LIBS)
+			$(CC) -DHOP_OPT $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
 
 dest.so: hop.c $(LIBS)
-			$(CC) -DDEST_OPT -o $@ $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $< $(LIBS)
+			$(CC) -DDEST_OPT $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
 
 .PHONY:	all clean veryclean install
 
