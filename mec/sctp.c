@@ -74,6 +74,8 @@ sctp_chunk_header *add_chunk(sendip_data *pack, u_int8_t type) {
 	chunk->type=type;
 	chunk->length=htons(sizeof(*chunk));
 	((sctp_state *)pack->private)->final_parameter_padding=0;
+	if (!(pack->modified&SCTP_MOD_VTAG))
+		((sctp_header *)replacement)->vtag=type==SCTP_CID_INIT ? 0 : htonl(1);
 	return chunk;
 }
 
@@ -167,18 +169,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		}
 		currentchunk = add_chunk(pack, svalue);
 		if (!currentchunk) return FALSE;
-		if (!(pack->modified&SCTP_MOD_VTAG)) {
-			/* Be careful - add_chunk may have moved things */
-			sctp = (sctp_header *)pack->data;
-			if (svalue == SCTP_CID_INIT) {
-				/* This is just for documentation purposes,
-				 * since it's already 0.
-				 */
-				sctp->vtag = 0;
-			} else {
-				sctp->vtag = htonl(1);
-			}
-		}
+
 		break;
 	case 'F':	/* SCTP chunk flags (8 bits) */
 		if (!uintargument(arg, OCTET_MAX, &svalue)) {
