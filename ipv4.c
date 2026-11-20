@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <ctype.h>
 #include <string.h>
 #include "sendip_module.h"
 #include "ipv4.h"
@@ -32,57 +33,57 @@ static void ipcsum(sendip_data *ip_hdr) {
 	ip->check=csum((u_int16_t *)ip_hdr->data, ip_hdr->alloc_len);
 }
 
-/* This builds a source route format option from an argument */
-static u_int8_t buildroute(char *data, sendip_data *pack) {
-	char *data_out = data;
-	char *data_in = data;
-	char *next;
-	int i;
-	u_int8_t p='0';
-	u_int8_t hit_p = 0;
-	/* First, the first 2 bytes give us the pointer */
-	for(i=0; i<2; i++) {
-		p<<=4;
-		if('0'<=*data_in && *data_in<='9') {
-			p+=*data_in-'0';
-		} else if('A'<=*data_in && *data_in<='F') {
-			p+=*data_in-'A'+0x0A;
-		} else if('a'<=*data_in && *data_in<='f') {
-			p+=*data_in-'a'+0x0a;
-		} else {
-			fprintf(stderr,"First 2 chars of record route options must be hex pointer\n");
-			return 0;
-		}
-		data_in++;
-	}
-	*(data_out++)=p;
-
-	/* Now loop through IP addresses... */
-	if(*data_in != ':') {
-		fprintf(stderr,"Third char of a record route option must be a :\n");
-		return 0;
-	}
-	data_in++;
-	next=data_in;
-	while(next) {
-		u_int32_t ip;
-		next=strchr(data_in,':');
-		if(next) {
-			*(next++)=0;
-		}
-		/*@@ip=inet_addr(data_in);*/
-		ip=ipv4argument(data_in, strlen(data_in));
-		memcpy(data_out,&ip,4);
-		data_out+=4;
-		hit_p+=4;
-		if (pack && !(pack->modified & IP_MOD_ROUTE_DADDR) && hit_p == p) {
+/* Output storage is separate: short numeric addresses can expand to four
+ * binary bytes and must not overwrite the remaining source text.
+ */
+static int buildroute(char *input, u_int8_t *output, sendip_data *pack) {
+	if (strlen(input)<3 || !isxdigit((unsigned char)input[0]) ||
+	    !isxdigit((unsigned char)input[1]) || input[2]!=':') return 0;
+	char pointer[3]={input[0], input[1], 0};
+	output[0]=strtoul(pointer, NULL, 16);
+	int used=1;
+	char *remaining=input+3, *address;
+	while ((address=strsep(&remaining, ":"))) {
+		if (!*address || used>253-4) return 0;
+		u_int32_t ip=ipv4argument(address, strlen(address));
+		memcpy(output+used, &ip, 4);
+		used+=4;
+		if (pack && !(pack->modified&IP_MOD_ROUTE_DADDR) && used-1==output[0]) {
 			pack->modified |= IP_MOD_ROUTE_DADDR;
-			pack->route_daddr = ip;
+			pack->route_daddr=ip;
 		}
-		data_in = next;
 	}
+	return used;
+}
 
-	return (data_out-data);
+static int buildtimestamp(char *input, u_int8_t *output) {
+	char *remaining=input;
+	char *pointer=strsep(&remaining, ":");
+	char *overflow=strsep(&remaining, ":");
+	char *flag=strsep(&remaining, ":");
+	if (!pointer || strlen(pointer)!=2 || !overflow || !flag || !remaining ||
+	    !isxdigit((unsigned char)pointer[0]) || !isxdigit((unsigned char)pointer[1]))
+		return 0;
+	int over=atoi(overflow), flags=atoi(flag);
+	if (over<0 || over>15 || flags<0 || flags>15) return 0;
+	output[0]=strtoul(pointer, NULL, 16);
+	output[1]=(over<<4)|flags;
+	int used=2;
+	while (remaining) {
+		char *field=strsep(&remaining, ":");
+		if (flags) {
+			if (!remaining || used>253-8) return 0;
+			u_int32_t ip=ipv4argument(field, strlen(field));
+			memcpy(output+used, &ip, 4);
+			used+=4;
+			field=strsep(&remaining, ":");
+		}
+		if (used>253-4) return 0;
+		u_int32_t timestamp=integerargument(field, 4);
+		memcpy(output+used, &timestamp, 4);
+		used+=4;
+	}
+	return used;
 }
 
 /* This bears an incredible resemblance to the TCP addoption function... */
@@ -266,189 +267,30 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			/* NOP */
 			added=addoption(0,0,1,1,NULL,pack);
 		} else if(!strcmp(opt+2, "rr")) {
-			/* Record route
-			 * Format is the same as for loose source route
-			 */
-			char *data = strdup(arg);
-			int len;
-			if(!data) {
-				fprintf(stderr,"Out of memory!\n");
-				return FALSE;
-			}
-			len = buildroute(data, NULL);
-			if(len==0) {
-				free(data);
-				return FALSE;
-			} else {
-				added=addoption(0,0,7,len+2,(u_int8_t *)data,pack);
-				free(data);
-			}
+			u_int8_t data[253];
+			int len=buildroute(arg, data, NULL);
+			if (!len) return FALSE;
+			added=addoption(0,0,7,len+2,data,pack);
 		} else if(!strcmp(opt+2, "ts")) {
-			/* Time stamp (RFC791)
-			 * Format is:
-			 *  type (68, 8bit)
-			 *  length (automatic, 8bit)
-			 *  pointer (8bit)
-			 *  overflow (4bit), flag (4bit)
-			 *  if(flag) ip1 (32bit)
-			 *  timestamp1 (32bit)
-			 *  if(flag) ip2 (32bit)
-			 *  timestamp2 (32bit)
-			 *  ...
-			 */
-			char *data = strdup(arg);
-			char *data_in = data;
-			char *data_out = data;
-			char *next;
-			u_int8_t p=0;
-			int i;
-			if(data==NULL) {
-				fprintf(stderr,"Out of memory\n");
-				return FALSE;
-			}
-
-			/* First, get the pointer */
-			for(i=0; i<2; i++) {
-				p<<=4;
-				if('0'<=*data_in && *data_in<='9') {
-					p+=*data_in-'0';
-				} else if('A'<=*data_in && *data_in<='F') {
-					p+=*data_in-'A'+0x0A;
-				} else if('a'<=*data_in && *data_in<='f') {
-					p+=*data_in-'a'+0x0a;
-				} else {
-					fprintf(stderr,
-					        "First 2 chars of IP timestamp must be hex pointer\n");
-					free(data);
-					return FALSE;
-				}
-				data_in++;
-			}
-			*(data_out++)=p;
-
-			/* Skip a : */
-			if(*(data_in++) != ':') {
-				fprintf(stderr,"Third char of IP timestamp must be :\n");
-				free(data);
-				return FALSE;
-			}
-
-			/* Get the overflow and skip a : */
-			next = strchr(data_in,':');
-			if(!next) {
-				fprintf(stderr,"IP timestamp option incorrect\n");
-				free(data);
-				return FALSE;
-			}
-			*(next++)=0;
-			i = atoi(data_in);
-			if(i > 15) {
-				fprintf(stderr,"IP timestamp overflow too big (max 15)\n");
-				free(data);
-				return FALSE;
-			}
-			*data_out=(u_int8_t)(i<<4);
-			data_in=next;
-
-			/* Now get the flag and skip a : */
-			next = strchr(data_in,':');
-			if(!next) {
-				fprintf(stderr,"IP timestamp option incorrect\n");
-				free(data);
-				return FALSE;
-			}
-			*(next++)=0;
-			i = atoi(data_in);
-			if(i > 15) {
-				fprintf(stderr,"IP timestamp flag too big (max 3)\n");
-				free(data);
-				return FALSE;
-			} else if(i!=0 && i!=1 && i!=3) {
-				fprintf(stderr,
-				        "Warning: IP timestamp flag value %d not understood\n",i);
-			}
-			(*data_out)+=(u_int8_t)i;
-			data_in=next;
-			data_out++;
-
-			/* Fill in (ip?) timestamp pairs */
-			while(next) {
-				u_int32_t ts;
-				if(i) { /* if we need IPs */
-					u_int32_t ip;
-					next=strchr(data_in,':');
-					if(!next) {
-						fprintf(stderr,"IP address in IP timestamp option must be followed by a timestamp\n");
-						free(data);
-						return FALSE;
-					}
-					*(next++)=0;
-					/*@@ip=inet_addr(data_in);*/
-					ip=ipv4argument(data_in, next-data_in);
-					memcpy(data_out,&ip,4);
-					data_out+=4;
-					data_in = next;
-				}
-				next=strchr(next,':');
-				if(next) *(next++)=0;
-				/*@@ts = htonl(atoi(data_in));*/
-				ts = integerargument(data_in, 4);
-				memcpy(data_out,&ts,4);
-				data_out+=4;
-				data_in = next;
-			}
-
-			added=addoption(0,2,4,data_out-data+2,(u_int8_t *)data,pack);
-			free(data);
-			/* End of timestamp parsing */
-
+			u_int8_t data[253];
+			int len=buildtimestamp(arg, data);
+			if (!len) return FALSE;
+			added=addoption(0,2,4,len+2,data,pack);
 		} else if(!strcmp(opt+2, "lsr")) {
-			/* Loose Source Route
-			 * Format is:
-			 *  type (131, 8bit)
-			 *  length (automatic, 8bit)
-			 *  pointer (>=4, 8bit)
-			 *  ip address0 (32bit)
-			 *  ip address1 (32bit)
-			 *  ...
-			 */
-			char *data = strdup(arg);
-			int len;
-			if(!data) {
-				fprintf(stderr,"Out of memory!\n");
-				return FALSE;
-			}
-			len = buildroute(data, pack);
-			if(len==0) {
-				free(data);
-				return FALSE;
-			} else {
-				added=addoption(1,0,3,len+2,(u_int8_t *)data,pack);
-				free(data);
-			}
+			u_int8_t data[253];
+			int len=buildroute(arg, data, pack);
+			if (!len) return FALSE;
+			added=addoption(1,0,3,len+2,data,pack);
 		} else if(!strcmp(opt+2, "sid")) {
 			/* Stream ID (RFC791) */
 			/*@@u_int16_t sid = htons(atoi(arg));*/
 			u_int16_t sid = integerargument(arg, 2);
 			added=addoption(1,0,8,4,(u_int8_t *)&sid,pack);
 		} else if(!strcmp(opt+2, "ssr")) {
-			/* Strict Source Route
-			 * Format is identical to loose source route
-			 */
-			char *data = strdup(arg);
-			int len;
-			if(!data) {
-				fprintf(stderr,"Out of memory!\n");
-				return FALSE;
-			}
-			len = buildroute(data, pack);
-			if(len==0) {
-				free(data);
-				return FALSE;
-			} else {
-				added=addoption(1,0,9,len+2,(u_int8_t *)data,pack);
-				free(data);
-			}
+			u_int8_t data[253];
+			int len=buildroute(arg, data, pack);
+			if (!len) return FALSE;
+			added=addoption(1,0,9,len+2,data,pack);
 		} else {
 			fprintf(stderr, "unsupported IP option %s val %s\n", opt, arg);
 			return FALSE;
