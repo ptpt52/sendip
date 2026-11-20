@@ -82,19 +82,23 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	u_int32_t value;
 	switch(opt[1]) {
 	case 'l':  /* Leap Indicator (2 bits) */
-		ntp->leap=(u_int8_t)strtoul(arg,(char **)NULL,0)&3;
+		if (!hostintegerargument_checked(arg, 1, &value)) return FALSE;
+		ntp->leap=value&3;
 		pack->modified|=NTP_MOD_LEAP;
 		break;
 	case 's':  /* Status (6 bits, values 0-4 defined */
-		ntp->status=(u_int8_t)strtoul(arg,(char **)NULL,0)&0x3F;
+		if (!hostintegerargument_checked(arg, 1, &value)) return FALSE;
+		ntp->status=value&0x3F;
 		pack->modified|=NTP_MOD_STATUS;
 		break;
 	case 't':  /* Type (8 bits, values 0-4 defined */
-		ntp->type=(u_int8_t)strtoul(arg,(char **)NULL,0)&0xFF;
+		if (!hostintegerargument_checked(arg, 1, &value)) return FALSE;
+		ntp->type=value;
 		pack->modified|=NTP_MOD_TYPE;
 		break;
 	case 'p':  /* precision (16 bits, range +32 to -32) */
-		ntp->precision=htons((int16_t)strtol(arg,(char **)NULL,0));
+		if (!integerargument_checked(arg, 2, &value)) return FALSE;
+		ntp->precision=value;
 		pack->modified|=NTP_MOD_PRECISION;
 		break;
 	case 'e':  /* esitmated error (32 bits, fixed point between bits 15/16) */
