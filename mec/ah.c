@@ -105,7 +105,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		                             sizeof(ah_private) + length);
 		if (!priv) return FALSE;
 		priv->keylen = length;
-		memcpy(priv->key, temp, priv->keylen);
+		memcpy((u_int8_t *)priv+sizeof(*priv), temp, priv->keylen);
 		pack->private = priv;
 		pack->modified |= AH_MOD_KEY;
 		break;

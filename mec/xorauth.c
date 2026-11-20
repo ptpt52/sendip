@@ -192,7 +192,7 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 		key = &fakekey;
 		keylen = 1;
 	} else {
-		key = (u_int8_t *)apriv->key;
+		key = (u_int8_t *)apriv+sizeof(*apriv);
 		keylen = apriv->keylen;
 	}
 	/* We allow odd ICV lengths, so we use this rather than
@@ -254,7 +254,7 @@ ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 		key = &fakekey;
 		keylen = 1;
 	} else {
-		key = (u_int8_t *)apriv->key;
+		key = (u_int8_t *)apriv+sizeof(*apriv);
 		keylen = apriv->keylen;
 	}
 	/* We allow odd ICV lengths, so we use this rather than
@@ -293,7 +293,7 @@ espip(esp_private *epriv, char *hdrs, int index, sendip_data *ipack,
 		key = &fakekey;
 		keylen = 1;
 	} else {
-		key = (u_int8_t *)epriv->key;
+		key = (u_int8_t *)epriv+sizeof(*epriv);
 		keylen = epriv->keylen;
 	}
 	icv = (u_int8_t *)data->data +

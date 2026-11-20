@@ -85,7 +85,7 @@ espcrypto(esp_private *epriv, sendip_data *data, sendip_data *pack)
 		key = &fakekey;
 		keylen = 1;
 	} else {
-		key = (u_int8_t *)epriv->key;
+		key = (u_int8_t *)epriv+sizeof(*epriv);
 		keylen = epriv->keylen;
 	}
 	/* The explicit IV and ICV stay clear; transform payload and trailer.

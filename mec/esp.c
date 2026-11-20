@@ -142,7 +142,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		priv=realloc(priv, sizeof(*priv)+(size_t)length);
 		if (!priv) return FALSE;
 		priv->keylen=length;
-		memcpy(priv->key, temp, length);
+		memcpy((u_int8_t *)priv+sizeof(*priv), temp, length);
 		pack->private=priv;
 		pack->modified |= ESP_MOD_KEY;
 		break;
