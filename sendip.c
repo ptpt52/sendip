@@ -557,6 +557,7 @@ int main(int argc, char *const argv[]) {
 
 
 	/* Resolve global options only after the complete module option table exists. */
+	sendip_module *next_selector=first;
 	gnuopterr=1;
 	gnuoptind=0;
 	for (;;) {
@@ -569,6 +570,16 @@ int main(int argc, char *const argv[]) {
 			dump=TRUE;
 			break;
 		case 'p':
+			/* A newly recognized module option may have consumed an earlier
+			 * -p as its argument. Check the loaded order before dispatch.
+			 */
+			if (!next_selector || strcmp(next_selector->name, gnuoptarg)!=0) {
+				fprintf(stderr, "Unexpected module selector for %s after resolving module options\n",
+				        gnuoptarg);
+				status=1;
+				goto cleanup;
+			}
+			next_selector=next_selector->next;
 			break;
 		case 'l':
 		{
@@ -658,6 +669,12 @@ int main(int argc, char *const argv[]) {
 
 	if (usage) {
 		print_usage();
+		goto cleanup;
+	}
+	if (next_selector) {
+		fprintf(stderr, "Module selector for %s is missing after resolving module options\n",
+		        next_selector->name);
+		status=1;
 		goto cleanup;
 	}
 
