@@ -43,6 +43,8 @@ LIBS= libsendipaux.a
 LIBOBJS= csum.o compact.o protoname.o headers.o parseargs.o cryptomod.o crc32.o filearray.o
 SUBDIRS= mec
 
+include mec/modules.mk
+
 all:	$(LIBS) subdirs sendip $(PROTOS)
 
 man: sendip.1 sendip.spec sendipman.html
@@ -80,9 +82,9 @@ crc32.o: mec/crc32table.h mec/crc32.c
 #	mec/gen_crc32table > mec/crc32table.h
 
 # This requires help2man; a customized local copy is included
-sendip.1:	$(PROGS) $(PROTOS) subdirs VERSION
+sendip.1:	$(PROGS) $(PROTOS) subdirs VERSION help2man.sendip mec/modules.mk
 	-rm -f sendip.1
-	./help2man.sendip -n "Send arbitrary IP packets" -N >sendip.1
+	./help2man.sendip -n "Send arbitrary IP packets" -N -- $(addprefix ./,$(PROTOS)) $(addprefix ./mec/,$(MEC_PROTOS)) >sendip.1
 
 # This requires man2html, a relatively recent (post-2003?) one, at that
 sendipman.html:	sendip.1

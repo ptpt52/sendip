@@ -3,7 +3,7 @@
 
 # MODIFICATION OF GNU's help2man
 # CHANGES:
-#    executeable hardcoded to be ./sendip with lots of options...
+#    executable hardcoded to be ./sendip with optional protocol modules
 #    uses -h instead of --help
 #    version hardcoded rather than --version
 #    puts options in OPTIONS rather than in DESCRIPTION
@@ -11,7 +11,7 @@ my $version=`cat VERSION`;
 chop $version;
 
 # Generate a short man page from --help and --version output.
-# Copyright © 1997, 1998, 1999, 2000 Free Software Foundation, Inc.
+# Copyright Â© 1997, 1998, 1999, 2000 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ EOT
 my $help_info = <<EOT;
 `$this_program' generates a man page out of `--help' and `--version' output.
 
-Usage: $this_program [OPTION]... EXECUTABLE
+Usage: $this_program [OPTION]... [MODULE.so ...]
 
  -n, --name=STRING       use `STRING' as the description for the NAME paragraph
  -s, --section=SECTION   use `SECTION' as the section for the man page
@@ -62,7 +62,7 @@ Usage: $this_program [OPTION]... EXECUTABLE
      --help              print this help, then exit
      --version           print version number, then exit
 
-EXECUTABLE should accept `--help' and `--version' options.
+Each MODULE.so is passed to ./sendip as a protocol module.
 
 Report bugs to <bug-help2man\@gnu.org>.
 EOT
@@ -82,8 +82,6 @@ GetOptions (
     help		=> sub { print $help_info; exit },
     version		=> sub { print $version_info; exit },
 ) or die $help_info;
-
-die $help_info unless @ARGV == 0;
 
 my %include = ();
 my %append = ();
@@ -170,15 +168,19 @@ for my $hash (\(%include, %append))
 # Turn off localisation of date (for strftime).
 setlocale LC_TIME, 'C';
 
-# Grab help and version info from executable.
-#MAR - DON'T GRAB VERSION, hardcode ./sendip -p * -h
-
-my $mods = `echo ./*.so ./*/*.so`;
-$mods =~ s/\.\//-p \.\//g;
-my $command = "./sendip 2>&1 -h $mods";
-
-my $help_text = join '', map { s/ +$//; expand $_ } `$command`
-	 or die "$this_program: can't get `-$_' info from ./sendip\n";
+# Capture SendIP help, which is printed on stderr.
+my $pid = open HELP, '-|';
+defined $pid or die "$this_program: can't start ./sendip ($!)\n";
+if ($pid == 0)
+{
+    open STDERR, '>&STDOUT' or die "$this_program: can't redirect stderr ($!)\n";
+    exec './sendip', '-h', (map { ('-p', $_) } @ARGV)
+	or die "$this_program: can't execute ./sendip ($!)\n";
+}
+my @help_lines = <HELP>;
+close HELP or die "$this_program: ./sendip -h failed\n" . join('', @help_lines);
+my $help_text = join '', map { s/ +$//; expand $_ } @help_lines;
+$help_text =~ /^Usage: /m or die "$this_program: missing usage from ./sendip\n";
 
 
 my $date = strftime "%B %Y", localtime;

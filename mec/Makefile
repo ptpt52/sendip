@@ -21,10 +21,9 @@ AR ?=	ar
 DEPFLAGS = -MMD -MP -MF $@.d -MT $@
 
 
-MYPROTOS= ah.so dest.so esp.so frag.so gre.so hop.so route.so sctp.so wesp.so
-MYCRYPTOS= xorauth.so xorcrypto.so
-PROTOS= $(MYPROTOS)
-CRYPTOS= $(MYCRYPTOS)
+include modules.mk
+PROTOS= $(MEC_PROTOS)
+CRYPTOS= $(MEC_CRYPTOS)
 
 LIBS= ../libsendipaux.a
 
