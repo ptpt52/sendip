@@ -137,7 +137,7 @@ ahipv4(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	else
 		pseudoip.header_len = realip->header_len;
 	if (!(ipack->modified & IP_MOD_TOTLEN)) {
-		pseudoip.tot_len = ipack->alloc_len +
+		pseudoip.tot_len = (u_int8_t *)pack->data-(u_int8_t *)ipack->data +
 		                   pack->alloc_len + data->alloc_len;
 #ifndef __FreeBSD__
 #ifndef __FreeBSD
@@ -212,8 +212,8 @@ ahipv6(ah_private *apriv, char *hdrs, int index, sendip_data *ipack,
 	} else
 		pseudoip.ip6_vfc = realip->ip6_vfc;
 	if (!(ipack->modified & IPV6_MOD_PLEN)) {
-		pseudoip.ip6_plen = htons(ipack->alloc_len + pack->alloc_len
-		                          + data->alloc_len);
+		pseudoip.ip6_plen = htons((u_int8_t *)pack->data-(u_int8_t *)ipack->data -
+		                          ipack->alloc_len + pack->alloc_len + data->alloc_len);
 	} else
 		pseudoip.ip6_plen = realip->ip6_plen;
 	if (!(ipack->modified&IPV6_MOD_NXT)) {
@@ -301,11 +301,11 @@ cryptomod(void *priv, char *hdrs, sendip_data *headers[],
 	case IPPROTO_AH:
 		switch (hdrs[i]) {
 		case 'i':	/* IPv4 */
-			return ahipv4((ah_private *)priv, hdrs, index, ipack,
+			return ahipv4((ah_private *)priv, hdrs, i, ipack,
 			              data, pack);
 			break;
 		case '6':	/* IPv6 */
-			return ahipv6((ah_private *)priv, hdrs, index, ipack,
+			return ahipv6((ah_private *)priv, hdrs, i, ipack,
 			              data, pack);
 			break;
 		default:
