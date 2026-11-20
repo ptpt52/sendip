@@ -26,7 +26,6 @@ host=$1
 if [ "$#" -eq 1 ]; then
   ETHER=$(SENDIP_WAKE_HOST="$host" awk '
     NF >= 2 && $1 !~ /^#/ && ("h" $2) == ("h" ENVIRON["SENDIP_WAKE_HOST"]) {
-      gsub(":", "", $1)
       print $1
       exit
     }
@@ -37,6 +36,17 @@ if [ "$#" -eq 1 ]; then
   fi
 else
   ETHER=$2
+fi
+
+case "$ETHER" in
+  ??:??:??:??:??:??) ETHER=$(printf '%s' "$ETHER" | tr -d ':') || exit 1 ;;
+esac
+case "$ETHER" in
+  *[!0123456789abcdefABCDEF]*) ETHER= ;;
+esac
+if [ "${#ETHER}" -ne 12 ]; then
+  printf '%s: expected a 12-digit or colon-separated MAC address\n' "$0" >&2
+  exit 1
 fi
 
 ETHER="${ETHER}${ETHER}${ETHER}${ETHER}"		# 4 x MAC
