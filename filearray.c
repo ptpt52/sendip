@@ -15,6 +15,8 @@
 #include <stdint.h>
 
 typedef struct _filearray {
+	struct _filearray *next;
+	char *name;
 	size_t length;
 	size_t index;
 	char *lines[0];
@@ -255,19 +257,30 @@ hsearch_r (ENTRY item, ACTION action, ENTRY **retval,
 #endif
 
 static struct hsearch_data fa_tab;
+static Filearray *fa_files;
+static bool fa_ready;
+static void fa_free(Filearray *fa);
 
 int
 fa_init(void)
 {
+	if (fa_ready) fa_close();
 	memset((void *)&fa_tab, 0, sizeof(fa_tab));
 #define HSIZE	512	/* why not, probably plenty */
-	return hcreate_r(HSIZE, &fa_tab);
+	fa_ready=hcreate_r(HSIZE, &fa_tab) != 0;
+	return fa_ready;
 }
 
 void
 fa_close(void)
 {
-	hdestroy_r(&fa_tab);
+	if (fa_ready) hdestroy_r(&fa_tab);
+	while (fa_files) {
+		Filearray *next=fa_files->next;
+		fa_free(fa_files);
+		fa_files=next;
+	}
+	fa_ready=false;
 	memset((void *)&fa_tab, 0, sizeof(fa_tab));
 }
 
@@ -277,6 +290,7 @@ fa_free(Filearray *fa)
 	if (!fa) return;
 	for (size_t i=0; i<fa->length; ++i)
 		free(fa->lines[i]);
+	free(fa->name);
 	free(fa);
 }
 
@@ -297,6 +311,8 @@ fa_create(const char *name)
 		return NULL;
 	}
 	answer->index=answer->length=0;
+	answer->name=NULL;
+	answer->next=NULL;
 	errno=0;
 	while ((length=getline(&line, &linecap, fp)) >= 0) {
 		if (answer->length == linelimit) {
@@ -320,6 +336,8 @@ fa_create(const char *name)
 		else if (!errno) errno=EIO;
 		goto fail;
 	}
+	answer->name=strdup(name);
+	if (!answer->name) goto fail;
 	free(line);
 	fclose(fp);
 	return answer;
@@ -339,7 +357,13 @@ fail:
 Filearray *
 fa_find(const char *name)
 {
-	ENTRY item, *found;
+	ENTRY item, *found=NULL;
+	Filearray *fa;
+
+	if (!fa_ready || !name) {
+		errno=EINVAL;
+		return NULL;
+	}
 
 	/* Yes, this cast "throws away" the const, but in fact, the
 	 * name is not altered in any way by being entered into the
@@ -355,11 +379,15 @@ fa_find(const char *name)
 				perror(name);
 				return NULL;
 			}
+			fa=item.data;
+			item.key=fa->name;
 			if (hsearch_r(item, ENTER, &found, &fa_tab) <= 0) {
 				perror(name);
 				fa_free(item.data);
 				return NULL;
 			}
+			fa->next=fa_files;
+			fa_files=fa;
 		}
 	}
 	return (Filearray *)found->data;
