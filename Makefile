@@ -18,7 +18,7 @@ LDFLAGS=	-rdynamic -lm
 LDFLAGS_SOLARIS= -lsocket -lnsl -lm -ldl
 #LDFLAGS_LINUX= -rdynamic -lm -ldl
 # @@ Needed some flag fixes for Ubuntu; these are ok for Fedora, also
-LDFLAGS_LINUX= -rdynamic -lm --enable-dependency-linking -Wl,--no-as-needed -ldl
+LDFLAGS_LINUX= -rdynamic -Wl,--no-as-needed -lm -ldl
 LIBCFLAGS= -shared
 CC ?=	gcc
 AR ?=	ar
