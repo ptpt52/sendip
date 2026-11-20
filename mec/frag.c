@@ -95,33 +95,33 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= FRAG_MOD_NEXTHDR;
 		break;
 	case 'r':	/* Fragment reserved (1 byte) */
-		pack->modified |= FRAG_MOD_RESV;
 		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a resv value\n");
 			return FALSE;
 		}
 		frag->reserved = svalue;
+		pack->modified |= FRAG_MOD_RESV;
 		break;
 	case 'o':	/* Fragment offset */
-		pack->modified |= FRAG_MOD_OFFSET;
 		if (!uintargument(arg, IPV6_FRAG_MAXOFFSET, &svalue)) {
 			usage_error("Too big an offset value\n");
 			return FALSE;
 		}
 		frag_setoffset(frag, svalue);
+		pack->modified |= FRAG_MOD_OFFSET;
 		break;
 	case 'f':	/* Fragment flags (more fragments+2 reserved) */
-		pack->modified |= FRAG_MOD_FLAGS;
 		if (!uintargument(arg, IPV6_FRAG_FLAGS, &svalue)) {
 			usage_error("Only three flags can be set, hotshot\n");
 			return FALSE;
 		}
 		frag_setflags(frag, svalue);
+		pack->modified |= FRAG_MOD_FLAGS;
 		break;
 	case 'i':	/* Fragment identification */
+		if (!integerargument_checked(arg, 4, &value)) return FALSE;
+		frag->identification = value;
 		pack->modified |= FRAG_MOD_ID;
-		value = strtoul(arg, (char **)NULL, 0);
-		frag->identification = htonl(value);
 		break;
 	}
 	return TRUE;
