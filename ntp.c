@@ -4,6 +4,9 @@
  */
 
 #include <stdlib.h>
+#include <errno.h>
+#include <stdint.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <math.h>
 #include <string.h>
@@ -17,71 +20,45 @@
  */
 const char opt_char='n';
 
-u_int32_t make_fixed_point(double n, bool issigned, int totbits, int intbits) {
-	u_int32_t intpart;
-	u_int32_t fracpart;
-	u_int32_t result;
-	bool signbit;
-	double intpartd, fracpartd;
-	int fracbits;
+static bool make_fixed_point(double n, bool issigned, int fracbits,
+                             u_int32_t *result) {
+	double scaled=ldexp(n, fracbits);
+	double minimum=issigned ? -2147483648.0 : 0.0;
+	double maximum=issigned ? 2147483648.0 : 4294967296.0;
+	if (!isfinite(scaled) || scaled<minimum || scaled>=maximum) return FALSE;
+	/* Convert in a signed type wide enough for either 32-bit wire format. */
+	*result=htonl((u_int32_t)(int64_t)scaled);
+	return TRUE;
+}
 
-	if(issigned) totbits--;
-
-	fracbits=totbits-intbits;
-
-	if(issigned && n<0) {
-		signbit=TRUE;
-	} else {
-		signbit=FALSE;
-	} /* else, signbit is unused */
-
-	n=fabs(n);
-
-	/*
-		fracpartd=floor(ldexp(modf(n,&intpartd),ldexp(2.0,fracbits)));
-	*/
-	fracpartd=floor(ldexp(modf(n,&intpartd),32));
-	intpart=(u_int32_t)intpartd;
-	fracpart=(u_int32_t)fracpartd;
-
-
-	if(issigned&&signbit) {
-		result=1<<totbits;
-	} else {
-		result=0;
-	}
-
-	if(intbits!=0) {
-		intpart&=(1<<intbits)-1;
-		intpart<<=(totbits-intbits);
-		result|=intpart;
-	}
-	if(intbits!=totbits) {
-		if(fracbits!=32) {
-			fracpart&=((1<<fracbits)-1)<<intbits;
-			fracpart>>=intbits;
-		}
-		result|=fracpart;
-	}
-	return htonl(result);
+static bool parse_fixed_point(const char *src, bool issigned, int fracbits,
+                              u_int32_t *result) {
+	char *end;
+	errno=0;
+	double value=strtod(src, &end);
+	return end!=src && !*end && !errno &&
+	       make_fixed_point(value, issigned, fracbits, result);
 }
 
 bool make_ts(ntp_ts *dest, char *src) {
-	char *intpart, *fracpart;
-	intpart=src;
-	fracpart=strchr(intpart,'.');
-
-	if(*intpart) {
-		dest->intpart=(u_int32_t)strtoul(intpart,&fracpart,0);
-	} else {
-		dest->intpart=0;
+	char *end=src;
+	unsigned long seconds=0;
+	u_int32_t fraction=0;
+	if (!isdigit((unsigned char)*src) && *src!='.') return FALSE;
+	if (*src!='.') {
+		errno=0;
+		seconds=strtoul(src, &end, 0);
+		if (errno || seconds>UINT32_MAX) return FALSE;
 	}
-	fracpart++;  // skip the .
-	if(fracpart && *fracpart) {
-		double d;
-		d = strtod(fracpart-1,(char **)NULL);
-		dest->fracpart=make_fixed_point(d,FALSE,32,0);
-	}
+	if (*end=='.') {
+		char *fraction_end;
+		errno=0;
+		double value=strtod(end, &fraction_end);
+		if (fraction_end==end || *fraction_end || errno || value<0 || value>=1 ||
+		    !make_fixed_point(value, FALSE, 32, &fraction)) return FALSE;
+	} else if (*end) return FALSE;
+	dest->intpart=htonl((u_int32_t)seconds);
+	dest->fracpart=fraction;
 	return TRUE;
 }
 
@@ -120,12 +97,12 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified|=NTP_MOD_PRECISION;
 		break;
 	case 'e':  /* esitmated error (32 bits, fixed point between bits 15/16) */
-		ntp->error=make_fixed_point(strtod(arg,(char **)NULL),FALSE,32,16);
+		if (!parse_fixed_point(arg, FALSE, 16, &ntp->error)) return FALSE;
 		pack->modified|=NTP_MOD_ERROR;
 		break;
 	case 'd':  /* estimated drift rate (32 bits, signed fixed point left of
 					  high order bit) */
-		ntp->drift=make_fixed_point(strtod(arg,(char **)NULL),TRUE,32,0);
+		if (!parse_fixed_point(arg, TRUE, 31, &ntp->drift)) return FALSE;
 		pack->modified|=NTP_MOD_DRIFT;
 		break;
 	case 'r':  /* reference clock id (32 bits or a 4 byte string).  Can be:
