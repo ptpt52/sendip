@@ -325,24 +325,25 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	break;
 	case 'H':	/* Host name address */
 	{
-		sctp_hostname_param_t hostnameparam;
-		if (strlen(arg)>UINT16_MAX-sizeof(hostnameparam)-1) return FALSE;
+		size_t hostname_length=strlen(arg);
+		if (hostname_length>UINT16_MAX-sizeof(sctp_hostname_param_t)-1) return FALSE;
+		++hostname_length;
+		int parameter_length=sizeof(sctp_hostname_param_t)+hostname_length;
+		u_int8_t *parameter=malloc(parameter_length);
+		if (!parameter) return FALSE;
+		sctp_hostname_param_t *hostnameparam=(void *)parameter;
 
 		/* From RFC 4960: "At least one null terminator is included
 		 * in the Host Name string and must be included in the length."
 		 * Also, parameters need to be padded to a multiple of
 		 * 4 bytes in length.
 		 */
-		hostnameparam.param_hdr.type = SCTP_PARAM_HOST_NAME_ADDRESS;
-		hostnameparam.param_hdr.length =
-		    htons(sizeof(sctp_hostname_param_t)
-		          + strlen(arg)+1);
-		currentchunk = grow_chunk(pack, currentchunk,
-		                          sizeof(sctp_hostname_param_t),
-		                          (void *)&hostnameparam);
-		if (!currentchunk) return FALSE;
+		hostnameparam->param_hdr.type = SCTP_PARAM_HOST_NAME_ADDRESS;
+		hostnameparam->param_hdr.length = htons(parameter_length);
+		memcpy(parameter+sizeof(*hostnameparam), arg, hostname_length);
 		currentchunk = grow_chunk_round4(pack, currentchunk,
-		                                 strlen(arg)+1, (void *)arg);
+		                                 parameter_length, parameter);
+		free(parameter);
 		if (!currentchunk) return FALSE;
 	}
 	break;
@@ -355,14 +356,14 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 * defined types right now, that's not a huge waste,
 		 * I suppose.
 		 */
-		sctp_supported_addrs_param_t supportedaddrs;
 #define MAXSUPPORTEDADDRS	8	/* why not */
 		char *straddrs[MAXSUPPORTEDADDRS+1];
-		u_int16_t addrs[MAXSUPPORTEDADDRS+1];
+		struct {
+			sctp_paramhdr_t param_hdr;
+			u_int16_t types[MAXSUPPORTEDADDRS];
+		} supportedaddrs;
 		int naddrs, i;
 
-		supportedaddrs.param_hdr.type =
-		    SCTP_PARAM_SUPPORTED_ADDRESS_TYPES;
 		naddrs = parsenargs(arg, straddrs, MAXSUPPORTEDADDRS, " ,:.");
 		if (naddrs<0) return FALSE;
 		for (i=0; i < naddrs; ++i) {
@@ -370,18 +371,15 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 				usage_error("Invalid SCTP supported address type\n");
 				return FALSE;
 			}
-			addrs[i] = htons(svalue);
+			supportedaddrs.types[i] = htons(svalue);
 		}
-		addrs[i] = 0;
+		supportedaddrs.param_hdr.type = SCTP_PARAM_SUPPORTED_ADDRESS_TYPES;
 		supportedaddrs.param_hdr.length =
 		    htons(sizeof(sctp_supported_addrs_param_t)
 		          + 2*naddrs);
-		currentchunk = grow_chunk(pack, currentchunk,
-		                          sizeof(sctp_supported_addrs_param_t),
-		                          (void *)&supportedaddrs);
-		if (!currentchunk) return FALSE;
 		currentchunk = grow_chunk_round4(pack, currentchunk,
-		                                 2*naddrs, addrs);
+		                                 sizeof(sctp_supported_addrs_param_t)+2*naddrs,
+		                                 &supportedaddrs);
 		if (!currentchunk) return FALSE;
 		break;
 	}
