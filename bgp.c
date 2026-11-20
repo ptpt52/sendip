@@ -224,6 +224,24 @@ static bool bgp_decimal_byte(char *input, char **end, u_int8_t *value) {
 	return TRUE;
 }
 
+/* Keep the historical narrowing to each wire field, but require the entire
+ * argument to be a valid number rather than silently treating bad text as 0.
+ */
+static bool bgp_scalar_argument(const char *input, int base,
+                                unsigned long *value) {
+	char *end;
+
+	if (!input || !value) return FALSE;
+	errno=0;
+	unsigned long parsed=strtoul(input, &end, base);
+	if (errno || end==input || *end) {
+		usage_error("Malformed BGP numeric field\n");
+		return FALSE;
+	}
+	*value=parsed;
+	return TRUE;
+}
+
 static int bgp_parse_nlri(u_int8_t *buf, char *arg) {
 	u_int8_t address[4], prefix, explicit_bytes;
 	char *end;
@@ -268,6 +286,7 @@ bool do_opt (char        *optstring,
 	u_int8_t marker[16];
 	int nlri_length=0;
 	size_t needed=0;
+	unsigned long scalar;
 
 	if (pack->alloc_len<0 || (unsigned int)pack->alloc_len>BGP_BUFLEN) {
 		usage_error("BGP message is too large\n");
@@ -307,13 +326,15 @@ bool do_opt (char        *optstring,
 		memcpy(rem_ptr, marker, count);
 		break;
 	case 'l':
+		if (!bgp_scalar_argument(optarg, 10, &scalar)) return FALSE;
 		rem_ptr = (u_int8_t *)pack->data + 16;
-		PUTSHORT(rem_ptr, (u_int16_t)strtoul(optarg, NULL, 10));
+		PUTSHORT(rem_ptr, (u_int16_t)scalar);
 		pack->modified |= BGP_MOD_LENGTH;
 		break;
 	case 't':
+		if (!bgp_scalar_argument(optarg, 0, &scalar)) return FALSE;
 		rem_ptr = (u_int8_t *)pack->data + 18;
-		*rem_ptr = (u_int8_t)strtoul(optarg, NULL, 0);
+		*rem_ptr = (u_int8_t)scalar;
 		break;
 	case 'o':
 		switch (optstring[2]) {
@@ -434,9 +455,11 @@ bool do_opt (char        *optstring,
 				usage_error("Update message must come immediately "
 				            "after header\n");
 				rc = FALSE;
+			} else if (!bgp_scalar_argument(optarg, 10, &scalar)) {
+				rc = FALSE;
 			} else {
 				state->wdr_len_ptr = ptr;
-				PUTSHORT(ptr, (u_int16_t)strtoul(optarg, NULL, 10));
+				PUTSHORT(ptr, (u_int16_t)scalar);
 				ptr += 2;
 				pack->modified |= BGP_MOD_WDR_LEN;
 				state->prev_part = BGP_UPDATE_WDR_LEN;
@@ -470,22 +493,24 @@ bool do_opt (char        *optstring,
 			break;
 
 		case 's':
-			if (state->prev_part == BGP_HEADER) {
-				state->wdr_len_ptr = ptr;
-				PUTSHORT(ptr, 0);
-				ptr += 2;
-				state->prev_part = BGP_UPDATE_WDR_LEN;
-			}
-
-			if (state->prev_part != BGP_UPDATE_WDR_LEN &&
+			if (state->prev_part != BGP_HEADER &&
+			        state->prev_part != BGP_UPDATE_WDR_LEN &&
 			        state->prev_part != BGP_UPDATE_WDR) {
 				usage_error("Path Attributes must come after "
 				            "unfeasible routes (if any), "
 				            "or after header\n");
 				rc = FALSE;
+			} else if (!bgp_scalar_argument(optarg, 10, &scalar)) {
+				rc = FALSE;
 			} else {
+				if (state->prev_part == BGP_HEADER) {
+					state->wdr_len_ptr = ptr;
+					PUTSHORT(ptr, 0);
+					ptr += 2;
+					state->prev_part = BGP_UPDATE_WDR_LEN;
+				}
 				state->attr_len_ptr = ptr;
-				PUTSHORT(ptr, (u_int16_t)strtoul(optarg, NULL, 10));
+				PUTSHORT(ptr, (u_int16_t)scalar);
 				ptr += 2;
 				pack->modified |= BGP_MOD_ATTR_LEN;
 				state->prev_part = BGP_UPDATE_ATTR_LEN;
