@@ -8,7 +8,7 @@ INSTALL ?= install
 #For Solaris, you may need
 #INSTALL=/usr/ucb/install
 
-CFLAGS +=	-fPIC -fsigned-char -pipe -Wall -Wextra -Wno-unused-parameter -Wpointer-arith -Wwrite-strings \
+CFLAGS +=	-std=gnu17 -fPIC -fsigned-char -pipe -Wall -Wextra -Wno-unused-parameter -Wpointer-arith -Wwrite-strings \
 			-Wstrict-prototypes -Wnested-externs -Winline -Werror \
 			-Wcast-align -O3 \
 			-DSENDIP_LIBS=\"$(LIBDIR)\"
