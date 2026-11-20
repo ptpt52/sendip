@@ -225,59 +225,29 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			/* Selective Acknowledge permitted rfc1323 */
 			added=addoption(4,2,NULL,pack);
 		} else if (!strcmp(opt+2, "sack")) {
-			/* Selective Acknowledge rfc1323 */
-			char *next;
-			u_int32_t le, re;
-			u_int8_t *comb, *c;
+			/* Each SACK block contains two 32-bit sequence numbers. */
+			u_int8_t blocks[31*8];
 			int count=0;
-
-			/* count the options */
-			next=arg;
-			while(next) {
-				next=strchr(next,',');
-				count++;
-				if(next) next++;
+			char *remaining=arg, *block;
+			while ((block=strsep(&remaining, ","))) {
+				char *right=strchr(block, ':');
+				if (!right || right==block || count==31 || !right[1]) return FALSE;
+				*right++='\0';
+				char *end;
+				u_int32_t left=htonl(strtoul(block, &end, 10));
+				if (*end) return FALSE;
+				u_int32_t last=htonl(strtoul(right, &end, 10));
+				if (*end) return FALSE;
+				memcpy(blocks+count*8, &left, 4);
+				memcpy(blocks+count*8+4, &last, 4);
+				++count;
 			}
-
-			comb = malloc(count*8);
-			c = comb;
-
-			next=arg;
-			while(*next) {
-				/* get left edge */
-				next=strchr(arg, ':');
-				if (!next) {
-					fprintf(stderr,
-					        "Value in tcp sack option incorrect. Usage: \n");
-					fprintf(stderr,
-					        " -tosack left:right[,left:right...]\n");
-					return FALSE;
-				}
-				*next++=0;
-				le=atoi(arg);
-				arg=next;
-				/* get right edge */
-				next=strchr(arg, ',');
-				if (!next)
-					next=arg-1; /* Finito - next points to \0 */
-				else
-					*next++=0;
-				re=atoi(arg);
-				arg=next;
-
-				le=htonl(le);
-				re=htonl(re);
-				memcpy(c, &le, 4);
-				memcpy(c+4, &re, 4);
-				c+=8;
-			}
-			added=addoption(5,count*8+2,comb,pack);
-			free(comb);
+			added=addoption(5, count*8+2, blocks, pack);
 		} else if (!strcmp(opt+2, "ts")) {
 			/* Timestamp rfc1323 */
 			u_int32_t tsval=0, tsecr=0;
 			u_int8_t comb[8];
-			if (2!=sscanf(arg, "%d:%d", &tsval, &tsecr)) {
+			if (2!=sscanf(arg, "%u:%u", &tsval, &tsecr)) {
 				fprintf(stderr,
 				        "Invalid value for tcp timestamp option.\n");
 				fprintf(stderr,
