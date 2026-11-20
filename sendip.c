@@ -77,6 +77,25 @@ static sendip_module *last;
 
 static char *progname;
 
+static bool set_payload(const char *argument, char **data, int *length) {
+	char *source=NULL, *replacement;
+	int size=stringargument(argument, &source);
+	if (!source) {
+		fprintf(stderr, "Couldn't decode packet data\n");
+		return false;
+	}
+	replacement=malloc(size ? (size_t)size : 1);
+	if (!replacement) {
+		perror("Allocating packet data");
+		return false;
+	}
+	if (size) memcpy(replacement, source, size);
+	free(*data);
+	*data=replacement;
+	*length=size;
+	return true;
+}
+
 static int sendpacket(sendip_data *data, char *hostname, int af_type,
                       bool verbose) {
 	_sockaddr_storage *to = malloc(sizeof(_sockaddr_storage));
@@ -209,12 +228,16 @@ static void unload_modules(bool freeit, int verbosity) {
 		if(p) free(p);
 		p = mod;
 		free(mod->name);
-		if(freeit) free(mod->pack->data);
-		free(mod->pack);
+		if (mod->pack) {
+			if(freeit) free(mod->pack->data);
+			free(mod->pack);
+		}
 		(void)dlclose(mod->handle);
 		/* Do not free options - TODO should we? */
 	}
 	if(p) free(p);
+	first=last=NULL;
+	num_opts=0;
 }
 
 static bool load_module(char *modname) {
@@ -415,6 +438,7 @@ extern u_int32_t randomcalls;
 
 int main(int argc, char *const argv[]) {
 	int i;
+	int status=0;
 
 	struct option *opts=NULL;
 	int longindex=0;
@@ -472,12 +496,11 @@ int main(int argc, char *const argv[]) {
 			break;
 		case 'd':
 			if (datafile == -1) {
-				char *sdata;
-
 				datarg = gnuoptarg;	/* save for regen */
-				datalen = stringargument(datarg, &sdata);
-				data=(char *)malloc(datalen);
-				memcpy(data, sdata, datalen);
+				if (!set_payload(datarg, &data, &datalen)) {
+					status=1;
+					goto cleanup;
+				}
 
 			} else {
 				fprintf(stderr,"Only one -d or -f option can be given\n");
@@ -655,13 +678,7 @@ int main(int argc, char *const argv[]) {
 		if(usage) {
 			print_usage();
 			unload_modules(TRUE,verbosity);
-			if(datafile != -1) {
-				munmap(data,datalen);
-				close(datafile);
-				datafile=-1;
-			}
-			if (datarg) free(data);
-			return 0;
+			goto cleanup;
 		}
 
 		for(mod=first; mod!=NULL; mod=mod->next) {
@@ -776,10 +793,10 @@ int main(int argc, char *const argv[]) {
 		}
 		/* @@ Regenerate data on subsequent loop calls */
 		if (loopcount && datarg) {
-			char *sdata;
-
-			datalen = stringargument(datarg, &sdata);
-			memcpy(data, sdata, datalen);
+			if (!set_payload(datarg, &data, &datalen)) {
+				status=1;
+				goto cleanup;
+			}
 		}
 
 		/*@@ looping */
@@ -787,13 +804,13 @@ int main(int argc, char *const argv[]) {
 			sleep(delaytime);
 	} /*@@ back to top of loop */
 
-	/* cleanup */
+cleanup:
 	if(datafile != -1) {
-		munmap(data,datalen);
+		if (data && datalen) munmap(data,datalen);
 		close(datafile);
 		datafile=-1;
 	}
-	if (datarg) free(data);
+	else free(data);
 
 	unload_modules(FALSE,verbosity);
 	/*@@ global de-init */
@@ -802,5 +819,5 @@ int main(int argc, char *const argv[]) {
 
 	/*@@fprintf(stderr, "%d random calls\n", randomcalls);*/
 
-	return 0;
+	return status;
 }
