@@ -30,6 +30,7 @@
 
 use 5.004;
 use strict;
+use Fcntl qw(O_RDONLY O_WRONLY O_CREAT O_EXCL);
 use Getopt::Long;
 use Text::Tabs qw(expand);
 use POSIX qw(strftime setlocale LC_TIME);
@@ -114,7 +115,7 @@ for (@opt_include)
 
     next unless -f $inc or $required;
     die "$this_program: can't open `$inc' ($!)\n"
-	unless open INC, $inc;
+	unless sysopen INC, $inc, O_RDONLY;
 
     my $key;
     my $hash = \%include;
@@ -194,13 +195,13 @@ my $date = strftime "%B %Y", localtime;
 (my $program = "./sendip") =~ s!.*/!!;
 my $package = $program;
 
-if ($opt_output)
+if (defined $opt_output)
 {
     unlink $opt_output
 	or die "$this_program: can't unlink $opt_output ($!)\n"
 	if -e $opt_output;
 
-    open STDOUT, ">$opt_output"
+    sysopen STDOUT, $opt_output, O_WRONLY | O_CREAT | O_EXCL
 	or die "$this_program: can't create $opt_output ($!)\n";
 }
 
