@@ -78,7 +78,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		break;
 	case 'n':
 		/*@@ allow use of protocol names */
-		hdr->ip6_nxt = name_to_proto(arg);
+		if (!protocolargument(arg, &hdr->ip6_nxt)) return FALSE;
 		/*@@hdr->ip6_nxt = (u_int8_t)strtoul(arg, (char **)NULL, 0);*/
 		pack->modified |= IPV6_MOD_NXT;
 		break;

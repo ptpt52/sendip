@@ -74,6 +74,7 @@ void fa_close(void);
 
 const char * proto_to_name(u_int8_t proto, int nolookup);
 u_int8_t name_to_proto(char *s);
+bool protocolargument(const char *input, u_int8_t *value);
 u_int8_t header_type(const char hdr_char);
 int outer_header(const char *hdrs, int index, const char *choices);
 int inner_header(const char *hdrs, int index, const char *choices);

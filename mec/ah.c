@@ -112,7 +112,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 
 	case 'n':	/* Next header */
-		ah->nexthdr = name_to_proto(arg);
+		if (!protocolargument(arg, &ah->nexthdr)) return FALSE;
 		pack->modified |= AH_MOD_NEXTHDR;
 		break;
 	}

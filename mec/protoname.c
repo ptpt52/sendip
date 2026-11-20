@@ -16,6 +16,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 
+#include "sendip_module.h"
 #include "mec/ipv6ext.h"
 
 /* A few hardcoded protocols for 'all' and in case the user has no
@@ -72,34 +73,36 @@ proto_to_name(u_int8_t proto, int nolookup)
 	return NULL;
 }
 
-u_int8_t
-name_to_proto(char *s)
-{
-	unsigned int proto=0;
-	struct protoent *pent;
-
-	/* Check for a number */
-	if (isdigit((unsigned char)*s))
-		return (u_int8_t)strtoul(s, (char **)NULL, 0);
-	/* If we have /etc/protocols, use that */
-	if ((pent = getprotobyname(s)))
-		proto = pent->p_proto;
-	else {	/* our backup method */
-		unsigned int i;
-		for (i = 0;
-		        i < sizeof(chain_protos)/sizeof(struct pprot);
-		        i++) {
-			if (strcmp(s, chain_protos[i].name) == 0) {
-				proto = chain_protos[i].num;
-				break;
-			}
-		}
-
-		if (i == sizeof(chain_protos)/sizeof(struct pprot)) {
-			fprintf(stderr, "unknown header `%s' specified", s);
-			exit(1);
+bool protocolargument(const char *input, u_int8_t *value) {
+	struct protoent *entry;
+	if (!input || !*input || !value) goto invalid;
+	/* Preserve numeric field-width conversion, including the legacy r value
+	 * expanded by main; this interface change concerns error propagation.
+	 */
+	if (isdigit((unsigned char)*input)) {
+		*value=(u_int8_t)strtoul(input, NULL, 0);
+		return TRUE;
+	}
+	if ((entry=getprotobyname(input))) {
+		*value=entry->p_proto;
+		return TRUE;
+	}
+	for (size_t i=0; i<sizeof(chain_protos)/sizeof(chain_protos[0]); ++i) {
+		if (!strcmp(input, chain_protos[i].name)) {
+			*value=chain_protos[i].num;
+			return TRUE;
 		}
 	}
+invalid:
+	fprintf(stderr, "Unknown header `%s' specified\n", input ? input : "(null)");
+	return FALSE;
+}
 
-	return (u_int8_t)proto;
+/* Retain the original entry point for external modules. Built-in modules
+ * use protocolargument() so their caller owns all failure cleanup.
+ */
+u_int8_t name_to_proto(char *input) {
+	u_int8_t value;
+	if (!protocolargument(input, &value)) exit(EXIT_FAILURE);
+	return value;
 }

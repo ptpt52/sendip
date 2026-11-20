@@ -116,7 +116,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 
 	case 'n':	/* WESP next header */
-		wesp->nexthdr = name_to_proto(arg);
+		if (!protocolargument(arg, &wesp->nexthdr)) return FALSE;
 		pack->modified |= WESP_MOD_NEXTHDR;
 		break;
 	}

@@ -168,7 +168,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			return (*priv->crypto->cryptoinit)(pack);
 		break;
 	case 'n':	/* Next header */
-		esp->tail.nexthdr = name_to_proto(arg);
+		if (!protocolargument(arg, &esp->tail.nexthdr)) return FALSE;
 		pack->modified |= ESP_MOD_NEXTHDR;
 		break;
 	}

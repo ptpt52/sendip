@@ -98,7 +98,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 	switch (opt[1]) {
 	case 'n':
-		hop->nexthdr=name_to_proto(arg);
+		if (!protocolargument(arg, &hop->nexthdr)) return FALSE;
 		pack->modified |= HOP_MOD_NEXTHDR;
 		return TRUE;
 	case '0':

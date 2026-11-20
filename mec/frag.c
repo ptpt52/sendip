@@ -91,7 +91,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 	switch(opt[1]) {
 	case 'n':	/* Fragment next header */
-		frag->nexthdr = name_to_proto(arg);
+		if (!protocolargument(arg, &frag->nexthdr)) return FALSE;
 		pack->modified |= FRAG_MOD_NEXTHDR;
 		break;
 	case 'r':	/* Fragment reserved (1 byte) */

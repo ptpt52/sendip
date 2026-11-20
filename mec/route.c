@@ -88,7 +88,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 	switch(opt[1]) {
 	case 'n':	/* Route next header */
-		route->nexthdr = name_to_proto(arg);
+		if (!protocolargument(arg, &route->nexthdr)) return FALSE;
 		pack->modified |= ROUTE_MOD_NEXTHDR;
 		break;
 	case 't':	/* Type */
