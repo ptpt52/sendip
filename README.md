@@ -17,8 +17,8 @@ wire types or byte-wise copies when accessing headers in protocol modules.
 
 Protocol modules may export `void destroy(sendip_data *pack)` to release their
 private per-packet state. SendIP calls it before replacing or unloading a packet,
-including on option and finalization failures. The callback must leave `pack` and
-`pack->data` to the caller, and must not depend on packet data still being live.
+including on option and finalization failures. SendIP keeps the packet storage
+alive for the callback and releases `pack` and its storage afterward.
 Modules without this optional entry point remain supported.
 
 Protocol modules may also export `uint32_t randomize_arg(const char *option,

@@ -288,23 +288,24 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 	return sent;
 }
 
-static void unload_modules(bool freeit, int verbosity) {
-	sendip_module *mod, *p;
-	p = NULL;
-	for(mod=first; mod!=NULL; mod=mod->next) {
+static void release_module_packet(sendip_module *mod, bool owns_data) {
+	if (!mod->pack) return;
+	if (mod->destroy) mod->destroy(mod->pack);
+	if (owns_data) free(mod->pack->data);
+	free(mod->pack);
+	mod->pack=NULL;
+}
+
+static void unload_modules(bool owns_data, int verbosity) {
+	for (sendip_module *mod=first; mod;) {
+		sendip_module *next=mod->next;
 		if(verbosity) fprintf(stderr, "Freeing module %s\n",mod->name);
-		if(p) free(p);
-		p = mod;
-		free(mod->name);
-		if (mod->pack) {
-			if (mod->destroy) mod->destroy(mod->pack);
-			if(freeit) free(mod->pack->data);
-			free(mod->pack);
-		}
+		release_module_packet(mod, owns_data);
 		(void)dlclose(mod->handle);
-		/* Do not free options - TODO should we? */
+		free(mod->name);
+		free(mod);
+		mod=next;
 	}
-	if(p) free(p);
 	first=last=NULL;
 	num_opts=0;
 }
@@ -536,7 +537,7 @@ int main(int argc, char *const argv[]) {
 
 	int num_modules=0;
 
-	sendip_data packet;
+	sendip_data packet = {0};
 
 	/*@@*/
 	int loopcount=1;
@@ -700,13 +701,6 @@ int main(int argc, char *const argv[]) {
 	while (forever || loopcount>0) {
 		if (!forever) --loopcount;
 
-		/* Discard all previous packet views before any initializer can fail. */
-		for (mod=first; mod; mod=mod->next) {
-			if (mod->pack && mod->destroy) mod->destroy(mod->pack);
-			free(mod->pack);
-			mod->pack=NULL;
-		}
-		free_arguments(packet_argv);
 		packet_argv=copy_arguments(argc, argv);
 		if (!packet_argv) {
 			perror("Copying packet arguments");
@@ -720,7 +714,6 @@ int main(int argc, char *const argv[]) {
 			mod->pack=mod->initialize();
 			if (!mod->pack) {
 				perror("Initializing protocol module");
-				unload_modules(TRUE, verbosity);
 				status=1;
 				goto cleanup;
 			}
@@ -743,7 +736,6 @@ int main(int argc, char *const argv[]) {
 				if (optc=='p') currentmod=currentmod ? currentmod->next : first;
 				else if (optc=='d') {
 					if (!set_payload(gnuoptarg, &data, &datalen)) {
-						unload_modules(TRUE, verbosity);
 						status=1;
 						goto cleanup;
 					}
@@ -786,7 +778,6 @@ int main(int argc, char *const argv[]) {
 		 */
 		if (usage) {
 			print_usage();
-			unload_modules(TRUE, verbosity);
 			goto cleanup;
 		}
 
@@ -817,7 +808,6 @@ int main(int argc, char *const argv[]) {
 
 		if(usage) {
 			print_usage();
-			unload_modules(TRUE,verbosity);
 			goto cleanup;
 		}
 
@@ -826,13 +816,11 @@ int main(int argc, char *const argv[]) {
 			fprintf(stderr, "%s\n", first ?
 			        "Either IPv4 or IPv6 must be the outermost packet" :
 			        "Nothing specified to send!");
-			unload_modules(TRUE, verbosity);
 			status=1;
 			goto cleanup;
 		}
 
 		if (!pad_modules()) {
-			unload_modules(TRUE, verbosity);
 			status=1;
 			goto cleanup;
 		}
@@ -852,19 +840,15 @@ int main(int argc, char *const argv[]) {
 		 * excess of padding first, and then trims in finalize to the
 		 * amount actually needed.
 		 */
-		packet.data = NULL;
 		packet.alloc_len = 0;
-		packet.modified = 0;
 		for(mod=first; mod!=NULL; mod=mod->next) {
 			if (mod->pack->alloc_len<0 || (mod->pack->alloc_len && !mod->pack->data)) {
 				fprintf(stderr, "Module %s returned invalid header storage\n", mod->name);
-				unload_modules(TRUE, verbosity);
 				status=1;
 				goto cleanup;
 			}
 			if (mod->pack->alloc_len>INT_MAX-packet.alloc_len) {
 				fprintf(stderr, "Packet headers are too large\n");
-				unload_modules(TRUE, verbosity);
 				status=1;
 				goto cleanup;
 			}
@@ -872,7 +856,6 @@ int main(int argc, char *const argv[]) {
 		}
 		if (datalen>INT_MAX-packet.alloc_len) {
 			fprintf(stderr, "Packet data is too large\n");
-			unload_modules(TRUE, verbosity);
 			status=1;
 			goto cleanup;
 		}
@@ -880,7 +863,6 @@ int main(int argc, char *const argv[]) {
 		packet.data = malloc(packet.alloc_len ? (size_t)packet.alloc_len : 1);
 		if (!packet.data) {
 			perror("Allocating packet");
-			unload_modules(TRUE, verbosity);
 			status=1;
 			goto cleanup;
 		}
@@ -917,7 +899,6 @@ int main(int argc, char *const argv[]) {
 				if(verbosity) fprintf(stderr, "Finalizing module %s\n",mod->name);
 				if (!mod->finalize(hdrs, headers, i, &d, mod->pack)) {
 					fprintf(stderr, "Finalizing module %s failed\n", mod->name);
-					free(packet.data);
 					status=1;
 					goto cleanup;
 				}
@@ -931,7 +912,6 @@ int main(int argc, char *const argv[]) {
 				    d.data!=start+mod->pack->alloc_len) {
 					fprintf(stderr, "Module %s returned an invalid finalized packet layout\n",
 					        mod->name);
-					free(packet.data);
 					status=1;
 					goto cleanup;
 				}
@@ -942,8 +922,6 @@ int main(int argc, char *const argv[]) {
 			if (d.alloc_len < packet.alloc_len)
 				packet.alloc_len = d.alloc_len;
 		}
-		/* @@ We could (and should?) free any leftover priv data here. */
-
 		/* And send the packet */
 		{
 			int af_type=first && first->optchar=='6' ? AF_INET6 : AF_INET;
@@ -956,9 +934,15 @@ int main(int argc, char *const argv[]) {
 			} else if (sendpacket(&packet,packet_argv[gnuoptind],af_type,verbosity)!=packet.alloc_len) {
 				status=1;
 			}
-			free(packet.data);
 			if (status) goto cleanup;
 		}
+
+		for (mod=first; mod; mod=mod->next)
+			release_module_packet(mod, false);
+		free(packet.data);
+		packet.data=NULL;
+		free_arguments(packet_argv);
+		packet_argv=NULL;
 
 		/*@@ looping */
 		if ((forever || loopcount) && delaytime)
@@ -966,10 +950,13 @@ int main(int argc, char *const argv[]) {
 	} /*@@ back to top of loop */
 
 cleanup:
+	/* Before assembly each module owns a separate header allocation. After
+	 * assembly the views borrow storage from the single packet buffer.
+	 */
+	unload_modules(!packet.data, verbosity);
+	free(packet.data);
 	free_options(opts);
 	free(data);
-
-	unload_modules(FALSE,verbosity);
 	free_arguments(packet_argv);
 	/*@@ global de-init */
 	fa_close();
