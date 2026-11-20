@@ -50,7 +50,7 @@ typedef struct _s_m {
 	char *name;
 	char optchar;
 	sendip_data * (*initialize)(void);
-	bool (*do_opt)(const char *optstring, const char *optarg,
+	bool (*do_opt)(char *optstring, char *optarg,
 	               sendip_data *pack);
 	bool (*do_pad)(sendip_data *pack);
 	bool (*set_addr)(char *hostname, sendip_data *pack);

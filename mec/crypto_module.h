@@ -8,7 +8,7 @@
 typedef struct {
 	char *name;
 	void *handle;
-	bool (*cryptoinit)(void *priv);
+	bool (*cryptoinit)(sendip_data *pack);
 	bool (*cryptomod)(void *priv, char *hdrs, sendip_data *headers[],
 	                  int index, sendip_data *data, sendip_data *pack);
 } crypto_module;
