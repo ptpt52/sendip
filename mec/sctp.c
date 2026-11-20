@@ -147,7 +147,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'c':	/* SCTP checksum (32 bits) */
 		pack->modified |= SCTP_MOD_CHECKSUM;
-		sctp->dest = integerargument(arg, 4);
+		sctp->checksum = integerargument(arg, 4);
 		break;
 
 	case 'T':	/* SCTP chunk type (8 bits) */
@@ -294,7 +294,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	{
 		sctp_cookie_preserve_param_t cookieparam;
 
-		cookieparam.param_hdr.type = SCTP_PARAM_STATE_COOKIE;
+		cookieparam.param_hdr.type = SCTP_PARAM_COOKIE_PRESERVATIVE;
 		cookieparam.param_hdr.length =
 		    htons(sizeof(sctp_cookie_preserve_param_t));
 		lvalue = strtoul(arg, (char **)NULL, 0);
