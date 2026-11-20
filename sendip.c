@@ -813,7 +813,9 @@ int main(int argc, char *const argv[]) {
 			fprintf(stderr,"No hostname specified, assuming -D (dump to stdout)\n");
 			dump = TRUE;
 			if(first && first->set_addr) {
-				if (!first->set_addr((char*)"localhost",first->pack)) {
+				char ipv4_loopback[]="127.0.0.1", ipv6_loopback[]="::1";
+				char *loopback=first->optchar=='6' ? ipv6_loopback : ipv4_loopback;
+				if (!first->set_addr(loopback,first->pack)) {
 					usage=TRUE;
 					status=1;
 				}
