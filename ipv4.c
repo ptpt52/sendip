@@ -313,7 +313,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 }
 
 bool do_pad(sendip_data *pack) {
-	while ((pack->alloc_len+3)/4 != (pack->alloc_len)/4)
+	while (pack->alloc_len%4)
 		if (!addoption(0,0,0,1,NULL,pack)) return FALSE;
 	return TRUE;
 }
@@ -328,9 +328,17 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 		iph->version=4;
 	}
 	if(!(pack->modified & IP_MOD_HEADERLEN)) {
-		iph->header_len=(pack->alloc_len+3)/4;
+		if (pack->alloc_len>60) {
+			usage_error("IPv4 header exceeds the automatic IHL field\n");
+			return FALSE;
+		}
+		iph->header_len=pack->alloc_len/4;
 	}
 	if(!(pack->modified & IP_MOD_TOTLEN)) {
+		if ((size_t)pack->alloc_len+(size_t)data->alloc_len>UINT16_MAX) {
+			usage_error("IPv4 packet exceeds the automatic Total Length field\n");
+			return FALSE;
+		}
 		iph->tot_len=pack->alloc_len + data->alloc_len;
 #ifndef __FreeBSD__
 #ifndef __FreeBSD
