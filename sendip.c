@@ -214,22 +214,25 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 		I'm sure this *shouldn't* work.  But it does.
 	*/
 #ifdef __sun__
-	if((*((char *)(data->data))&0x0F) != 5) {
+	if (af_type==AF_INET && data->alloc_len>=(int)sizeof(ip_header)) {
 		ip_header *iphdr = (ip_header *)data->data;
+		int optlen=iphdr->header_len*4-(int)sizeof(*iphdr);
+		/* Only interpret option bytes actually present in an IPv4 packet. */
+		if (iphdr->version==4 && optlen>0 &&
+		    optlen<=data->alloc_len-(int)sizeof(*iphdr)) {
 
-		int optlen = iphdr->header_len*4-20;
+			if(verbose)
+				fprintf(stderr, "Solaris workaround enabled for %d IP option bytes\n", optlen);
 
-		if(verbose)
-			fprintf(stderr, "Solaris workaround enabled for %d IP option bytes\n", optlen);
+			iphdr->tot_len = htons(ntohs(iphdr->tot_len)-optlen);
 
-		iphdr->tot_len = htons(ntohs(iphdr->tot_len)-optlen);
-
-		if(setsockopt(s,IPPROTO_IP,IP_OPTIONS,
-		              (void *)(((char *)(data->data))+20),optlen)) {
-			perror("Couldn't setsockopt IP_OPTIONS");
-			free(to);
-			close(s);
-			return -2;
+			if(setsockopt(s,IPPROTO_IP,IP_OPTIONS,
+			              (void *)(((char *)(data->data))+20),optlen)) {
+				perror("Couldn't setsockopt IP_OPTIONS");
+				free(to);
+				close(s);
+				return -2;
+			}
 		}
 	}
 #endif /* __sun__ */
