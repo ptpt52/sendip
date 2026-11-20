@@ -640,6 +640,7 @@ int main(int argc, char *const argv[]) {
 				else if (optc=='?' || optc==':') {
 					usage=TRUE;
 					status=1;
+					break;
 				}
 				continue;
 			}
@@ -666,11 +667,22 @@ int main(int argc, char *const argv[]) {
 				if(!mod->do_opt((char *)opts[longindex].name,gnuoptarg,mod->pack)) {
 					usage=TRUE;
 					status=1;
+					break;
 				}
 			} else {
 				usage=TRUE;
 				status=1;
+				break;
 			}
+		}
+
+		/* A failed callback may leave partially updated state. Do not call
+		 * another option handler or resolve addresses after that failure.
+		 */
+		if (usage) {
+			print_usage();
+			unload_modules(TRUE, verbosity);
+			goto cleanup;
 		}
 
 		/* gnuoptind is the first thing that is not an option - should have exactly
