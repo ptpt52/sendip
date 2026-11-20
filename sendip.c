@@ -912,21 +912,9 @@ int main(int argc, char *const argv[]) {
 			headers[num_modules] = NULL;
 
 			for(i=num_modules-1,mod=last; mod!=NULL; mod=mod->prev,i--) {
-
+				char *start=mod->pack->data;
+				int capacity=mod->pack->alloc_len+d.alloc_len;
 				if(verbosity) fprintf(stderr, "Finalizing module %s\n",mod->name);
-				/* Remove this header from enclosing list */
-				/* @@ Don't erase the header type, so that
-				 * it's available to upper-level headers where
-				 * needed. Instead, we tell the upper-level
-				 * headers where they are in the list.
-				 */
-				/*@@hdrs[i]='\0';@@*/
-				/* @@ wesp needs to see the esp header info,
-				 * so now we can't erase that, either.
-				 */
-				/*@@headers[i] = NULL;*/
-
-				/* @@ */
 				if (!mod->finalize(hdrs, headers, i, &d, mod->pack)) {
 					fprintf(stderr, "Finalizing module %s failed\n", mod->name);
 					free(packet.data);
@@ -934,15 +922,20 @@ int main(int argc, char *const argv[]) {
 					goto cleanup;
 				}
 
-				/* Get everything ready for the next call */
-				if (d.alloc_len<0 || mod->pack->alloc_len<0 ||
-				    mod->pack->alloc_len>packet.alloc_len-d.alloc_len) {
-					fprintf(stderr, "Module %s expanded the finalized packet\n", mod->name);
+				/* The header and its following data must remain contiguous
+				 * within the space available to this finalizer.
+				 */
+				if (mod->pack->data!=start ||
+				    d.alloc_len<0 || d.alloc_len>capacity ||
+				    mod->pack->alloc_len<0 || mod->pack->alloc_len>capacity-d.alloc_len ||
+				    d.data!=start+mod->pack->alloc_len) {
+					fprintf(stderr, "Module %s returned an invalid finalized packet layout\n",
+					        mod->name);
 					free(packet.data);
 					status=1;
 					goto cleanup;
 				}
-				d.data=(char *)d.data-mod->pack->alloc_len;
+				d.data=start;
 				d.alloc_len+=mod->pack->alloc_len;
 			}
 			/* @@ Trim back the packet length if need be */
