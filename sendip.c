@@ -890,7 +890,6 @@ cleanup:
 	if(datafile != -1) {
 		if (data && datalen) munmap(data,datalen);
 		close(datafile);
-		datafile=-1;
 	}
 	else free(data);
 

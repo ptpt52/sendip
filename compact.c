@@ -538,7 +538,6 @@ ipv4argument(const char *input, int length)
 	a = hostintegerargument(input, 1);
 	input = dotpoint;
 	++input;
-	length -= dotpoint-input;
 	if (!(dotpoint=strchr(input, '.'))) {	/* aa.bbbbbb */
 		b = hostintegerargument(input, 3);
 		sprintf(ipv4space, "%d.%d", a, b);
@@ -547,7 +546,6 @@ ipv4argument(const char *input, int length)
 	b = hostintegerargument(input, 1);
 	input = dotpoint;
 	++input;
-	length -= dotpoint-input;
 	if (!(dotpoint=strchr(input, '.'))) {	/* aa.bb.cccc */
 		c = hostintegerargument(input, 2);
 		sprintf(ipv4space, "%d.%d.%d", a, b, c);
@@ -556,7 +554,6 @@ ipv4argument(const char *input, int length)
 	c = hostintegerargument(input, 1);
 	input = dotpoint;
 	++input;
-	length -= dotpoint-input;
 	d = hostintegerargument(input, 1);
 	sprintf(ipv4space, "%d.%d.%d.%d", a, b, c, d);
 	return inet_addr(ipv4space);

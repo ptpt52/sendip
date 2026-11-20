@@ -548,7 +548,6 @@ bool do_opt (char        *optstring,
 				            "attributes, if any, or after header\n");
 				rc = FALSE;
 			} else {
-				rem_ptr = ptr;
 				ptr += bgp_parse_nlri(ptr, optarg);
 
 				state->prev_part = BGP_UPDATE_NLRI;

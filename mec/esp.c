@@ -280,7 +280,6 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	*where++ = nexthdr;
 	if (icv) {
 		memcpy(where, icv, priv->icvlen);
-		where += priv->icvlen;
 		free((void *)icv);
 	}
 
