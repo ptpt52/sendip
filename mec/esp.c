@@ -150,25 +150,37 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		{
 			crypto_module *module=load_crypto_module(arg);
 			if (!module) return FALSE;
-			unload_crypto_module(priv->auth);
+			crypto_module *previous=priv->auth;
+			unsigned int previous_modified=pack->modified;
 			priv->auth=module;
+			pack->modified |= ESP_MOD_AUTH;
+			if (module->cryptoinit && !(*module->cryptoinit)(pack)) {
+				priv=pack->private;
+				if (priv) priv->auth=previous;
+				pack->modified=previous_modified;
+				unload_crypto_module(module);
+				return FALSE;
+			}
+			unload_crypto_module(previous);
 		}
-		/* Call any init routine */
-		pack->modified |= ESP_MOD_AUTH;
-		if (priv->auth->cryptoinit)
-			return (*priv->auth->cryptoinit)(pack);
 		break;
 	case 'c':	/* Cryptographic (encryption/privacy) module */
 		{
 			crypto_module *module=load_crypto_module(arg);
 			if (!module) return FALSE;
-			unload_crypto_module(priv->crypto);
+			crypto_module *previous=priv->crypto;
+			unsigned int previous_modified=pack->modified;
 			priv->crypto=module;
+			pack->modified |= ESP_MOD_CRYPT;
+			if (module->cryptoinit && !(*module->cryptoinit)(pack)) {
+				priv=pack->private;
+				if (priv) priv->crypto=previous;
+				pack->modified=previous_modified;
+				unload_crypto_module(module);
+				return FALSE;
+			}
+			unload_crypto_module(previous);
 		}
-		/* Call any init routine */
-		pack->modified |= ESP_MOD_CRYPT;
-		if (priv->crypto->cryptoinit)
-			return (*priv->crypto->cryptoinit)(pack);
 		break;
 	case 'n':	/* Next header */
 		if (!protocolargument(arg, &esp->tail.nexthdr)) return FALSE;

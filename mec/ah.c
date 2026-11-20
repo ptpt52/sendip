@@ -109,12 +109,16 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		{
 			crypto_module *module=load_crypto_module(arg);
 			if (!module) return FALSE;
-			unload_crypto_module(priv->crypto);
+			crypto_module *previous=priv->crypto;
 			priv->crypto=module;
+			if (module->cryptoinit && !(*module->cryptoinit)(pack)) {
+				priv=pack->private;
+				if (priv) priv->crypto=previous;
+				unload_crypto_module(module);
+				return FALSE;
+			}
+			unload_crypto_module(previous);
 		}
-		/* Call any init routine */
-		if (priv->crypto->cryptoinit)
-			return (*priv->crypto->cryptoinit)(pack);
 		break;
 
 	case 'n':	/* Next header */
