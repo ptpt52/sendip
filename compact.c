@@ -132,15 +132,19 @@ int compact_string(char *data_out) {
 u_int32_t
 dirtyrand(void)
 {
-	static u_int64_t dirtybase=1927868237;
-	union {
-		u_int64_t whole;
-		u_int32_t half[2];
-	} answer;
+	static u_int64_t dirtybase;
+	static bool seeded;
 
-	answer.whole = dirtybase * 69069 + 907133923;
-	dirtybase = answer.whole;
-	return answer.half[0]^answer.half[1];
+	/* Main seeds random() for each invocation; derive this generator's
+	 * initial state from that stream instead of a process-independent seed.
+	 */
+	if (!seeded) {
+		dirtybase=(u_int32_t)random();
+		dirtybase=(dirtybase<<32)|(u_int32_t)random();
+		seeded=TRUE;
+	}
+	dirtybase = dirtybase * 69069 + 907133923;
+	return (u_int32_t)dirtybase ^ (u_int32_t)(dirtybase>>32);
 }
 #define	myrandom()	dirtyrand()
 
