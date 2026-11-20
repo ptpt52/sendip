@@ -29,7 +29,7 @@ static void udpcsum(sendip_data *ip_hdr, sendip_data *udp_hdr,
 	u_int16_t length=htons(udp_hdr->alloc_len+data->alloc_len);
 	memcpy(pseudo, &ip->saddr, 4);
 	memcpy(pseudo+4, &ip->daddr, 4);
-	pseudo[9]=ip->protocol;
+	pseudo[9]=IPPROTO_UDP;
 	memcpy(pseudo+10, &length, 2);
 	u_int16_t *blocks[]={(u_int16_t *)pseudo, udp_hdr->data, data->data};
 	int lengths[]={sizeof(pseudo), udp_hdr->alloc_len, data->alloc_len, 0};
@@ -117,7 +117,7 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	if(hdrs[i]=='i') {
 		unsigned int old_daddr = 0;
 		if(!(headers[i]->modified&IP_MOD_PROTOCOL)) {
-			((ip_header *)(headers[i]->data))->protocol=IPPROTO_UDP;
+			((ip_header *)(headers[i]->data))->protocol=header_type(hdrs[i+1]);
 			headers[i]->modified |= IP_MOD_PROTOCOL;
 		}
 		//replace ip daddr
