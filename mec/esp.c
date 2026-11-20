@@ -274,7 +274,8 @@ finalize(char *hdrs, sendip_data *headers[], int index,
 	 * fill out the trailer.
 	 */
 	where += data->alloc_len;
-	memset(where, 0, padlen);
+	/* RFC 4303 default padding: 1, 2, ... up to Pad Length. */
+	for (unsigned int i=0; i<padlen; ++i) where[i]=i+1;
 	where += padlen;
 	*where++ = padlen;
 	*where++ = nexthdr;
