@@ -12,7 +12,6 @@ Source: http://www.earth.li/projectpurple/files/sendip-%{source_version}.tar.gz
 URL: http://www.earth.li/projectpurple/progs/sendip.html
 Vendor: Project Purple <projectpurple@earth.li>
 Packager: Mike Ricketts <mike@earth.li>
-BuildRoot: /var/tmp/sendip-root
 
 %description
 A command line tool to send arbitrary IP packets. It has a large number of
@@ -78,23 +77,16 @@ data to be added to the packet.
 %setup -n %{name}-%{source_version}
 
 %build
-mkdir -p $RPM_BUILD_ROOT/usr/bin $RPM_BUILD_ROOT/usr/share/man/man1
-mkdir -p $RPM_BUILD_ROOT/usr/lib
-make PREFIX=/usr MANDIR=%{_mandir}/man1
+make BINDIR="%{_bindir}" MANDIR="%{_mandir}/man1" LIBDIR="%{_libdir}/sendip"
 
 %install
-rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/usr/{bin,lib}
-mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
-make PREFIX=$RPM_BUILD_ROOT/usr MANDIR=$RPM_BUILD_ROOT%{_mandir}/man1 install
-
-%clean
-rm -fr $RPM_BUILD_ROOT
+make BINDIR="%{_bindir}" MANDIR="%{_mandir}/man1" LIBDIR="%{_libdir}/sendip" \
+     DESTDIR="%{buildroot}" install
 
 %files
 %defattr(-,root,root)
 %doc VERSION README CHANGES LICENSE TODO
-%doc /usr/share/man/man1/sendip.1*
-%attr(755,root,root) /usr/bin/sendip
-%attr(755,root,root) /usr/lib/sendip/*.so
-%dir /usr/lib/sendip
+%doc %{_mandir}/man1/sendip.1*
+%attr(755,root,root) %{_bindir}/sendip
+%attr(755,root,root) %{_libdir}/sendip/*.so
+%dir %{_libdir}/sendip

@@ -1,8 +1,7 @@
 #configureable stuff
 PREFIX ?= /usr
-BINDIR ?= $(PREFIX)/bin
-MANDIR ?= $(PREFIX)/share/man/man1
 LIBDIR ?= $(PREFIX)/lib/sendip
+DESTDIR ?=
 #For most systems, this works
 INSTALL ?= install
 #For Solaris, you may need
@@ -50,10 +49,8 @@ veryclean:
 			rm -f sendip.spec sendip.1
 
 install:		all
-			[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
-			[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
-			[ -d $(MANDIR) ] || mkdir -p $(MANDIR)
-			$(INSTALL) -m 755 $(PROTOS) $(CRYPTOS) $(LIBDIR)
+			mkdir -p "$(DESTDIR)$(LIBDIR)"
+			$(INSTALL) -m 755 $(PROTOS) $(CRYPTOS) "$(DESTDIR)$(LIBDIR)/"
 
 $(PROTOS) $(CRYPTOS): %: %.d
 %.so.d: ;

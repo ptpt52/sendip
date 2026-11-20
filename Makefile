@@ -3,6 +3,7 @@ PREFIX ?= /usr
 BINDIR ?= $(PREFIX)/bin
 MANDIR ?= $(PREFIX)/share/man/man1
 LIBDIR ?= $(PREFIX)/lib/sendip
+DESTDIR ?=
 #For most systems, this works
 INSTALL ?= install
 #For Solaris, you may need
@@ -57,7 +58,7 @@ libsendipaux.a: $(LIBOBJS)
 
 subdirs: $(LIBS)
 	for subdir in $(SUBDIRS) ; do \
-		$(MAKE) -C "$$subdir"  || exit $$?;\
+		$(MAKE) -C "$$subdir" LIBDIR="$(LIBDIR)" || exit $$?;\
 		done
 
 protoname.o:	mec/protoname.c
@@ -110,14 +111,12 @@ veryclean:
 			rm -f sendip.spec sendip.1
 
 install:		all
-			[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
-			[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
-			[ -d $(MANDIR) ] || mkdir -p $(MANDIR)
-			$(INSTALL) -m 755 $(PROGS) $(BINDIR)
-			$(INSTALL) -m 644 sendip.1 $(MANDIR)
-			$(INSTALL) -m 755 $(PROTOS) $(LIBDIR)
+			mkdir -p "$(DESTDIR)$(BINDIR)" "$(DESTDIR)$(MANDIR)" "$(DESTDIR)$(LIBDIR)"
+			$(INSTALL) -m 755 $(PROGS) "$(DESTDIR)$(BINDIR)/"
+			$(INSTALL) -m 644 sendip.1 "$(DESTDIR)$(MANDIR)/"
+			$(INSTALL) -m 755 $(PROTOS) "$(DESTDIR)$(LIBDIR)/"
 			for subdir in $(SUBDIRS) ; do \
-				$(MAKE) -C "$$subdir" install || exit $$?;\
+				$(MAKE) -C "$$subdir" LIBDIR="$(LIBDIR)" DESTDIR="$(DESTDIR)" install || exit $$?;\
 				done
 
 # Missing dependency files force a one-time rebuild of older cached outputs.
