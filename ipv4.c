@@ -171,15 +171,18 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		pack->modified |= IP_MOD_DADDR;
 		break;
 	case 'h':
-		iph->header_len = (unsigned int)strtoul(arg, (char **)NULL, 0) & 0xF;
+		if (!hostintegerargument_checked(arg, 1, &parsed)) return FALSE;
+		iph->header_len = parsed&0xF;
 		pack->modified |= IP_MOD_HEADERLEN;
 		break;
 	case 'v':
-		iph->version = (unsigned int)strtoul(arg, (char **)NULL, 0) & 0xF;
+		if (!hostintegerargument_checked(arg, 1, &parsed)) return FALSE;
+		iph->version = parsed&0xF;
 		pack->modified |= IP_MOD_VERSION;
 		break;
 	case 'y':
-		iph->tos = (u_int8_t)strtoul(arg, (char **)NULL, 0);
+		if (!hostintegerargument_checked(arg, 1, &parsed)) return FALSE;
+		iph->tos = parsed;
 		pack->modified |= IP_MOD_TOS;
 		break;
 	case 'l':
@@ -218,8 +221,8 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			}
 		} else {
 			/* Preserve the flags when setting the wire-format offset. */
-			IP_SET_FRAGOFF(iph,(u_int16_t)strtoul(arg, (char **)NULL, 0) &
-			               (u_int16_t)0x1FFF);
+			if (!hostintegerargument_checked(arg, 2, &parsed)) return FALSE;
+			IP_SET_FRAGOFF(iph,parsed&UINT32_C(0x1FFF));
 			pack->modified |= IP_MOD_FRAGOFF;
 			break;
 		}
