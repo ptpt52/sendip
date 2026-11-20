@@ -289,7 +289,7 @@ static bool load_module(char *modname) {
 	newmod->num_opts=n_opts();
 	newmod->optchar=get_optchar();
 	newmod->opts=get_opts();
-	if (newmod->num_opts<0 || newmod->num_opts>INT_MAX-num_opts ||
+	if (newmod->num_opts<0 || newmod->num_opts>INT_MAX-num_opts-1 ||
 	    !newmod->optchar || (newmod->num_opts && !newmod->opts)) {
 		fprintf(stderr, "Module %s returned invalid option metadata\n", modname);
 		goto fail;
@@ -517,32 +517,38 @@ int main(int argc, char *const argv[]) {
 		}
 	}
 
+	/* Build the getopt listings */
+	opts = calloc((size_t)num_opts+1, sizeof(*opts));
+	if(opts==NULL) {
+		perror("OUT OF MEMORY!\n");
+		status=1;
+		goto cleanup;
+	}
+	i=0;
+	for(mod=first; mod!=NULL; mod=mod->next) {
+		int j;
+		char *s;   // nasty kludge because option.name is const
+		for(j=0; j<mod->num_opts; j++) {
+			/* +2 on next line is one for the char, one for the trailing null */
+			opts[i].name = s = malloc(strlen(mod->opts[j].optname)+2);
+			if (!s) {
+				perror("Allocating module options");
+				status=1;
+				goto cleanup;
+			}
+			sprintf(s,"%c%s",mod->optchar,mod->opts[j].optname);
+			opts[i].has_arg = mod->opts[j].arg;
+			opts[i].flag = NULL;
+			opts[i].val = mod->optchar;
+			i++;
+		}
+	}
+	if(verbosity) fprintf(stderr, "Added %d options\n",num_opts);
+
+
 	/*@@ looping - needs to be after module loading, but before
 	 * module option processing ... */
 	while (--loopcount >= 0) {
-
-		/* Build the getopt listings */
-		opts = malloc((1+num_opts)*sizeof(struct option));
-		if(opts==NULL) {
-			perror("OUT OF MEMORY!\n");
-			return 1;
-		}
-		memset(opts,'\0',(1+num_opts)*sizeof(struct option));
-		i=0;
-		for(mod=first; mod!=NULL; mod=mod->next) {
-			int j;
-			char *s;   // nasty kludge because option.name is const
-			for(j=0; j<mod->num_opts; j++) {
-				/* +2 on next line is one for the char, one for the trailing null */
-				opts[i].name = s = malloc(strlen(mod->opts[j].optname)+2);
-				sprintf(s,"%c%s",mod->optchar,mod->opts[j].optname);
-				opts[i].has_arg = mod->opts[j].arg;
-				opts[i].flag = NULL;
-				opts[i].val = mod->optchar;
-				i++;
-			}
-		}
-		if(verbosity) fprintf(stderr, "Added %d options\n",num_opts);
 
 		/* Initialize all */
 		for(mod=first; mod!=NULL; mod=mod->next) {
@@ -635,12 +641,6 @@ int main(int argc, char *const argv[]) {
 				first->set_addr(argv[gnuoptind],first->pack);
 			}
 		}
-
-		/* free opts now we have finished with it */
-		for(i=0; i<(1+num_opts); i++) {
-			if(opts[i].name != NULL) free((void *)opts[i].name);
-		}
-		free(opts); /* don't need them any more */
 
 		if(usage) {
 			print_usage();
@@ -772,6 +772,10 @@ int main(int argc, char *const argv[]) {
 	} /*@@ back to top of loop */
 
 cleanup:
+	if (opts) {
+		for (size_t j=0; opts[j].name; ++j) free((void *)opts[j].name);
+		free(opts);
+	}
 	if(datafile != -1) {
 		if (data && datalen) munmap(data,datalen);
 		close(datafile);
