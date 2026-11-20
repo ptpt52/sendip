@@ -318,6 +318,7 @@ bool do_opt (char        *optstring,
 	u_int8_t nlri[256]; /* One prefix-length byte and up to 255 data bytes. */
 	u_int8_t marker[16];
 	u_int8_t open[10];
+	u_int8_t parameter[2+UINT8_MAX];
 	int nlri_length=0;
 	size_t needed=0;
 	unsigned long scalar;
@@ -418,41 +419,31 @@ bool do_opt (char        *optstring,
 				            "message\n");
 				rc = FALSE;
 			} else {
-				rem_ptr = ptr;
 				arg_ptr = optarg;
-				*ptr++ = (u_int8_t)strtoul(arg_ptr, &arg_ptr, 10);
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-
-				*ptr = (u_int8_t)strtoul(arg_ptr, &new_arg_ptr, 10);
-				if (arg_ptr == new_arg_ptr) {
-					*ptr = 0;
-				} else {
-					len_mod = TRUE;
-				}
-				ptr++;
-				arg_ptr = new_arg_ptr;
-				if (*arg_ptr != '\0') {
-					arg_ptr++;
-				}
-
-				count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 0xFF, 16, ':', '\0');
+				if (!bgp_scalar_field(&arg_ptr, 10, FALSE, 0, &scalar,
+				                      &specified, &separator)) return FALSE;
+				parameter[0]=(u_int8_t)scalar;
+				if (!bgp_scalar_field(&arg_ptr, 10, TRUE, 0, &scalar,
+				                      &specified, &separator)) return FALSE;
+				parameter[1]=(u_int8_t)scalar;
+				len_mod=specified;
+				count=bgp_parse_bytes(parameter+2, arg_ptr, &new_arg_ptr,
+				                      UINT8_MAX, 16, ':', '\0');
 				if (count<0) return FALSE;
-				ptr+=count;
 				if (*new_arg_ptr) { usage_error("Too many BGP value bytes\n"); return FALSE; }
 
-				if (!len_mod) {
-					*(rem_ptr + 1) = ptr - rem_ptr - 2;
-				}
+				if (!len_mod) parameter[1]=count;
 				if (!(pack->modified & BGP_MOD_OPT_LEN)) {
-					size_t added=ptr-rem_ptr;
+					size_t added=(size_t)count+2;
 					if (added>UINT8_MAX || *state->opt_len_ptr>UINT8_MAX-added) {
 						usage_error("Automatic BGP OPEN option length exceeds one byte\n");
 						return FALSE;
 					}
-					*state->opt_len_ptr += added;
 				}
+				memcpy(ptr, parameter, (size_t)count+2);
+				ptr+=count+2;
+				if (!(pack->modified & BGP_MOD_OPT_LEN))
+					*state->opt_len_ptr+=count+2;
 				state->prev_part = BGP_OPEN_OPT;
 			}
 			break;
