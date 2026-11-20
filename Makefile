@@ -121,6 +121,7 @@ veryclean:
 			rm -f sendip.spec sendip.1
 
 install:		all
+			if [ ! -s sendip.1 ]; then $(MAKE) sendip.1; fi
 			mkdir -p "$(DESTDIR)$(BINDIR)" "$(DESTDIR)$(MANDIR)" "$(DESTDIR)$(LIBDIR)"
 			$(INSTALL) -m 755 $(PROGS) "$(DESTDIR)$(BINDIR)/"
 			$(INSTALL) -m 644 sendip.1 "$(DESTDIR)$(MANDIR)/"
