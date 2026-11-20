@@ -496,12 +496,12 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	if(!(pack->modified & IP_MOD_TTL)) {
 		iph->ttl = 255;
 	}
-	if(!(pack->modified & IP_MOD_CHECK)) {
-		ipcsum(pack);
-	}
 	if(!(pack->modified&IP_MOD_PROTOCOL)) {
 		/* New default: actual type of following header */
 		iph->protocol = header_type(hdrs[index+1]);
+	}
+	if(!(pack->modified & IP_MOD_CHECK)) {
+		ipcsum(pack);
 	}
 	return TRUE;
 }
