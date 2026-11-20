@@ -201,6 +201,19 @@ invalid:
 	return -1;
 }
 
+/* An omitted Identifier retains the OPEN default; a supplied one is IPv4. */
+static bool bgp_parse_identifier(u_int8_t *buf, char *arg, char **end) {
+	int count=bgp_parse_bytes(buf, arg, end, 4, 10, '.', ':');
+	if (count<0) return FALSE;
+	if (!count) {
+		PUTLONG(buf, 0x7F000001);
+	} else if (count!=4 || (**end && **end!=':')) {
+		usage_error("BGP Identifier must contain four IPv4 octets\n");
+		return FALSE;
+	}
+	return TRUE;
+}
+
 /* Parse decimal wire bytes without silently skipping malformed tokens. */
 static bool bgp_decimal_byte(char *input, char **end, u_int8_t *value) {
 	if (!isdigit((unsigned char)*input)) return FALSE;
@@ -321,11 +334,7 @@ bool do_opt (char        *optstring,
 				if (*arg_ptr != '\0') {
 					arg_ptr++;
 				}
-				count=bgp_parse_bytes(ptr, arg_ptr, &new_arg_ptr, 4, 10, '.', ':');
-				if (count<0) return FALSE;
-				if (arg_ptr == new_arg_ptr) {
-					PUTLONG(ptr, 0x7F000001);
-				}
+				if (!bgp_parse_identifier(ptr, arg_ptr, &new_arg_ptr)) return FALSE;
 				ptr += 4;
 
 				arg_ptr = new_arg_ptr;
