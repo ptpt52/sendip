@@ -111,7 +111,7 @@ bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	sctp_header *sctp = (sctp_header *)pack->data;
-	u_int16_t svalue;
+	unsigned long svalue;
 	u_int32_t lvalue;
 	char *temp;
 	int length;
@@ -150,8 +150,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 
 	case 'T':	/* SCTP chunk type (8 bits) */
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > OCTET_MAX) {
+		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a type value\n");
 			return FALSE;
 		}
@@ -171,8 +170,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		}
 		break;
 	case 'F':	/* SCTP chunk flags (8 bits) */
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > OCTET_MAX) {
+		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a flags value\n");
 			return FALSE;
 		}
@@ -183,7 +181,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		currentchunk->flags = svalue;
 		break;
 	case 'L':	/* SCTP chunk length (16 bits) */
-		svalue = strtoul(arg, (char **)NULL, 0);
+		if (!uintargument(arg, UINT16_MAX, &svalue)) return FALSE;
 		if (!currentchunk ) {
 			currentchunk = add_chunk(pack, 0);
 		if (!currentchunk) return FALSE;

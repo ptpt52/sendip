@@ -59,13 +59,12 @@ bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	wesp_header *wesp = (wesp_header *)pack->data;
-	u_int16_t svalue;
+	unsigned long svalue;
 
 	switch(opt[1]) {
 	case 'v':	/* WESP version number (2 bits) */
 		pack->modified |= WESP_MOD_VERSION;
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > DUO_MAX) {
+		if (!uintargument(arg, DUO_MAX, &svalue)) {
 			usage_error("Too big a version value\n");
 			return FALSE;
 		}
@@ -73,16 +72,14 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'e':	/* Encrypted payload flag */
 		pack->modified |= WESP_MOD_ENCRYPTED;
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > 1) {
+		if (!uintargument(arg, 1, &svalue)) {
 			usage_error("There's only one bit!\n");
 			return FALSE;
 		}
 		wesp->encrypted = svalue;
 		break;
 	case 'p':	/* Padded flag */
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > 1) {
+		if (!uintargument(arg, 1, &svalue)) {
 			usage_error("There's only one bit!\n");
 			return FALSE;
 		}
@@ -95,8 +92,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'r':	/* WESP reserved (4 bits) */
 		pack->modified |= WESP_MOD_RESERVED;
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > QUARTET_MAX) {
+		if (!uintargument(arg, QUARTET_MAX, &svalue)) {
 			usage_error("Too big a resv value\n");
 			return FALSE;
 		}
@@ -104,9 +100,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'h':	/* Header length */
 		pack->modified |= WESP_MOD_HDRLEN;
-		svalue = strtoul(arg, (char **)NULL, 0);
-
-		if (svalue > OCTET_MAX) {
+		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a header length\n");
 			return FALSE;
 		}
@@ -114,9 +108,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 't':	/* Trailer length */
 		pack->modified |= WESP_MOD_TRLRLEN;
-		svalue = strtoul(arg, (char **)NULL, 0);
-
-		if (svalue > OCTET_MAX) {
+		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a trailer length\n");
 			return FALSE;
 		}

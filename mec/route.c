@@ -84,7 +84,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	 * other fields.
 	 */
 	struct rt0_hdr *rt = (struct rt0_hdr *)(void *)route;
-	u_int16_t svalue;
+	unsigned long svalue;
 
 	switch(opt[1]) {
 	case 'n':	/* Route next header */
@@ -92,8 +92,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= ROUTE_MOD_NEXTHDR;
 		break;
 	case 't':	/* Type */
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > OCTET_MAX) {
+		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a type value\n");
 			return FALSE;
 		}
@@ -101,8 +100,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= ROUTE_MOD_TYPE;
 		break;
 	case 's':	/* Segments left */
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > OCTET_MAX) {
+		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a segments left value\n");
 			return FALSE;
 		}

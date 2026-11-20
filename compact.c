@@ -367,6 +367,18 @@ stringargument(const char *input, char **output)
  * 	field = integerargument(input, sizeof(field));
  */
 
+/* Checked numeric fields must be validated before narrowing their width. */
+bool uintargument(const char *input, unsigned long maximum, unsigned long *value) {
+	char *end;
+	unsigned long parsed;
+	if (!input || !value || !isdigit((unsigned char)*input)) return FALSE;
+	errno=0;
+	parsed=strtoul(input, &end, 0);
+	if (errno || end==input || *end || parsed>maximum) return FALSE;
+	*value=parsed;
+	return TRUE;
+}
+
 u_int32_t
 integerargument(const char *input, int length)
 {

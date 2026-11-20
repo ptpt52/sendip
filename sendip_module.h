@@ -52,6 +52,7 @@ extern int compact_string(char *data_out);
 #define MAXRAND	8192	/* maximum length of random data */
 u_int8_t * randombytes(int length);
 int stringargument(const char *input, char **output);
+bool uintargument(const char *input, unsigned long maximum, unsigned long *value);
 u_int32_t integerargument(const char *input, int length);
 u_int32_t hostintegerargument(const char *input, int length);
 in_addr_t cidrargument(const char *input, char *slashpoint, int length);

@@ -87,7 +87,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	frag_header *frag = (frag_header *)pack->data;
 	u_int32_t value;
-	u_int16_t svalue;
+	unsigned long svalue;
 
 	switch(opt[1]) {
 	case 'n':	/* Fragment next header */
@@ -96,9 +96,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'r':	/* Fragment reserved (1 byte) */
 		pack->modified |= FRAG_MOD_RESV;
-		svalue = strtoul(arg, (char **)NULL, 0);
-
-		if (svalue > OCTET_MAX) {
+		if (!uintargument(arg, OCTET_MAX, &svalue)) {
 			usage_error("Too big a resv value\n");
 			return FALSE;
 		}
@@ -106,9 +104,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'o':	/* Fragment offset */
 		pack->modified |= FRAG_MOD_OFFSET;
-		svalue = strtoul(arg, (char **)NULL, 0);
-
-		if (svalue > IPV6_FRAG_MAXOFFSET) {
+		if (!uintargument(arg, IPV6_FRAG_MAXOFFSET, &svalue)) {
 			usage_error("Too big an offset value\n");
 			return FALSE;
 		}
@@ -116,8 +112,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		break;
 	case 'f':	/* Fragment flags (more fragments+2 reserved) */
 		pack->modified |= FRAG_MOD_FLAGS;
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > IPV6_FRAG_FLAGS) {
+		if (!uintargument(arg, IPV6_FRAG_FLAGS, &svalue)) {
 			usage_error("Only three flags can be set, hotshot\n");
 			return FALSE;
 		}

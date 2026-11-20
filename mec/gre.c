@@ -138,7 +138,7 @@ bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	gre_header *gre = (gre_header *)pack->data;
-	u_int16_t svalue;
+	unsigned long svalue;
 
 	switch(opt[1]) {
 	case 'c':
@@ -199,8 +199,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= GRE_MOD_STRICT;
 		break;
 	case 'e':
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > GRE_MAX_REC) {
+		if (!uintargument(arg, GRE_MAX_REC, &svalue)) {
 			usage_error("Too big a recursion limit\n");
 			return FALSE;
 		}
@@ -209,8 +208,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		pack->modified |= GRE_MOD_RECURSION;
 		break;
 	case 'v':
-		svalue = strtoul(arg, (char **)NULL, 0);
-		if (svalue > GRE_MAX_VERSION) {
+		if (!uintargument(arg, GRE_MAX_VERSION, &svalue)) {
 			usage_error("Too big a version number\n");
 			return FALSE;
 		}
