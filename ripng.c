@@ -44,6 +44,8 @@ sendip_data *initialize(void) {
 		return NULL;
 	}
 	memset(rip,0,sizeof(ripng_header));
+	rip->command=1;
+	rip->version=1;
 	ret->alloc_len = sizeof(ripng_header);
 	ret->data = (void *)rip;
 	ret->modified=0;

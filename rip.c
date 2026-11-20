@@ -31,6 +31,8 @@ sendip_data *initialize(void) {
 		return NULL;
 	}
 	memset(rip,0,sizeof(rip_header));
+	rip->command=1;
+	rip->version=2;
 	ret->alloc_len = sizeof(rip_header);
 	ret->data = (void *)rip;
 	ret->modified=0;
