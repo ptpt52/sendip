@@ -6,8 +6,10 @@
 #define CRCPOLY_LE 0xedb88320
 #define CRCPOLY_BE 0x04c11db7
 
-/* How many bits at a time to use.  Requires a table of 4<<CRC_xx_BITS bytes. */
-/* For less performance-sensitive, use 4 */
+/* Number of polynomial bits processed per step. The generated header holds
+ * canonical 8-bit tables; 2/4-bit steps select their corresponding subsets,
+ * while 1-bit mode does not include a table.
+ */
 #ifndef CRC_LE_BITS
 # define CRC_LE_BITS 8
 #endif
@@ -19,7 +21,7 @@
  * Little-endian CRC computation.  Used with serial bit streams sent
  * lsbit-first.  Be sure to use cpu_to_le32() to append the computed CRC.
  */
-#if CRC_LE_BITS > 8 || CRC_LE_BITS < 1 || CRC_LE_BITS & CRC_LE_BITS-1
+#if CRC_LE_BITS > 8 || CRC_LE_BITS < 1 || (CRC_LE_BITS & (CRC_LE_BITS-1))
 # error CRC_LE_BITS must be a power of 2 between 1 and 8
 #endif
 
@@ -27,6 +29,6 @@
  * Big-endian CRC computation.  Used with serial bit streams sent
  * msbit-first.  Be sure to use cpu_to_be32() to append the computed CRC.
  */
-#if CRC_BE_BITS > 8 || CRC_BE_BITS < 1 || CRC_BE_BITS & CRC_BE_BITS-1
+#if CRC_BE_BITS > 8 || CRC_BE_BITS < 1 || (CRC_BE_BITS & (CRC_BE_BITS-1))
 # error CRC_BE_BITS must be a power of 2 between 1 and 8
 #endif

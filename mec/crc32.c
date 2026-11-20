@@ -32,241 +32,50 @@
 
 
 #include <stdlib.h>
-#include <sys/types.h>
 #include <stdio.h>
-#include <inttypes.h>
-#include <string.h>
-#if defined(__APPLE_CC__)
-#include <libkern/OSByteOrder.h>
-#else
-#include <asm/byteorder.h>
-#endif
-
+#include "../types.h"
 #include "crc32.h"
-
-/* Compiler features used in the Linux kernel; defines are somewhat
- * different from those used in user space.
- */
-#if defined(__APPLE_CC__)
-#define __constant_cpu_to_le32 OSSwapHostToLittleConstInt32
-#define __constant_cpu_to_be32 OSSwapHostToBigConstInt32
-#define __cpu_to_le32 OSSwapHostToLittleInt32
-#define __le32_to_cpu OSSwapLittleToHostInt32
-#define __cpu_to_be32 OSSwapHostToBigInt32
-#define __be32_to_cpu OSSwapBigToHostInt32
-#else
-#include <features.h>
-#endif
-#ifndef __attribute_pure__
-#define __attribute_pure__ /* Ignore */
-#endif
-#ifndef __pure
-#define __pure __attribute_pure__
-#endif
-#if !defined(__GNUC__) || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
-#define __builtin_expect(x, expected_value) (x)
-#endif
-
-#define likely(x)       __builtin_expect((x),1)
-#define unlikely(x)     __builtin_expect((x),0)
-
-#ifdef notdef
-#include <linux/crc32.h>
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/compiler.h>
-#include <linux/types.h>
-#include <linux/slab.h>
-#include <linux/init.h>
-#include <asm/atomic.h>
-#endif
 #include "crc32defs.h"
-#if CRC_LE_BITS == 8
-#define tole(x) __constant_cpu_to_le32(x)
-#define tobe(x) __constant_cpu_to_be32(x)
-#else
-#define tole(x) (x)
-#define tobe(x) (x)
-#endif
 #include "crc32table.h"
 
-/* I'm only commenting these out for user-level compilation reasons;
- * I'm not claiming they aren't true!
- */
-#ifdef notdef
-MODULE_AUTHOR("Matt Domsch <Matt_Domsch@dell.com>");
-MODULE_DESCRIPTION("Ethernet CRC32 calculations");
-MODULE_LICENSE("GPL");
+#if defined(__GNUC__) || defined(__clang__)
+#define CRC_PURE __attribute__((pure))
+#else
+#define CRC_PURE
 #endif
 
-/**
- * crc32_le() - Calculate bitwise little-endian Ethernet AUTODIN II CRC32
- * @crc: seed value for computation.  ~0 for Ethernet, sometimes 0 for
- *	other uses, or the previous crc32 value if computing incrementally.
- * @p: pointer to buffer over which CRC is run
- * @len: length of buffer @p
+/* Tables hold canonical polynomial values, independent of host byte order.
+ * A smaller step samples the corresponding subset of the full byte table.
  */
-u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len);
-
+u_int32_t CRC_PURE crc32_le(u_int32_t crc, const unsigned char *p, size_t len) {
+	while (len--) {
+		crc ^= *p++;
 #if CRC_LE_BITS == 1
-/*
- * In fact, the table-based code will work in this case, but it can be
- * simplified by inlining the table in ?: form.
- */
-
-u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len)
-{
-	int i;
-	while (len--) {
-		crc ^= *p++;
-		for (i = 0; i < 8; i++)
-			crc = (crc >> 1) ^ ((crc & 1) ? CRCPOLY_LE : 0);
-	}
-	return crc;
-}
-#else				/* Table-based approach */
-
-u_int32_t __pure crc32_le(u_int32_t crc, unsigned char const *p, size_t len)
-{
-# if CRC_LE_BITS == 8
-	const u_int32_t      *tab = crc32table_le;
-
-# ifdef __LITTLE_ENDIAN
-#  define DO_CRC(x) crc = tab[ (crc ^ (x)) & 255 ] ^ (crc>>8)
-# else
-#  define DO_CRC(x) crc = tab[ ((crc >> 24) ^ (x)) & 255] ^ (crc<<8)
-# endif
-
-	crc = __cpu_to_le32(crc);
-	/* Input is an arbitrary byte buffer: do not form aligned word pointers
-	 * or move a pointer before the start of the object.
-	 */
-	while (len>=4) {
-		u_int32_t word;
-		memcpy(&word, p, sizeof(word));
-		crc ^= word;
-		DO_CRC(0);
-		DO_CRC(0);
-		DO_CRC(0);
-		DO_CRC(0);
-		p+=sizeof(word);
-		len-=sizeof(word);
-	}
-	while (len--) {
-		DO_CRC(*p++);
-	}
-
-	return __le32_to_cpu(crc);
-#undef ENDIAN_SHIFT
-#undef DO_CRC
-
-# elif CRC_LE_BITS == 4
-	while (len--) {
-		crc ^= *p++;
-		crc = (crc >> 4) ^ crc32table_le[crc & 15];
-		crc = (crc >> 4) ^ crc32table_le[crc & 15];
-	}
-	return crc;
-# elif CRC_LE_BITS == 2
-	while (len--) {
-		crc ^= *p++;
-		crc = (crc >> 2) ^ crc32table_le[crc & 3];
-		crc = (crc >> 2) ^ crc32table_le[crc & 3];
-		crc = (crc >> 2) ^ crc32table_le[crc & 3];
-		crc = (crc >> 2) ^ crc32table_le[crc & 3];
-	}
-	return crc;
-# endif
-}
+		for (int bit=0; bit<8; ++bit)
+			crc=(crc>>1)^((crc&1) ? CRCPOLY_LE : 0);
+#else
+		for (int bit=0; bit<8; bit+=CRC_LE_BITS)
+			crc=(crc>>CRC_LE_BITS)^
+			    crc32table_le[(crc&((1U<<CRC_LE_BITS)-1))<<(8-CRC_LE_BITS)];
 #endif
+	}
+	return crc;
+}
 
-/**
- * crc32_be() - Calculate bitwise big-endian Ethernet AUTODIN II CRC32
- * @crc: seed value for computation.  ~0 for Ethernet, sometimes 0 for
- *	other uses, or the previous crc32 value if computing incrementally.
- * @p: pointer to buffer over which CRC is run
- * @len: length of buffer @p
- */
-u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len);
-
+u_int32_t CRC_PURE crc32_be(u_int32_t crc, const unsigned char *p, size_t len) {
+	while (len--) {
+		/* Cast before shifting so bytes >= 0x80 never overflow signed int. */
+		crc ^= (u_int32_t)*p++<<24;
 #if CRC_BE_BITS == 1
-/*
- * In fact, the table-based code will work in this case, but it can be
- * simplified by inlining the table in ?: form.
- */
-
-u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
-{
-	int i;
-	while (len--) {
-		crc ^= *p++ << 24;
-		for (i = 0; i < 8; i++)
-			crc =
-			    (crc << 1) ^ ((crc & 0x80000000) ? CRCPOLY_BE :
-			                  0);
+		for (int bit=0; bit<8; ++bit)
+			crc=(crc<<1)^((crc&UINT32_C(0x80000000)) ? CRCPOLY_BE : 0);
+#else
+		for (int bit=0; bit<8; bit+=CRC_BE_BITS)
+			crc=(crc<<CRC_BE_BITS)^crc32table_be[crc>>(32-CRC_BE_BITS)];
+#endif
 	}
 	return crc;
 }
-
-#else				/* Table-based approach */
-u_int32_t __pure crc32_be(u_int32_t crc, unsigned char const *p, size_t len)
-{
-# if CRC_BE_BITS == 8
-	const u_int32_t      *tab = crc32table_be;
-
-# ifdef __LITTLE_ENDIAN
-#  define DO_CRC(x) crc = tab[ (crc ^ (x)) & 255 ] ^ (crc>>8)
-# else
-#  define DO_CRC(x) crc = tab[ ((crc >> 24) ^ (x)) & 255] ^ (crc<<8)
-# endif
-
-	crc = __cpu_to_be32(crc);
-	/* Input is an arbitrary byte buffer: do not form aligned word pointers
-	 * or move a pointer before the start of the object.
-	 */
-	while (len>=4) {
-		u_int32_t word;
-		memcpy(&word, p, sizeof(word));
-		crc ^= word;
-		DO_CRC(0);
-		DO_CRC(0);
-		DO_CRC(0);
-		DO_CRC(0);
-		p+=sizeof(word);
-		len-=sizeof(word);
-	}
-	while (len--) {
-		DO_CRC(*p++);
-	}
-
-	return __be32_to_cpu(crc);
-#undef ENDIAN_SHIFT
-#undef DO_CRC
-
-# elif CRC_BE_BITS == 4
-	while (len--) {
-		crc ^= *p++ << 24;
-		crc = (crc << 4) ^ crc32table_be[crc >> 28];
-		crc = (crc << 4) ^ crc32table_be[crc >> 28];
-	}
-	return crc;
-# elif CRC_BE_BITS == 2
-	while (len--) {
-		crc ^= *p++ << 24;
-		crc = (crc << 2) ^ crc32table_be[crc >> 30];
-		crc = (crc << 2) ^ crc32table_be[crc >> 30];
-		crc = (crc << 2) ^ crc32table_be[crc >> 30];
-		crc = (crc << 2) ^ crc32table_be[crc >> 30];
-	}
-	return crc;
-# endif
-}
-#endif
-
-#ifdef notdef
-EXPORT_SYMBOL(crc32_le);
-EXPORT_SYMBOL(crc32_be);
-#endif
 
 /*
  * A brief CRC tutorial.
@@ -411,6 +220,19 @@ buf_dump(char const *prefix, unsigned char const *buf, size_t len)
 
 }
 #endif
+
+static u_int32_t bitrev32(u_int32_t value) {
+	u_int32_t reversed=0;
+	for (int bit=0; bit<32; ++bit) {
+		reversed=(reversed<<1)|(value&1);
+		value>>=1;
+	}
+	return reversed;
+}
+
+static unsigned char bitrev8(unsigned char value) {
+	return bitrev32(value)>>24;
+}
 
 static void bytereverse(unsigned char *buf, size_t len)
 {
