@@ -14,47 +14,32 @@
 #include <stdlib.h>
 #include "types.h"
 
-u_int16_t csum (u_int16_t *packet, int packlen);
-
-/* Checksum a block of data */
-u_int16_t csum (u_int16_t *packet, int packlen) {
-	register unsigned long sum = 0;
-
-	while (packlen > 1) {
-		sum+= *(packet++);
-		packlen-=2;
-	}
-
-	if (packlen > 0)
-		sum += *(unsigned char *)packet;
-
-	/* TODO: this depends on byte order */
-
-	while (sum >> 16)
+/* Add bytes in network order without requiring aligned 16-bit access.
+ * Carry byte parity between vector elements, so an odd block is not padded
+ * until the end of the entire message. Fold as we go to bound the sum.
+ */
+static u_int32_t add_bytes(u_int32_t sum, const unsigned char *bytes,
+                          int length, int *odd) {
+	while (length-- > 0) {
+		sum += (u_int32_t)*bytes++ << (*odd ? 0 : 8);
 		sum = (sum & 0xffff) + (sum >> 16);
-
-	return (u_int16_t) ~sum;
+		*odd = !*odd;
+	}
+	return sum;
 }
 
-/* Checksum a vector of blocks of data */
-u_int16_t csumv (u_int16_t *packet[], int packlen[]) {
-	register unsigned long sum = 0;
-	int i;
+/* Return the checksum in the byte order used by packet header fields. */
+u_int16_t csum(u_int16_t *packet, int packlen) {
+	int odd=0;
+	u_int32_t sum=add_bytes(0, (const unsigned char *)packet, packlen, &odd);
+	return htons((u_int16_t)~sum);
+}
 
-	for (i=0; packlen[i]; ++i) {
-		while (packlen[i] > 1) {
-			sum+= *(packet[i]++);
-			packlen[i]-=2;
-		}
-
-		if (packlen[i] > 0)
-			sum += *(unsigned char *)packet[i];
-	}
-
-	/* TODO: this depends on byte order */
-
-	while (sum >> 16)
-		sum = (sum & 0xffff) + (sum >> 16);
-
-	return (u_int16_t) ~sum;
+/* The caller's vector and lengths are read-only. A zero length terminates it. */
+u_int16_t csumv(u_int16_t *packet[], int packlen[]) {
+	u_int32_t sum=0;
+	int odd=0;
+	for (int i=0; packlen[i]; ++i)
+		sum=add_bytes(sum, (const unsigned char *)packet[i], packlen[i], &odd);
+	return htons((u_int16_t)~sum);
 }
