@@ -153,12 +153,12 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	return TRUE;
 }
 
-int num_opts() {
+int num_opts(void) {
 	return sizeof(udp_opts)/sizeof(sendip_option);
 }
-sendip_option *get_opts() {
+sendip_option *get_opts(void) {
 	return udp_opts;
 }
-char get_optchar() {
+char get_optchar(void) {
 	return opt_char;
 }

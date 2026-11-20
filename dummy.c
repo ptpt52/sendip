@@ -138,12 +138,12 @@ bool finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
 	return TRUE;
 }
 
-int num_opts() {
+int num_opts(void) {
 	return sizeof(dummy_opts)/sizeof(sendip_option);
 }
-sendip_option *get_opts() {
+sendip_option *get_opts(void) {
 	return dummy_opts;
 }
-char get_optchar() {
+char get_optchar(void) {
 	return opt_char;
 }
