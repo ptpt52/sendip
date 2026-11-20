@@ -168,6 +168,7 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 		tolen = sizeof(struct sockaddr_in6);
 		break;
 	default:
+		free(to);
 		return -2;
 		break;
 	}
@@ -861,11 +862,17 @@ int main(int argc, char *const argv[]) {
 				free(packet.data);
 				return 1;
 			}
-			if (dump)
-				i = fwrite(packet.data, packet.alloc_len, 1, stdout);
-			else
-				i = sendpacket(&packet,packet_argv[gnuoptind],af_type,verbosity);
+			if (dump) {
+				if (fwrite(packet.data, 1, packet.alloc_len, stdout)!=(size_t)packet.alloc_len ||
+				    fflush(stdout)==EOF) {
+					perror("Writing packet data");
+					status=1;
+				}
+			} else if (sendpacket(&packet,packet_argv[gnuoptind],af_type,verbosity)!=packet.alloc_len) {
+				status=1;
+			}
 			free(packet.data);
+			if (status) goto cleanup;
 		}
 		/* @@ Regenerate data on subsequent loop calls */
 		if ((forever || loopcount) && datarg) {
