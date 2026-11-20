@@ -149,7 +149,7 @@ gre_resize(sendip_data *pack, u_int16_t flags, u_int16_t addflag)
 	return gre;
 }
 
-bool
+sendip_bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	gre_header *gre = (gre_header *)pack->data;
@@ -252,7 +252,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 }
 
-bool
+sendip_bool
 finalize(char *hdrs, sendip_data *headers[], int index, sendip_data *data,
          sendip_data *pack)
 {

@@ -37,7 +37,7 @@ initialize(void)
 	return ret;
 }
 
-bool
+sendip_bool
 readaddrs(char *arg, sendip_data *pack)
 {
 	/* We'll use the type 0 routing header to get at the
@@ -62,7 +62,7 @@ readaddrs(char *arg, sendip_data *pack)
 	return TRUE;
 }
 
-bool
+sendip_bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	route_header *route = (route_header *)pack->data;
@@ -109,7 +109,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 }
 
-bool finalize(char *hdrs, sendip_data *headers[], int index,
+sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack)
 {
 	route_header *route = (route_header *)pack->data;

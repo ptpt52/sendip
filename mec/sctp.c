@@ -122,7 +122,7 @@ grow_chunk_round4(sendip_data *pack, sctp_chunk_header *chunk,
 	return chunk;
 }
 
-bool
+sendip_bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	sctp_header *sctp = (sctp_header *)pack->data;
@@ -415,7 +415,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	return TRUE;
 }
 
-bool finalize(char *hdrs, sendip_data *headers[], int index,
+sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack)
 {
 	sctp_header *sctp = (sctp_header *)pack->data;

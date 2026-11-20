@@ -67,7 +67,7 @@ printargs(char *args[], int n)
 	fprintf(stderr, "\n");
 }
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int i, n;
 	char buffer[BUFSIZ];

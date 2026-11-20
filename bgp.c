@@ -208,7 +208,7 @@ static u_int32_t bgp_parse_nlri (u_int8_t *buf,
 }
 
 
-bool do_opt (char        *optstring,
+sendip_bool do_opt (char        *optstring,
              char        *optarg,
              sendip_data *pack)
 {
@@ -216,8 +216,8 @@ bool do_opt (char        *optstring,
 	u_int8_t *rem_ptr = NULL;
 	char     *arg_ptr = NULL;
 	char     *new_arg_ptr = NULL;
-	bool	  rc = TRUE;
-	bool	  len_mod = FALSE;
+	sendip_bool	  rc = TRUE;
+	sendip_bool	  len_mod = FALSE;
 	u_int8_t  bytes;
 
 	switch (optstring[1]) {
@@ -571,7 +571,7 @@ bool do_opt (char        *optstring,
 }
 
 
-bool finalize (char        *hdrs,
+sendip_bool finalize (char        *hdrs,
                sendip_data *headers[],
                int index,
                sendip_data *data,

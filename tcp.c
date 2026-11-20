@@ -107,7 +107,7 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
-bool do_opt(char *opt, char *arg, sendip_data *pack) {
+sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	tcp_header *tcp = (tcp_header *)pack->data;
 	// opt[0]==t
 	switch(opt[1]) {
@@ -322,7 +322,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 }
 
-bool finalize(char *hdrs, sendip_data *headers[], int index,
+sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	tcp_header *tcp = (tcp_header *)pack->data;
 	int i;

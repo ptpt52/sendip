@@ -301,8 +301,7 @@ static void exchange (char **);
 #endif
 
 static void
-exchange (argv)
-char **argv;
+exchange (char **argv)
 {
 	int bottom = first_nonopt;
 	int middle = last_nonopt;
@@ -386,10 +385,7 @@ char **argv;
 static const char *_getopt_initialize (int, char *const *, const char *);
 #endif
 static const char *
-_getopt_initialize (argc, argv, optstring)
-int argc;
-char *const *argv;
-const char *optstring;
+_getopt_initialize (int argc, char *const *argv, const char *optstring)
 {
 	(void)argc;
 	(void)argv;

@@ -260,7 +260,7 @@ printtimes(void)
 	       totalused, totalmu/totalused);
 }
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int sock, length;
 	struct sockaddr_in name, from;

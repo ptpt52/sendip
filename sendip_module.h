@@ -13,7 +13,7 @@
  */
 typedef struct {
 	const char *optname;
-	const bool arg;
+	const sendip_bool arg;
 	const char *description;
 	const char *def;
 } sendip_option;
@@ -31,9 +31,9 @@ typedef struct {
 /* Prototypes */
 #ifndef _SENDIP_MAIN
 sendip_data *initialize(void);
-bool do_opt(char *optstring, char *optarg, sendip_data *pack);
-bool set_addr(char *hostname, sendip_data *pack);
-bool finalize(char *hdrs, sendip_data *headers[], int index,
+sendip_bool do_opt(char *optstring, char *optarg, sendip_data *pack);
+sendip_bool set_addr(char *hostname, sendip_data *pack);
+sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack);
 int num_opts(void);
 sendip_option *get_opts(void);

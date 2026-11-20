@@ -354,7 +354,7 @@ fileargument(const char *arg)
 }
 
 #ifdef FA_TEST
-main()
+int main(void)
 {
 	char arg[BUFSIZ];
 	char *line;
@@ -365,7 +365,7 @@ main()
 		fgets(arg, BUFSIZ, stdin);
 		arg[strlen(arg)-1] = '\0';
 		if (!arg[0]) break;
-		line = filearg(arg);
+		line = fileargument(arg);
 		if (line) {
 			fprintf(stderr, "%s: %s\n", arg, line);
 		} else {

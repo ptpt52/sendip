@@ -8,7 +8,7 @@ INSTALL ?= install
 #For Solaris, you may need
 #INSTALL=/usr/ucb/install
 
-CFLAGS +=	-std=gnu17 -I.. -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
+CFLAGS +=	-I.. -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
 	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O3 -Wcast-align \
 	-DSENDIP_LIBS=\"$(LIBDIR)\"
 #-Wcast-align causes problems on solaris, but not serious ones

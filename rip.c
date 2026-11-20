@@ -31,7 +31,7 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
-bool do_opt(char *opt, char *arg, sendip_data *pack) {
+sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	rip_header *rippack = (rip_header *)pack->data;
 	rip_options *ripopt;
 	char *p, *q;
@@ -108,7 +108,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 }
 
-bool finalize(char *hdrs, sendip_data *headers[], int index,
+sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	if(hdrs[index-1] != 'u') {
 		usage_error("Warning: RIP should be contained in a UDP packet\n");

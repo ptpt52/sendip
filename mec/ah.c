@@ -41,7 +41,7 @@ initialize(void)
 	return ret;
 }
 
-bool
+sendip_bool
 do_opt(char *opt, char *arg, sendip_data *pack)
 {
 	ah_header *ah = (ah_header *)pack->data;
@@ -98,7 +98,7 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 
 }
 
-bool
+sendip_bool
 finalize(char *hdrs, sendip_data *headers[], int index,
          sendip_data *data, sendip_data *pack)
 {

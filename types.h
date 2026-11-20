@@ -9,9 +9,10 @@
 
 #if defined(__APPLE_CC__)
 #include <stdbool.h>
+typedef bool sendip_bool;
 #else
-/* Make sure we have bool */
-typedef int bool;
+/* Preserve the integer boolean type used by the module ABI. */
+typedef int sendip_bool;
 #endif
 #ifndef FALSE
 #define TRUE  (0==0)

@@ -25,7 +25,7 @@
  * this is just a demo interface. In real life, initialization
  * might involve key negotiation, IV determination, or whatever.
  */
-bool
+sendip_bool
 cryptoinit(sendip_data *pack)
 {
 	if (!pack || !pack->private) return FALSE; /* don't mess with me! */
@@ -58,7 +58,7 @@ xorcrypto(u_int8_t *key, u_int32_t keylen,
 	}
 }
 
-bool
+sendip_bool
 espcrypto(esp_private *epriv, sendip_data *data, sendip_data *pack)
 {
 	u_int32_t keylen;
@@ -81,7 +81,7 @@ espcrypto(esp_private *epriv, sendip_data *data, sendip_data *pack)
 	return TRUE;
 }
 
-bool
+sendip_bool
 cryptomod(void *priv, char *hdrs, sendip_data *headers[],
           int index, sendip_data *data, sendip_data *pack)
 {

@@ -79,7 +79,7 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
-bool do_opt(char *opt, char *arg, sendip_data *pack) {
+sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	icmp_header *icp = (icmp_header *)pack->data;
 	switch(opt[1]) {
 	case 't':
@@ -102,7 +102,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 }
 
-bool finalize(char *hdrs, sendip_data *headers[], int index,
+sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	icmp_header *icp = (icmp_header *)pack->data;
 	int i;

@@ -109,7 +109,7 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
-bool set_addr(char *hostname, sendip_data *pack) {
+sendip_bool set_addr(char *hostname, sendip_data *pack) {
 	ip_header *ip = (ip_header *)pack->data;
 	struct hostent *host = gethostbyname2(hostname,AF_INET);
 	if(!(pack->modified & IP_MOD_SADDR)) {
@@ -126,7 +126,7 @@ bool set_addr(char *hostname, sendip_data *pack) {
 	return TRUE;
 }
 
-bool do_opt(char *opt, char *arg, sendip_data *pack) {
+sendip_bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	ip_header *iph = (ip_header *)pack->data;
 	switch(opt[1]) {
 	case 's':
@@ -450,13 +450,13 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 }
 
-bool do_pad(sendip_data *pack) {
+sendip_bool do_pad(sendip_data *pack) {
 	while ((pack->alloc_len+3)/4 != (pack->alloc_len)/4)
 		addoption(0,0,0,1,NULL,pack);
 	return TRUE;
 }
 
-bool finalize(char *hdrs, sendip_data *headers[], int index,
+sendip_bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	ip_header *iph = (ip_header *)pack->data;
 
