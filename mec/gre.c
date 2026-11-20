@@ -141,12 +141,12 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			usage_error("Already have a checksum specified\n");
 			return FALSE;
 		}
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
 		gre = gre_resize(pack, gre->gre_flag, GRE_CSUM);
 		if (!gre) return FALSE;
 		gre->gre_flag |= GRE_CSUM;
 		/* There's only one place for the checksum field to go! */
-		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] =
-		    htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		gre->gre_info.sixteen[GRE_CHECKSUM_FIELD] = parsed;
 		pack->modified |= GRE_MOD_CHECKSUM;
 		break;
 	case 'C':
@@ -163,26 +163,29 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 */
 		break;
 	case 'r':
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
 		gre = gre_resize(pack, gre->gre_flag, GRE_ROUTING);
 		if (!gre) return FALSE;
 		gre->gre_info.thirtytwo[gre_where(allocated_flags(pack), GRE_ROUTING)] =
-		    htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
+		    parsed;
 		gre->gre_flag |= GRE_ROUTING;
 		pack->modified |= GRE_MOD_ROUTING;
 		break;
 	case 'k':
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
 		gre = gre_resize(pack, gre->gre_flag, GRE_KEY);
 		if (!gre) return FALSE;
 		gre->gre_info.thirtytwo[gre_where(allocated_flags(pack), GRE_KEY)] =
-		    htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
+		    parsed;
 		gre->gre_flag |= GRE_KEY;
 		pack->modified |= GRE_MOD_KEY;
 		break;
 	case 's':
+		if (!integerargument_checked(arg, 4, &parsed)) return FALSE;
 		gre = gre_resize(pack, gre->gre_flag, GRE_SEQ);
 		if (!gre) return FALSE;
 		gre->gre_info.thirtytwo[gre_where(allocated_flags(pack), GRE_SEQ)] =
-		    htonl((u_int32_t)strtoul(arg, (char **)NULL, 0));
+		    parsed;
 		gre->gre_flag |= GRE_SEQ;
 		pack->modified |= GRE_MOD_SEQUENCE;
 		break;
@@ -225,11 +228,11 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 		 * allocated, but no flag set). Of course, the purpose
 		 * of this code is to be able to construct bad headers.
 		 */
+		if (!integerargument_checked(arg, 2, &parsed)) return FALSE;
 		gre = gre_resize(pack, gre->gre_flag, GRE_CSUM);
 		if (!gre) return FALSE;
 		/* There's only one place for the offset field to go! */
-		gre->gre_info.sixteen[GRE_OFFSET_FIELD] =
-		    htons((u_int16_t)strtoul(arg, (char **)NULL, 0));
+		gre->gre_info.sixteen[GRE_OFFSET_FIELD] = parsed;
 		pack->modified |= GRE_MOD_OFFSET;
 		break;
 	}
