@@ -506,8 +506,6 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 {
 	int print_errors = gnuopterr;
 	int new_element = 0;
-	if (optstring[0] == ':')
-		print_errors = 0;
 
 	if (argc < 1)
 		return -1;
@@ -521,6 +519,10 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 		optstring = _getopt_initialize (argc, argv, optstring);
 		__getopt_initialized = 1;
 	}
+	else if (optstring[0] == '-' || optstring[0] == '+')
+		++optstring;
+	if (optstring[0] == ':')
+		print_errors = 0;
 
 	/* Test whether ARGV[gnuoptind] points to a non-option argument.
 	   Either it does not have option syntax, or there is an environment flag
