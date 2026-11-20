@@ -883,6 +883,7 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 							         argv[0], pfound->name);
 
 						nextchar += strlen (nextchar);
+						gnuoptopt = pfound->val;
 						return '?';
 					}
 				}
@@ -897,6 +898,7 @@ int _getopt_internal (int argc, char *const *argv, const char *optstring,
 							         _("%s: option `%s' requires an argument\n"),
 							         argv[0], argv[gnuoptind - 1]);
 						nextchar += strlen (nextchar);
+						gnuoptopt = pfound->val;
 						return optstring[0] == ':' ? ':' : '?';
 					}
 				}
