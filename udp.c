@@ -94,15 +94,24 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
 	udp_header *udp = (udp_header *)pack->data;
-	int i;
+	int i=outer_header(hdrs, index, "i6");
 
-	/* Set relevant fields */
+	/* RFC 2675 uses zero for UDP datagrams larger than the 16-bit field. */
 	if(!(pack->modified&UDP_MOD_LEN)) {
-		udp->len=htons(pack->alloc_len+data->alloc_len);
+		size_t length=(size_t)pack->alloc_len+(size_t)data->alloc_len;
+		if (length>UINT16_MAX) {
+			u_int32_t jumbo;
+			if (i<0 || hdrs[i]!='6' || !ipv6_jumbo_length(hdrs, headers, i, &jumbo)) {
+				usage_error("Oversized UDP datagram needs IPv6 Jumbo Payload support\n");
+				return FALSE;
+			}
+			udp->len=0;
+		} else {
+			udp->len=htons(length);
+		}
 	}
 
 	/* Find enclosing IP header and do the checksum */
-	i = outer_header(hdrs, index, "i6");/*@@*/
 	if (i < 0) {
 		if (pack->modified&UDP_MOD_CHECK) return TRUE;
 		usage_error("UDP checksum not defined when UDP is not embedded in IP\n");
