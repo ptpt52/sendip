@@ -15,7 +15,6 @@
 #include "sendip_module.h"
 #include "ipv6ext.h"
 #include "sctp.h"
-#include "crc32.h"
 #include "parse.h"
 
 /* Character that identifies our options
@@ -423,6 +422,17 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 	return TRUE;
 }
 
+/* Reflected Castagnoli polynomial; SCTP uses CRC-32C, not Ethernet CRC-32. */
+static u_int32_t sctp_crc32c(u_int32_t crc, const void *data, int length) {
+	const u_int8_t *bytes=data;
+	while (length-- > 0) {
+		crc ^= *bytes++;
+		for (int bit=0; bit<8; ++bit)
+			crc=(crc>>1)^((crc&1) ? UINT32_C(0x82f63b78) : 0);
+	}
+	return crc;
+}
+
 bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack)
 {
@@ -431,8 +441,11 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	if (!(pack->modified&SCTP_MOD_CHECKSUM)) {
 		sctp->checksum = 0;
 
-		sctp->checksum = crc32(~((u_int32_t) 0), (void *)sctp,
-		                       pack->alloc_len);
+		u_int32_t crc=sctp_crc32c(UINT32_MAX, sctp, pack->alloc_len);
+		crc=~sctp_crc32c(crc, data->data, data->alloc_len);
+		/* RFC 3309 maps the reflected result low-order octet first. */
+		u_int8_t *wire=(u_int8_t *)&sctp->checksum;
+		for (int i=0; i<4; ++i) wire[i]=crc>>(8*i);
 	}
 	return TRUE;
 }
