@@ -47,6 +47,7 @@ addpadding(sendip_data *pack)
 	int alloclen = pack->alloc_len+4;
 
 	wesp = realloc((void *)wesp, alloclen);
+	if (!wesp) return FALSE;
 	pack->data = wesp;
 	pack->alloc_len = alloclen;
 	/* Be a good citizen */
@@ -85,8 +86,10 @@ do_opt(char *opt, char *arg, sendip_data *pack)
 			usage_error("There's only one bit!\n");
 			return FALSE;
 		}
-		if (svalue && (!(pack->modified&WESP_MOD_PADDED)))
-			(void)addpadding(pack);
+		if (svalue && pack->alloc_len==(int)sizeof(*wesp)) {
+			if (!addpadding(pack)) return FALSE;
+			wesp = pack->data;
+		}
 		pack->modified |= WESP_MOD_PADDED;
 		wesp->padded = svalue;
 		break;
@@ -138,13 +141,12 @@ bool finalize(char *hdrs, sendip_data *headers[], int index,
 	 * as such.
 	 */
 	bool nextesp = (hdrs[index+1] == 'e');
-	esp_private *priv;
+	esp_private *priv = nextesp && headers[index+1] ? headers[index+1]->private : NULL;
 
-	if (!headers[index+1]) {	/* oh well */
-		nextesp = FALSE;
-		priv = NULL;
-	} else {
-		priv = (esp_private *)headers[index+1]->private;
+	if (!wesp->encrypted && !priv &&
+	    (!(pack->modified&WESP_MOD_HDRLEN) || !(pack->modified&WESP_MOD_TRLRLEN))) {
+		usage_error("WESP needs an ESP header to derive header and trailer lengths\n");
+		return FALSE;
 	}
 
 	if (!(pack->modified&WESP_MOD_NEXTHDR)) {
