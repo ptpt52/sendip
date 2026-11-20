@@ -411,13 +411,20 @@ static struct option *module_options(void) {
 	return options;
 }
 
-static sendip_module *find_option_module(sendip_module *current, int optchar) {
+static bool module_has_option(const sendip_module *module, const char *name) {
+	if (module->optchar!=name[0]) return false;
+	for (int i=0; i<module->num_opts; ++i)
+		if (!strcmp(module->opts[i].optname, name+1)) return true;
+	return false;
+}
+
+static sendip_module *find_option_module(sendip_module *current, const char *name) {
 	/* Prefer the most recent matching selector, including the current one. */
 	for (sendip_module *mod=current; mod; mod=mod->prev)
-		if (mod->optchar==optchar) return mod;
+		if (module_has_option(mod, name)) return mod;
 	/* Options can also precede the first selector for their module. */
 	for (sendip_module *mod=current ? current->next : first; mod; mod=mod->next)
-		if (mod->optchar==optchar) return mod;
+		if (module_has_option(mod, name)) return mod;
 	return NULL;
 }
 
@@ -758,7 +765,8 @@ int main(int argc, char *const argv[]) {
 				}
 				continue;
 			}
-			mod=find_option_module(currentmod, optc);
+			const char *option_name=opts[longindex].name;
+			mod=find_option_module(currentmod, option_name);
 			if (mod) {
 				/* Random option arguments */
 				if(gnuoptarg != NULL && !strcmp(gnuoptarg,"r")) {
@@ -767,12 +775,12 @@ int main(int argc, char *const argv[]) {
 					unsigned long r = (unsigned long)random()<<1;
 					r+=(r&0x00000040)>>6;
 					if (mod->randomize_arg)
-						r=mod->randomize_arg(opts[longindex].name, (u_int32_t)r);
+						r=mod->randomize_arg(option_name, (u_int32_t)r);
 					sprintf(rbuff,"%lu",r);
 					gnuoptarg = rbuff;
 				}
 
-				if(!mod->do_opt((char *)opts[longindex].name,gnuoptarg,mod->pack)) {
+				if(!mod->do_opt((char *)option_name,gnuoptarg,mod->pack)) {
 					usage=TRUE;
 					status=1;
 					break;
