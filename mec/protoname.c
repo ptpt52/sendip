@@ -14,6 +14,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <ctype.h>
+#include <errno.h>
 #include <sys/types.h>
 
 #include "sendip_module.h"
@@ -76,11 +77,13 @@ proto_to_name(u_int8_t proto, int nolookup)
 bool protocolargument(const char *input, u_int8_t *value) {
 	struct protoent *entry;
 	if (!input || !*input || !value) goto invalid;
-	/* Preserve numeric field-width conversion, including the legacy r value
-	 * expanded by main; this interface change concerns error propagation.
-	 */
+	/* Require a complete integer, then retain the legacy width conversion. */
 	if (isdigit((unsigned char)*input)) {
-		*value=(u_int8_t)strtoul(input, NULL, 0);
+		char *end;
+		errno=0;
+		unsigned long number=strtoul(input, &end, 0);
+		if (errno || *end) goto invalid;
+		*value=(u_int8_t)number;
 		return TRUE;
 	}
 	if ((entry=getprotobyname(input))) {
