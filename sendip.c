@@ -892,10 +892,10 @@ int main(int argc, char *const argv[]) {
 		{
 			char hdrs[num_modules+1];
 			sendip_data *headers[num_modules+1];
-			sendip_data d;
-
-			d.alloc_len = datalen;
-			d.data = (char *)packet.data+packet.alloc_len-datalen;
+			sendip_data d = {
+				.data = (char *)packet.data+packet.alloc_len-datalen,
+				.alloc_len = datalen,
+			};
 
 			for(i=0,mod=first; mod!=NULL; mod=mod->next,i++) {
 				hdrs[i]=mod->optchar;
