@@ -440,20 +440,63 @@ int main(int argc, char *const argv[]) {
 		goto cleanup;
 	}
 
-	/* First, get all the builtin options, and load the modules */
+	/* Discover modules without interpreting partially matched protocol options. */
 	gnuopterr=0;
 	gnuoptind=0;
-	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:l:T:vd:hf:D")))) {
-		switch(optc) {
-		case 'D':
-			dump=TRUE;
-			break;
-		case 'p':
+	while (gnuoptind<argc && (optc=gnugetopt(argc, argv, "-p:l:T:vd:hf:D"))!=EOF) {
+		if (optc=='p') {
 			if (!load_module(gnuoptarg)) {
 				status=1;
 				goto cleanup;
 			}
 			++num_modules;
+		} else if (optc=='?' || optc==':') {
+			if (nextchar && *nextchar) ++gnuoptind;
+			nextchar=NULL;
+		}
+	}
+
+	/* Build the getopt listings */
+	opts = calloc((size_t)num_opts+1, sizeof(*opts));
+	if(opts==NULL) {
+		perror("OUT OF MEMORY!\n");
+		status=1;
+		goto cleanup;
+	}
+	i=0;
+	for(mod=first; mod!=NULL; mod=mod->next) {
+		int j;
+		char *s;   // nasty kludge because option.name is const
+		for(j=0; j<mod->num_opts; j++) {
+			/* +2 on next line is one for the char, one for the trailing null */
+			opts[i].name = s = malloc(strlen(mod->opts[j].optname)+2);
+			if (!s) {
+				perror("Allocating module options");
+				status=1;
+				goto cleanup;
+			}
+			sprintf(s,"%c%s",mod->optchar,mod->opts[j].optname);
+			opts[i].has_arg = mod->opts[j].arg;
+			opts[i].flag = NULL;
+			opts[i].val = mod->optchar;
+			i++;
+		}
+	}
+
+
+	/* Resolve global options only after the complete module option table exists. */
+	gnuopterr=1;
+	gnuoptind=0;
+	for (;;) {
+		longindex=-1;
+		optc=getopt_long_only(argc, argv, "p:l:T:vd:hf:D", opts, &longindex);
+		if (optc==EOF) break;
+		if (longindex>=0) continue;
+		switch(optc) {
+		case 'D':
+			dump=TRUE;
+			break;
+		case 'p':
 			break;
 		case 'l':
 		{
@@ -491,6 +534,7 @@ int main(int argc, char *const argv[]) {
 			} else {
 				fprintf(stderr,"Only one -d or -f option can be given\n");
 				usage = TRUE;
+				status=1;
 			}
 			break;
 		case 'h':
@@ -537,43 +581,14 @@ int main(int argc, char *const argv[]) {
 			break;
 		case '?':
 		case ':':
-			/* skip any further characters in this option
-				this is so that -tonop doesn't cause a -p option
-			*/
-			nextchar = NULL;
-			gnuoptind++;
+			usage=TRUE;
+			status=1;
 			break;
 		}
 	}
 
-	/* Build the getopt listings */
-	opts = calloc((size_t)num_opts+1, sizeof(*opts));
-	if(opts==NULL) {
-		perror("OUT OF MEMORY!\n");
-		status=1;
-		goto cleanup;
-	}
-	i=0;
-	for(mod=first; mod!=NULL; mod=mod->next) {
-		int j;
-		char *s;   // nasty kludge because option.name is const
-		for(j=0; j<mod->num_opts; j++) {
-			/* +2 on next line is one for the char, one for the trailing null */
-			opts[i].name = s = malloc(strlen(mod->opts[j].optname)+2);
-			if (!s) {
-				perror("Allocating module options");
-				status=1;
-				goto cleanup;
-			}
-			sprintf(s,"%c%s",mod->optchar,mod->opts[j].optname);
-			opts[i].has_arg = mod->opts[j].arg;
-			opts[i].flag = NULL;
-			opts[i].val = mod->optchar;
-			i++;
-		}
-	}
-	if(verbosity) fprintf(stderr, "Added %d options\n",num_opts);
 
+	if(verbosity) fprintf(stderr, "Added %d options\n",num_opts);
 
 	/*@@ looping - needs to be after module loading, but before
 	 * module option processing ... */
@@ -608,60 +623,45 @@ int main(int argc, char *const argv[]) {
 		 * packets.
 		 */
 		currentmod = NULL;
-		while(EOF != (optc=getopt_long_only(argc,argv,"p:l:T:vd:hf:D",opts,&longindex))) {
-
-			switch(optc) {
-			case 'p':
-				/* @@ should double-check match */
-				if (!currentmod)
-					currentmod = first;
-				else
-					currentmod = currentmod->next;
-				break;
-			case 'D':
-			case 'v':
-			case 'd':
-			case 'f':
-			case 'h':
-			case 'l':/*@@*/
-			case 'T':/*@@*/
-				/* Processed above */
-				break;
-			case ':':
-				usage=TRUE;
-				fprintf(stderr,"Option %s requires an argument\n",
-				        opts[longindex].name);
-				break;
-			case '?':
-				usage=TRUE;
-				fprintf(stderr,"Option starting %c not recognized\n",gnuoptopt);
-				break;
-			default:
-				/*@@ check current mod first */
-				if (currentmod && currentmod->optchar == optc)
-					mod = currentmod;
-				else {
-					for(mod=first; mod!=NULL; mod=mod->next) {
-						if(mod->optchar==optc)
-							break;
-					}
+		for (;;) {
+			longindex=-1;
+			optc=getopt_long_only(argc, argv, "p:l:T:vd:hf:D", opts, &longindex);
+			if (optc==EOF) break;
+			if (longindex<0) {
+				if (optc=='p') currentmod=currentmod ? currentmod->next : first;
+				else if (optc=='?' || optc==':') {
+					usage=TRUE;
+					status=1;
 				}
-				if (mod) {
-					/* Random option arguments */
-					if(gnuoptarg != NULL && !strcmp(gnuoptarg,"r")) {
-						/* need a 32 bit number, but random() is signed and
-							nonnegative so only 31bits - we simply repeat one */
-						unsigned long r = (unsigned long)random()<<1;
-						r+=(r&0x00000040)>>6;
-						sprintf(rbuff,"%lu",r);
-						gnuoptarg = rbuff;
-					}
-
-					if(!mod->do_opt(opts[longindex].name,gnuoptarg,mod->pack)) {
-						usage=TRUE;
-					}
+				continue;
+			}
+			/*@@ check current mod first */
+			if (currentmod && currentmod->optchar == optc)
+				mod = currentmod;
+			else {
+				for(mod=first; mod!=NULL; mod=mod->next) {
+					if(mod->optchar==optc)
+						break;
 				}
-				break;
+			}
+			if (mod) {
+				/* Random option arguments */
+				if(gnuoptarg != NULL && !strcmp(gnuoptarg,"r")) {
+					/* need a 32 bit number, but random() is signed and
+						nonnegative so only 31bits - we simply repeat one */
+					unsigned long r = (unsigned long)random()<<1;
+					r+=(r&0x00000040)>>6;
+					sprintf(rbuff,"%lu",r);
+					gnuoptarg = rbuff;
+				}
+
+				if(!mod->do_opt((char *)opts[longindex].name,gnuoptarg,mod->pack)) {
+					usage=TRUE;
+					status=1;
+				}
+			} else {
+				usage=TRUE;
+				status=1;
 			}
 		}
 
@@ -679,6 +679,7 @@ int main(int argc, char *const argv[]) {
 			}
 		} else if(argc > gnuoptind+1) {
 			usage=TRUE;
+			status=1;
 			fprintf(stderr,"More than one hostname specified\n");
 		} else {
 			if(first && first->set_addr) {
