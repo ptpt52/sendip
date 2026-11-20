@@ -21,6 +21,7 @@
  *
  */
 #include <stdio.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -129,7 +130,7 @@ Timentry **gettimentry(struct in_addr *from)
 	return at->t;
 }
 
-void
+bool
 storetimentry(Timentry **t, int32_t delaytime)
 {
 	int i;
@@ -141,12 +142,12 @@ storetimentry(Timentry **t, int32_t delaytime)
 			continue;
 		t[i]->times[t[i]->used] = delaytime;
 		++t[i]->used;
-		return;
+		return true;
 	}
-	/* If we fall off the end, we just ignore the entry */
+	return false;
 }
 
-void
+bool
 storetime(struct in_addr *from, int32_t delaytime)
 {
 	Timentry **t;
@@ -160,7 +161,7 @@ storetime(struct in_addr *from, int32_t delaytime)
 #endif
 
 	t = gettimentry(from);
-	storetimentry(t, delaytime);
+	return storetimentry(t, delaytime);
 }
 
 void
@@ -276,7 +277,7 @@ int main(int argc, char **argv)
 	int sock;
 	struct sockaddr_in name = {0}, from;
 	struct timeval t, now;
-	int pnum, lastpnum;
+	bool report_pending = false;
 	uint16_t port = 5000;
 
 	if (argc > 2) {
@@ -313,8 +314,7 @@ int main(int argc, char **argv)
 	 * we wake up and print out statistics.
 	 */
 	struct pollfd descriptor = { .fd = sock, .events = POLLIN };
-	lastpnum=1;
-	for (pnum=1; ;) {
+	for (;;) {
 		int ready = poll(&descriptor, 1, 10000);
 		if (ready < 0) {
 			if (errno == EINTR)
@@ -351,13 +351,11 @@ int main(int argc, char **argv)
 			               now.tv_usec - t.tv_usec;
 			if (!isfinite(delay) || delay < INT32_MIN || delay > INT32_MAX)
 				continue;
-			storetime(&from.sin_addr, (int32_t)delay);
-			++pnum;
-		} else {
-			/* timeout; dump data if new */
-			if (pnum != lastpnum)
-				printtimes();
-			lastpnum = pnum;
+			if (storetime(&from.sin_addr, (int32_t)delay))
+				report_pending = true;
+		} else if (report_pending) {
+			printtimes();
+			report_pending = false;
 		}
 	}
 	close(sock);
