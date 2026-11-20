@@ -598,6 +598,23 @@ bool do_opt (char        *optstring,
 }
 
 
+
+/* UPDATE always contains a Total Path Attribute Length, even when empty. */
+bool do_pad(sendip_data *pack) {
+	bgp_state *state=pack->private;
+	if (state->prev_part!=BGP_UPDATE_WDR_LEN && state->prev_part!=BGP_UPDATE_WDR)
+		return TRUE;
+	if (pack->alloc_len<0 || (unsigned int)pack->alloc_len>BGP_BUFLEN-2)
+		return FALSE;
+	state->attr_len_ptr=(u_int8_t *)pack->data+pack->alloc_len;
+	PUTSHORT(state->attr_len_ptr, 0);
+	pack->alloc_len+=2;
+	state->prev_part=BGP_UPDATE_ATTR_LEN;
+	if (!(pack->modified&BGP_MOD_LENGTH)) PUTSHORT(state->len_ptr, pack->alloc_len);
+	return TRUE;
+}
+
+
 bool finalize (char        *hdrs,
                sendip_data *headers[],
                int index,
