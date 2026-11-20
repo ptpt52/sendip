@@ -66,6 +66,8 @@ u_int32_t integerargument(const char *input, int length);
 u_int32_t hostintegerargument(const char *input, int length);
 in_addr_t cidrargument(const char *input, char *slashpoint, int length);
 in_addr_t ipv4argument(const char *input, int length);
+bool resolve_address(const char *hostname, int family,
+                     struct sockaddr_storage *address, socklen_t *length);
 char *fileargument(const char *input);
 int fa_init(void);
 void fa_close(void);

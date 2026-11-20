@@ -65,15 +65,6 @@ typedef struct _s_m {
 	int num_opts;
 } sendip_module;
 
-/* sockaddr_storage struct is not defined everywhere, so here is our own
-	nasty version
-*/
-typedef struct {
-	u_int16_t ss_family;
-	u_int32_t ss_align;
-	char ss_padding[122];
-} _sockaddr_storage;
-
 static int num_opts=0;
 static sendip_module *first;
 static sendip_module *last;
@@ -128,51 +119,10 @@ static bool set_payload(const char *argument, char **data, int *length) {
 
 static int sendpacket(sendip_data *data, char *hostname, int af_type,
                       bool verbose) {
-	_sockaddr_storage *to = malloc(sizeof(_sockaddr_storage));
-	int tolen;
-
-	/* socket stuff */
-	int s;                            /* socket for sending       */
-
-	/* hostname stuff */
-	struct hostent *host = NULL;      /* result of gethostbyname2 */
-
-	/* casts for specific protocols */
-	struct sockaddr_in *to4 = (struct sockaddr_in *)to; /* IPv4 */
-	struct sockaddr_in6 *to6 = (struct sockaddr_in6 *)to; /* IPv6 */
-
-	int sent;                         /* number of bytes sent */
-
-	if(to==NULL) {
-		perror("OUT OF MEMORY!\n");
-		return -3;
-	}
-	memset(to, 0, sizeof(_sockaddr_storage));
-
-	if ((host = gethostbyname2(hostname, af_type)) == NULL) {
-		fprintf(stderr,"Couldn't get destination host %s (af %d): ",
-		        hostname, af_type);
-		perror("gethostbyname2");
-		free(to);
-		return -1;
-	}
-
-	switch (af_type) {
-	case AF_INET:
-		to4->sin_family = host->h_addrtype;
-		memcpy(&to4->sin_addr, host->h_addr, host->h_length);
-		tolen = sizeof(struct sockaddr_in);
-		break;
-	case AF_INET6:
-		to6->sin6_family = host->h_addrtype;
-		memcpy(&to6->sin6_addr, host->h_addr, host->h_length);
-		tolen = sizeof(struct sockaddr_in6);
-		break;
-	default:
-		free(to);
-		return -2;
-		break;
-	}
+	struct sockaddr_storage to;
+	socklen_t tolen;
+	int s, sent;
+	if (!resolve_address(hostname, af_type, &to, &tolen)) return -1;
 
 	if(verbose) {
 		int i, j;
@@ -192,7 +142,6 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 
 	if ((s = socket(af_type, SOCK_RAW, IPPROTO_RAW)) < 0) {
 		perror("Couldn't open RAW socket");
-		free(to);
 		return -1;
 	}
 	/* Need this for OpenBSD, shouldn't cause problems elsewhere */
@@ -201,7 +150,6 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 		const int on=1;
 		if (setsockopt(s, IPPROTO_IP,IP_HDRINCL,(const void *)&on,sizeof(on)) <0) {
 			perror ("Couldn't setsockopt IP_HDRINCL");
-			free(to);
 			close(s);
 			return -2;
 		}
@@ -229,7 +177,6 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 			if(setsockopt(s,IPPROTO_IP,IP_OPTIONS,
 			              (void *)(((char *)(data->data))+20),optlen)) {
 				perror("Couldn't setsockopt IP_OPTIONS");
-				free(to);
 				close(s);
 				return -2;
 			}
@@ -238,7 +185,7 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 #endif /* __sun__ */
 
 	/* Send the packet */
-	sent = sendto(s, (char *)data->data, data->alloc_len, 0, (void *)to, tolen);
+	sent = sendto(s, (char *)data->data, data->alloc_len, 0, (const struct sockaddr *)&to, tolen);
 	if (sent == data->alloc_len) {
 		if(verbose) fprintf(stderr, "Sent %d bytes to %s\n",sent,hostname);
 	} else {
@@ -249,7 +196,6 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 				                    sent, data->alloc_len, hostname);
 		}
 	}
-	free(to);
 	close(s);
 	return sent;
 }

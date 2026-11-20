@@ -34,18 +34,13 @@ sendip_data *initialize(void) {
 }
 
 bool set_addr(char *hostname, sendip_data *pack) {
-	ipv6_header *ipv6 = (ipv6_header *)pack->data;
-	struct hostent *host = gethostbyname2(hostname,AF_INET6);
-	if(!(pack->modified & IPV6_MOD_SRC)) {
-		ipv6->ip6_src = in6addr_loopback;
-	}
-	if(!(pack->modified & IPV6_MOD_DST)) {
-		if(host==NULL) return FALSE;
-		if(host->h_length != sizeof(ipv6->ip6_dst)) {
-			fprintf(stderr,"IPV6 destination address is the wrong size!!!");
-			return FALSE;
-		}
-		memcpy(&(ipv6->ip6_dst),host->h_addr,host->h_length);
+	ipv6_header *ip=pack->data;
+	if (!(pack->modified&IPV6_MOD_SRC)) ip->ip6_src=in6addr_loopback;
+	if (!(pack->modified&IPV6_MOD_DST)) {
+		struct sockaddr_storage address;
+		socklen_t length;
+		if (!resolve_address(hostname, AF_INET6, &address, &length)) return FALSE;
+		ip->ip6_dst=((struct sockaddr_in6 *)&address)->sin6_addr;
 	}
 	return TRUE;
 }

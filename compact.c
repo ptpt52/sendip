@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <sys/time.h>
 #include "sendip_module.h"
 
@@ -447,6 +448,41 @@ hostintegerargument(const char *input, int length)
 		return strtoul(input, (char **)NULL, 0);
 	}
 }
+/* Keep the complete system socket address, including IPv6 scope IDs and
+ * platform-specific fields, rather than reconstructing it from hostent.
+ */
+bool resolve_address(const char *hostname, int family,
+                     struct sockaddr_storage *address, socklen_t *length) {
+	struct addrinfo hints, *results=NULL, *entry;
+	if (!hostname || !address || !length) { errno=EINVAL; return FALSE; }
+	if (family!=AF_INET && family!=AF_INET6) { errno=EAFNOSUPPORT; return FALSE; }
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family=family;
+	hints.ai_socktype=SOCK_RAW;
+	int error=getaddrinfo(hostname, NULL, &hints, &results);
+	if (error) {
+		fprintf(stderr, "Couldn't resolve %s: %s\n", hostname, gai_strerror(error));
+		return FALSE;
+	}
+	size_t minimum=family==AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+	bool found=FALSE;
+	for (entry=results; entry; entry=entry->ai_next) {
+		if (entry->ai_family!=family || !entry->ai_addr ||
+		    entry->ai_addrlen<minimum || entry->ai_addrlen>sizeof(*address)) continue;
+		memset(address, 0, sizeof(*address));
+		memcpy(address, entry->ai_addr, entry->ai_addrlen);
+		*length=entry->ai_addrlen;
+		/* A NULL service does not define a port; raw IP sockets use zero. */
+		if (family==AF_INET) ((struct sockaddr_in *)address)->sin_port=0;
+		else ((struct sockaddr_in6 *)address)->sin6_port=0;
+		found=TRUE;
+		break;
+	}
+	if (results) freeaddrinfo(results);
+	if (!found) fprintf(stderr, "No usable destination address for %s\n", hostname);
+	return found;
+}
+
 /* @@ IPv4 dotted decimal arguments can be specified in several ways.
  * First off, you can use the rN random arguments as above:
  * 	10.1.2.r1 - random address within this /24

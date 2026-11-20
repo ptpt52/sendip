@@ -122,18 +122,13 @@ sendip_data *initialize(void) {
 }
 
 bool set_addr(char *hostname, sendip_data *pack) {
-	ip_header *ip = (ip_header *)pack->data;
-	struct hostent *host = gethostbyname2(hostname,AF_INET);
-	if(!(pack->modified & IP_MOD_SADDR)) {
-		ip->saddr = inet_addr("127.0.0.1");
-	}
-	if(!(pack->modified & IP_MOD_DADDR)) {
-		if(host==NULL) return FALSE;
-		if(host->h_length != sizeof(ip->daddr)) {
-			fprintf(stderr,"IPV4 destination address is the wrong size!!!");
-			return FALSE;
-		}
-		memcpy(&(ip->daddr),host->h_addr,host->h_length);
+	ip_header *ip=pack->data;
+	if (!(pack->modified&IP_MOD_SADDR)) ip->saddr=htonl(INADDR_LOOPBACK);
+	if (!(pack->modified&IP_MOD_DADDR)) {
+		struct sockaddr_storage address;
+		socklen_t length;
+		if (!resolve_address(hostname, AF_INET, &address, &length)) return FALSE;
+		ip->daddr=((struct sockaddr_in *)&address)->sin_addr.s_addr;
 	}
 	return TRUE;
 }
