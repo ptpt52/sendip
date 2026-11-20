@@ -17,18 +17,21 @@
 #include "sendip_module.h"
 
 int compact_string(char *data_out) {
+	if (!data_out) return -1;
 	char *data_in = data_out;
-	int i=0;
 	if(*data_in=='0') {
 		data_in++;
 		if(*data_in=='x' || *data_in=='X') {
 			/* Hex */
 			unsigned char c='\0';
 			data_in++;
-			if (strlen(data_in)&1U) {
+			size_t digits=strlen(data_in);
+			if (digits&1U) {
 				usage_error("Hex data stream has an incomplete byte\n");
 				return -1;
 			}
+			if (digits/2>INT_MAX) goto too_large;
+			size_t i=0;
 			while(*data_in) {
 				if(*data_in>='0' && *data_in<='9') {
 					c+=*data_in-'0';
@@ -50,16 +53,15 @@ int compact_string(char *data_out) {
 				data_in++;
 				i++;
 			}
-			*data_out=c; // make sure last nibble is added
-			i++;
-			i>>=1;  // i was a nibble count...
-			return i;
+			*data_out='\0';
+			return (int)(i/2);
 		} else {
 			/* Three octal digits describe one byte; a final shorter
 			 * group is interpreted as its numeric byte value.
 			 */
 			int count=0;
 			while (*data_in) {
+				if (count==INT_MAX) goto too_large;
 				unsigned int value=0;
 				for (int digits=0; digits<3 && *data_in; ++digits, ++data_in) {
 					if (*data_in<'0' || *data_in>'7') {
@@ -79,8 +81,12 @@ int compact_string(char *data_out) {
 		}
 	} else {
 		/* String */
-		return strlen(data_in);
+		size_t length=strlen(data_in);
+		if (length<=INT_MAX) return (int)length;
 	}
+too_large:
+	usage_error("Decoded data exceeds the maximum length\n");
+	return -1;
 }
 
 /* @@ Since I'm using the "string, rand or zero" business for filling
