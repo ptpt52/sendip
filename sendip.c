@@ -724,6 +724,16 @@ int main(int argc, char *const argv[]) {
 			goto cleanup;
 		}
 
+		/* Validate the enclosing layer before finalizers inspect their parents. */
+		if ((!first && !data) || (first && first->optchar!='i' && first->optchar!='6')) {
+			fprintf(stderr, "%s\n", first ?
+			        "Either IPv4 or IPv6 must be the outermost packet" :
+			        "Nothing specified to send!");
+			unload_modules(TRUE, verbosity);
+			status=1;
+			goto cleanup;
+		}
+
 		for(mod=first; mod!=NULL; mod=mod->next) {
 			if (mod->do_pad && !mod->do_pad(mod->pack)) {
 				fprintf(stderr, "Padding module %s failed\n", mod->name);
@@ -842,26 +852,7 @@ int main(int argc, char *const argv[]) {
 
 		/* And send the packet */
 		{
-			int af_type;
-			if(first==NULL) {
-				if(data == NULL) {
-					fprintf(stderr,"Nothing specified to send!\n");
-					print_usage();
-					free(packet.data);
-					unload_modules(FALSE,verbosity);
-					return 1;
-				} else {
-					af_type = AF_INET;
-				}
-			}
-			else if(first->optchar=='i') af_type = AF_INET;
-			else if(first->optchar=='6') af_type = AF_INET6;
-			else {
-				fprintf(stderr,"Either IPv4 or IPv6 must be the outermost packet\n");
-				unload_modules(FALSE,verbosity);
-				free(packet.data);
-				return 1;
-			}
+			int af_type=first && first->optchar=='6' ? AF_INET6 : AF_INET;
 			if (dump) {
 				if (fwrite(packet.data, 1, packet.alloc_len, stdout)!=(size_t)packet.alloc_len ||
 				    fflush(stdout)==EOF) {

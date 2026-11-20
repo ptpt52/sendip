@@ -192,7 +192,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 
 bool finalize(char *hdrs, sendip_data *headers[], int index,
               sendip_data *data, sendip_data *pack) {
-	if(hdrs[index-1] != 'u') {
+	if(index<1 || hdrs[index-1] != 'u') {
 		usage_error("Warning: NTP should be contained in a UDP packet\n");
 	}
 	return TRUE;
