@@ -95,6 +95,12 @@ typedef struct _s_m {
 } sendip_module;
 
 typedef struct {
+	struct option *items;
+	int count;
+	size_t capacity;
+} module_option_table;
+
+typedef struct {
 	sendip_module *module; /* NULL for a payload argument (-d). */
 	const char *name;
 	const char *argument;
@@ -103,7 +109,6 @@ typedef struct {
 	bool random_argument;
 } packet_option;
 
-static int num_opts=0;
 static sendip_module *first;
 static sendip_module *last;
 
@@ -319,18 +324,70 @@ static void unload_modules(bool owns_data, int verbosity) {
 		mod=next;
 	}
 	first=last=NULL;
-	num_opts=0;
 }
 
-static bool conflicting_option_arity(const sendip_option *option,
-                                     const sendip_option *options, int count) {
-	for (int i=0; i<count; ++i)
-		if (option->arg!=options[i].arg && !strcmp(option->optname, options[i].optname))
-			return true;
-	return false;
+static void free_module_options(module_option_table *table) {
+	for (int i=0; i<table->count; ++i) free((void *)table->items[i].name);
+	free(table->items);
 }
 
-static bool load_module(char *modname) {
+static bool append_module_option(module_option_table *table, char prefix,
+                                 const sendip_option *option) {
+	size_t needed=(size_t)table->count+2; /* Include the getopt sentinel. */
+	size_t maximum=SIZE_MAX/sizeof(*table->items);
+	if (maximum>INT_MAX) maximum=INT_MAX;
+	if (needed>maximum) {
+		errno=ENOMEM;
+		return false;
+	}
+	if (needed>table->capacity) {
+		size_t capacity=table->capacity<=maximum/2 ? table->capacity*2 : maximum;
+		if (capacity<needed) capacity=needed;
+		struct option *items=realloc(table->items, capacity*sizeof(*items));
+		if (!items) return false;
+		table->items=items;
+		table->capacity=capacity;
+	}
+	size_t length=strlen(option->optname)+1;
+	char *name=malloc(length+1);
+	if (!name) return false;
+	name[0]=prefix;
+	memcpy(name+1, option->optname, length);
+	table->items[table->count++]=(struct option){
+		.name=name, .has_arg=option->arg, .val=(unsigned char)prefix,
+	};
+	table->items[table->count]=(struct option){0};
+	return true;
+}
+
+static bool register_module_options(module_option_table *table, const sendip_module *module) {
+	for (int i=0; i<module->num_opts; ++i) {
+		const sendip_option *option=&module->opts[i];
+		if (!option->optname || !*option->optname ||
+		    strchr(option->optname, '=') || !option->description) {
+			fprintf(stderr, "Module %s returned invalid option metadata\n", module->name);
+			return false;
+		}
+		int match=0;
+		for (; match<table->count; ++match) {
+			const char *name=table->items[match].name;
+			if (name[0]==module->optchar && !strcmp(name+1, option->optname)) break;
+		}
+		if (match<table->count) {
+			if (table->items[match].has_arg!=option->arg) {
+				fprintf(stderr, "Module %s has conflicting argument rules for -%c%s\n",
+				        module->name, module->optchar, option->optname);
+				return false;
+			}
+		} else if (!append_module_option(table, module->optchar, option)) {
+			perror("Allocating module options");
+			return false;
+		}
+	}
+	return true;
+}
+
+static bool load_module(const char *modname, module_option_table *options) {
 	sendip_module *newmod=calloc(1, sizeof(*newmod));
 	char *loaded_name=NULL;
 	int (*n_opts)(void);
@@ -365,30 +422,12 @@ static bool load_module(char *modname) {
 	newmod->num_opts=n_opts();
 	newmod->optchar=get_optchar();
 	newmod->opts=get_opts();
-	if (newmod->num_opts<0 || newmod->num_opts>INT_MAX-num_opts-1 ||
-	    !newmod->optchar || newmod->optchar=='=' ||
+	if (newmod->num_opts<0 || !newmod->optchar || newmod->optchar=='=' ||
 	    (newmod->num_opts && !newmod->opts)) {
 		fprintf(stderr, "Module %s returned invalid option metadata\n", modname);
 		goto fail;
 	}
-	for (int i=0; i<newmod->num_opts; ++i) {
-		const sendip_option *option=&newmod->opts[i];
-		if (!option->optname || !*option->optname ||
-		    strchr(option->optname, '=') || !option->description) {
-			fprintf(stderr, "Module %s returned invalid option metadata\n", modname);
-			goto fail;
-		}
-		bool conflict=conflicting_option_arity(option, newmod->opts, i);
-		for (sendip_module *mod=first; mod && !conflict; mod=mod->next)
-			if (mod->optchar==newmod->optchar && mod->opts!=newmod->opts)
-				conflict=conflicting_option_arity(option, mod->opts, mod->num_opts);
-		if (conflict) {
-			fprintf(stderr, "Module %s has conflicting argument rules for -%c%s\n",
-			        modname, newmod->optchar, option->optname);
-			goto fail;
-		}
-	}
-	num_opts+=newmod->num_opts;
+	if (!register_module_options(options, newmod)) goto fail;
 	newmod->prev=last;
 	if (last) last->next=newmod;
 	else first=newmod;
@@ -402,31 +441,6 @@ fail:
 	free(newmod->name);
 	free(newmod);
 	return false;
-}
-
-static void free_options(struct option *options) {
-	if (!options) return;
-	for (size_t i=0; options[i].name; ++i) free((void *)options[i].name);
-	free(options);
-}
-
-static struct option *module_options(void) {
-	struct option *options=calloc((size_t)num_opts+1, sizeof(*options));
-	if (!options) return NULL;
-	int i=0;
-	for (sendip_module *module=first; module; module=module->next) {
-		for (int j=0; j<module->num_opts; ++j, ++i) {
-			size_t size=strlen(module->opts[j].optname)+2;
-			char *name=malloc(size);
-			if (!name) { free_options(options); return NULL; }
-			snprintf(name, size, "%c%s", module->optchar, module->opts[j].optname);
-			options[i].name=name;
-			options[i].has_arg=module->opts[j].arg;
-			/* Keep byte values distinct from getopt's end-of-options -1. */
-			options[i].val=(unsigned char)module->optchar;
-		}
-	}
-	return options;
 }
 
 static bool module_has_option(const sendip_module *module, const char *name) {
@@ -593,7 +607,9 @@ int main(int argc, char *const argv[]) {
 	int i;
 	int status=0;
 
-	struct option *opts=NULL;
+	const struct option empty_options[]={{0}};
+	const struct option *opts=NULL;
+	module_option_table module_options={0};
 	int longindex=0;
 	packet_option *packet_options=NULL;
 	size_t packet_option_count=0;
@@ -619,7 +635,6 @@ int main(int argc, char *const argv[]) {
 	int loopcount=1;
 	unsigned int delaytime=0;
 
-	num_opts = 0;
 	first=last=NULL;
 
 	progname=argv[0];
@@ -645,31 +660,17 @@ int main(int argc, char *const argv[]) {
 		if (optc==EOF) break;
 		if (longindex>=0) continue;
 		if (optc=='p') {
-			if (!load_module(gnuoptarg)) {
+			if (!load_module(gnuoptarg, &module_options)) {
 				status=1;
 				goto cleanup;
 			}
 			++num_modules;
-			struct option *updated=module_options();
-			if (!updated) {
-				perror("Allocating module options");
-				status=1;
-				goto cleanup;
-			}
-			free_options(opts);
-			opts=updated;
+			opts=module_options.items ? module_options.items : empty_options;
 		} else if (optc=='?' || optc==':') {
 			gnugetopt_discard_short_group();
 		}
 	}
-	if (!opts) {
-		opts=module_options();
-		if (!opts) {
-			perror("Allocating module options");
-			status=1;
-			goto cleanup;
-		}
-	}
+	if (!opts) opts=empty_options;
 
 
 	/* Resolve argument order and module ownership once. Values such as
@@ -817,7 +818,7 @@ int main(int argc, char *const argv[]) {
 		goto cleanup;
 	}
 
-	if(verbosity) fprintf(stderr, "Added %d options\n",num_opts);
+	if(verbosity) fprintf(stderr, "Added %d options\n",module_options.count);
 
 	/*@@ looping - needs to be after module loading, but before
 	 * module option processing ... */
@@ -1000,7 +1001,7 @@ cleanup:
 	}
 	free(packet_options);
 	free(packet_hostname);
-	free_options(opts);
+	free_module_options(&module_options);
 	free(data);
 	/*@@ global de-init */
 	fa_close();

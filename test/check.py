@@ -57,6 +57,16 @@ class PacketOptions(unittest.TestCase):
         self.assertEqual(struct.unpack_from("!H", packets, 4), (1,))
         self.assertEqual(struct.unpack_from("!H", packets, 24), (2,))
 
+    def test_repeated_modules_share_option_registration(self):
+        selector = ["-p", "ipv4"]
+        single = run_sendip("-v", *selector, "127.0.0.1")
+        repeated = run_sendip("-v", *(selector * 24), "127.0.0.1")
+        self.assertEqual(single.returncode, 0, single.stderr)
+        self.assertEqual(repeated.returncode, 0, repeated.stderr)
+        single_options = next(line for line in single.stderr.splitlines() if line.startswith(b"Added "))
+        self.assertIn(single_options, repeated.stderr.splitlines())
+        self.assertEqual(len(repeated.stdout), 24 * len(single.stdout))
+
     def test_extra_hostname_rejected_before_opening_payload(self):
         with tempfile.TemporaryDirectory() as directory:
             missing = str(Path(directory) / "missing")
