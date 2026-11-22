@@ -42,6 +42,7 @@ struct ipv6_pseudo_hdr {
 sendip_data *initialize(void);
 /* Optional: release module-owned state; do not free pack or pack->data. */
 void destroy(sendip_data *pack);
+/* Option name and value are writable and remain valid through destroy(). */
 bool do_opt(char *optstring, char *optarg, sendip_data *pack);
 bool set_addr(char *hostname, sendip_data *pack);
 /* Optional: pad before assembly using the nearest enclosing IP type ('i'/'6'). */

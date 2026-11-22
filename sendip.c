@@ -94,30 +94,20 @@ typedef struct _s_m {
 	int num_opts;
 } sendip_module;
 
+typedef struct {
+	sendip_module *module; /* NULL for a payload argument (-d). */
+	const char *name;
+	const char *argument;
+	char *writable_name;
+	char *writable_argument;
+	bool random_argument;
+} packet_option;
+
 static int num_opts=0;
 static sendip_module *first;
 static sendip_module *last;
 
 static char *progname;
-
-static void free_arguments(char **arguments) {
-	if (!arguments) return;
-	for (size_t i=0; arguments[i]; ++i) free(arguments[i]);
-	free(arguments);
-}
-
-static char **copy_arguments(int count, char *const arguments[]) {
-	char **copy=calloc((size_t)count+1, sizeof(*copy));
-	if (!copy) return NULL;
-	for (int i=0; i<count; ++i) {
-		copy[i]=strdup(arguments[i]);
-		if (!copy[i]) {
-			free_arguments(copy);
-			return NULL;
-		}
-	}
-	return copy;
-}
 
 static bool parse_count(const char *input, unsigned long maximum, unsigned long *value) {
 	char *end;
@@ -536,6 +526,56 @@ static void print_usage(void) {
 
 }
 
+static bool prepare_packet_options(packet_option *options, size_t count) {
+	for (size_t i=0; i<count; ++i) {
+		packet_option *option=&options[i];
+		if (!option->module) continue;
+		option->writable_name=strdup(option->name);
+		if (!option->writable_name) return false;
+		if (option->argument) {
+			option->random_argument=!strcmp(option->argument, "r");
+			size_t length=option->random_argument ? sizeof("4294967295") :
+			              strlen(option->argument)+1;
+			option->writable_argument=malloc(length);
+			if (!option->writable_argument) return false;
+		}
+	}
+	return true;
+}
+
+static bool apply_packet_options(packet_option *options, size_t count,
+                                 char **data, int *datalen) {
+	for (size_t i=0; i<count; ++i) {
+		packet_option *option=&options[i];
+		sendip_module *mod=option->module;
+		if (!mod) {
+			if (!set_payload(option->argument, data, datalen)) return false;
+			continue;
+		}
+
+		/* Callbacks receive writable arguments that stay valid until the
+		 * packet is destroyed. Restore them before each use.
+		 */
+		strcpy(option->writable_name, option->name);
+		if (option->random_argument) {
+			/* random() supplies 31 bits. Repeat one bit to fill the field. */
+			u_int32_t value=(u_int32_t)random()<<1;
+			value+=(value&0x00000040)>>6;
+			if (mod->randomize_arg)
+				value=mod->randomize_arg(option->name, value);
+			snprintf(option->writable_argument, sizeof("4294967295"),
+			         "%lu", (unsigned long)value);
+		} else if (option->argument) {
+			strcpy(option->writable_argument, option->argument);
+		}
+		if (!mod->do_opt(option->writable_name, option->writable_argument, mod->pack)) {
+			print_usage();
+			return false;
+		}
+	}
+	return true;
+}
+
 static bool pad_modules(void) {
 	char outer_ip=0;
 	for (sendip_module *mod=first; mod; mod=mod->next) {
@@ -549,16 +589,15 @@ static bool pad_modules(void) {
 	return TRUE;
 }
 
-extern u_int32_t randomcalls;
-
 int main(int argc, char *const argv[]) {
 	int i;
 	int status=0;
 
 	struct option *opts=NULL;
 	int longindex=0;
-	char rbuff[31];
-	char **packet_argv=NULL;
+	packet_option *packet_options=NULL;
+	size_t packet_option_count=0;
+	char *packet_hostname=NULL;
 	char *hdrs=NULL;
 	sendip_data **headers=NULL;
 
@@ -567,9 +606,9 @@ int main(int argc, char *const argv[]) {
 	char *data=NULL;
 	const char *datafile=NULL;
 	int datalen=0;
-	char *datarg=NULL;
+	bool has_payload=false;
 
-	sendip_module *mod, *currentmod;
+	sendip_module *mod;
 	int optc;
 
 	int num_modules=0;
@@ -633,15 +672,37 @@ int main(int argc, char *const argv[]) {
 	}
 
 
-	/* Resolve global options only after the complete module option table exists. */
+	/* Resolve argument order and module ownership once. Values such as
+	 * file-backed fields and random data are still evaluated per packet.
+	 */
+	/* A packet option consumes at least one argument slot. */
+	packet_options=calloc((size_t)argc, sizeof(*packet_options));
+	if (!packet_options) {
+		perror("Allocating packet options");
+		status=1;
+		goto cleanup;
+	}
 	sendip_module *next_selector=first;
+	sendip_module *currentmod=NULL;
 	gnuopterr=1;
 	gnuoptind=0;
 	for (;;) {
 		longindex=-1;
 		optc=gnugetopt_long_only(argc, argv, "p:l:T:vd:hf:D", opts, &longindex);
 		if (optc==EOF) break;
-		if (longindex>=0) continue;
+		if (longindex>=0) {
+			const char *name=opts[longindex].name;
+			mod=find_option_module(currentmod, name);
+			if (!mod) {
+				usage=TRUE;
+				status=1;
+			} else {
+				packet_options[packet_option_count++]=(packet_option){
+					.module=mod, .name=name, .argument=gnuoptarg,
+				};
+			}
+			continue;
+		}
 		switch(optc) {
 		case 'D':
 			dump=TRUE;
@@ -656,6 +717,7 @@ int main(int argc, char *const argv[]) {
 				status=1;
 				goto cleanup;
 			}
+			currentmod=next_selector;
 			next_selector=next_selector->next;
 			break;
 		case 'l':
@@ -683,27 +745,21 @@ int main(int argc, char *const argv[]) {
 		case 'v':
 			verbosity=TRUE;
 			break;
-		case 'd':
-			if (!datarg && !datafile) {
-				datarg = gnuoptarg; /* Select the source; decode in packet option order. */
-
-			} else {
-				fprintf(stderr,"Only one -d or -f option can be given\n");
-				usage = TRUE;
-				status=1;
-			}
-			break;
 		case 'h':
 			usage=TRUE;
 			break;
+		case 'd':
 		case 'f':
-			if (!datarg && !datafile) {
-				datafile=gnuoptarg;
-			} else {
+			if (has_payload) {
 				fprintf(stderr,"Only one -d or -f option can be given\n");
 				usage = TRUE;
 				status=1;
+			} else if (optc=='f') {
+				datafile=gnuoptarg;
+			} else {
+				packet_options[packet_option_count++]=(packet_option){.argument=gnuoptarg};
 			}
+			has_payload=true;
 			break;
 		case '?':
 		case ':':
@@ -721,6 +777,29 @@ int main(int argc, char *const argv[]) {
 	if (next_selector) {
 		fprintf(stderr, "Module selector for %s is missing after resolving module options\n",
 		        next_selector->name);
+		status=1;
+		goto cleanup;
+	}
+	if (argc-gnuoptind>1) {
+		fprintf(stderr,"More than one hostname specified\n");
+		print_usage();
+		status=1;
+		goto cleanup;
+	}
+	const char *hostname=gnuoptind<argc ? argv[gnuoptind] : NULL;
+	const char *address=hostname;
+	if (!hostname && first && first->set_addr)
+		address=first->optchar=='6' ? "::1" : "127.0.0.1";
+	if (address) {
+		packet_hostname=strdup(address);
+		if (!packet_hostname) {
+			perror("Copying packet hostname");
+			status=1;
+			goto cleanup;
+		}
+	}
+	if (!prepare_packet_options(packet_options, packet_option_count)) {
+		perror("Copying packet options");
 		status=1;
 		goto cleanup;
 	}
@@ -746,13 +825,6 @@ int main(int argc, char *const argv[]) {
 	while (forever || loopcount>0) {
 		if (!forever) --loopcount;
 
-		packet_argv=copy_arguments(argc, argv);
-		if (!packet_argv) {
-			perror("Copying packet arguments");
-			status=1;
-			goto cleanup;
-		}
-
 		/* Initialize all */
 		for(mod=first; mod!=NULL; mod=mod->next) {
 			if(verbosity) fprintf(stderr, "Initializing module %s\n",mod->name);
@@ -764,98 +836,19 @@ int main(int argc, char *const argv[]) {
 			}
 		}
 
-		/* Do the get opt */
-		gnuopterr=1;
-		gnuoptind=0;
-		/* @@ Change so that options apply first to the most recently
-		 * invoked module. This is to allow separate arguments for
-		 * multiply-invoked modules, e.g. for creating ipip tunneled
-		 * packets.
-		 */
-		currentmod = NULL;
-		for (;;) {
-			longindex=-1;
-			optc=gnugetopt_long_only(argc, packet_argv, "p:l:T:vd:hf:D", opts, &longindex);
-			if (optc==EOF) break;
-			if (longindex<0) {
-				if (optc=='p') currentmod=currentmod ? currentmod->next : first;
-				else if (optc=='d') {
-					if (!set_payload(gnuoptarg, &data, &datalen)) {
-						status=1;
-						goto cleanup;
-					}
-				}
-				else if (optc=='?' || optc==':') {
-					usage=TRUE;
-					status=1;
-					break;
-				}
-				continue;
-			}
-			const char *option_name=opts[longindex].name;
-			mod=find_option_module(currentmod, option_name);
-			if (mod) {
-				/* Random option arguments */
-				if(gnuoptarg != NULL && !strcmp(gnuoptarg,"r")) {
-					/* need a 32 bit number, but random() is signed and
-						nonnegative so only 31bits - we simply repeat one */
-					unsigned long r = (unsigned long)random()<<1;
-					r+=(r&0x00000040)>>6;
-					if (mod->randomize_arg)
-						r=mod->randomize_arg(option_name, (u_int32_t)r);
-					sprintf(rbuff,"%lu",r);
-					gnuoptarg = rbuff;
-				}
-
-				if(!mod->do_opt((char *)option_name,gnuoptarg,mod->pack)) {
-					usage=TRUE;
-					status=1;
-					break;
-				}
-			} else {
-				usage=TRUE;
-				status=1;
-				break;
-			}
-		}
-
-		/* A failed callback may leave partially updated state. Do not call
-		 * another option handler or resolve addresses after that failure.
-		 */
-		if (usage) {
-			print_usage();
+		if (!apply_packet_options(packet_options, packet_option_count, &data, &datalen)) {
+			status=1;
 			goto cleanup;
 		}
 
-		/* gnuoptind is the first thing that is not an option - should have exactly
-			one hostname...
-		*/
-		if(argc-gnuoptind < 1) {
+		if (!hostname) {
 			fprintf(stderr,"No hostname specified, assuming -D (dump to stdout)\n");
 			dump = TRUE;
-			if(first && first->set_addr) {
-				char ipv4_loopback[]="127.0.0.1", ipv6_loopback[]="::1";
-				char *loopback=first->optchar=='6' ? ipv6_loopback : ipv4_loopback;
-				if (!first->set_addr(loopback,first->pack)) {
-					usage=TRUE;
-					status=1;
-				}
-			}
-		} else if(argc > gnuoptind+1) {
-			usage=TRUE;
-			status=1;
-			fprintf(stderr,"More than one hostname specified\n");
-		} else {
-			if(first && first->set_addr) {
-				if (!first->set_addr(packet_argv[gnuoptind],first->pack)) {
-					usage=TRUE;
-					status=1;
-				}
-			}
 		}
-
-		if(usage) {
+		if (address) strcpy(packet_hostname, address);
+		if (first && first->set_addr && !first->set_addr(packet_hostname, first->pack)) {
 			print_usage();
+			status=1;
 			goto cleanup;
 		}
 
@@ -977,7 +970,7 @@ int main(int argc, char *const argv[]) {
 					perror("Writing packet data");
 					status=1;
 				}
-			} else if (sendpacket(&packet,packet_argv[gnuoptind],af_type,verbosity)!=packet.alloc_len) {
+			} else if (sendpacket(&packet,packet_hostname,af_type,verbosity)!=packet.alloc_len) {
 				status=1;
 			}
 			if (status) goto cleanup;
@@ -987,8 +980,6 @@ int main(int argc, char *const argv[]) {
 			release_module_packet(mod, false);
 		free(packet.data);
 		packet.data=NULL;
-		free_arguments(packet_argv);
-		packet_argv=NULL;
 
 		/*@@ looping */
 		if ((forever || loopcount) && delaytime)
@@ -1003,14 +994,17 @@ cleanup:
 	free(packet.data);
 	free(headers);
 	free(hdrs);
+	for (size_t j=0; j<packet_option_count; ++j) {
+		free(packet_options[j].writable_name);
+		free(packet_options[j].writable_argument);
+	}
+	free(packet_options);
+	free(packet_hostname);
 	free_options(opts);
 	free(data);
-	free_arguments(packet_argv);
 	/*@@ global de-init */
 	fa_close();
 
-
-	/*@@fprintf(stderr, "%d random calls\n", randomcalls);*/
 
 	return status;
 }
