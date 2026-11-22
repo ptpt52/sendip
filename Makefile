@@ -41,12 +41,15 @@ TCPPROTOS= bgp.so
 PROTOS= $(BASEPROTOS) $(IPPROTOS) $(UDPPROTOS) $(TCPPROTOS)
 LIBS= libsendipaux.a
 LIBOBJS= csum.o compact.o protoname.o headers.o parseargs.o cryptomod.o crc32.o filearray.o
-SUBDIRS= mec
 LIBDIR_STAMP = .sendip-libdir
 
 include mec/modules.mk
+MEC_PROTOCOL_MODULES = $(addprefix mec/,$(MEC_PROTOS))
+MEC_MODULES = $(MEC_PROTOCOL_MODULES) $(addprefix mec/,$(MEC_CRYPTOS))
+BASE_TARGETS = $(LIBOBJS) sendip.o gnugetopt.o gnugetopt1.o $(PROTOS)
+DEP_TARGETS = $(BASE_TARGETS) $(MEC_MODULES)
 
-all:	$(LIBS) subdirs sendip $(PROTOS)
+all:	$(LIBS) sendip $(PROTOS) $(MEC_MODULES)
 
 man: sendip.1 sendip.spec sendipman.html
 
@@ -73,10 +76,7 @@ libsendipaux.a: $(LIBOBJS) Makefile
 	$(AR) crs "$$tmpdir/$@" $(LIBOBJS) && \
 	mv -f "$$tmpdir/$@" "$@"
 
-subdirs: $(LIBS)
-	for subdir in $(SUBDIRS) ; do \
-		$(MAKE) -C "$$subdir" LIBDIR="$(LIBDIR)" || exit $$?;\
-		done
+subdirs: $(MEC_MODULES)
 
 protoname.o:	mec/protoname.c
 	$(CC) -o $@ -c -I. $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $<
@@ -97,12 +97,12 @@ crc32.o: mec/crc32table.h mec/crc32.c
 #	mec/gen_crc32table > mec/crc32table.h
 
 # This requires help2man; a customized local copy is included
-sendip.1:	$(PROGS) $(PROTOS) subdirs VERSION help2man.sendip mec/modules.mk
+sendip.1:	$(PROGS) $(PROTOS) $(MEC_PROTOCOL_MODULES) VERSION help2man.sendip mec/modules.mk
 	@tmpdir=$$(mktemp -d "$@.XXXXXXXX") || exit 1; \
 	trap 'rm -f "$$tmpdir/$@"; rmdir "$$tmpdir"' 0; \
 	trap 'exit 1' HUP INT TERM; \
 	./help2man.sendip -n "Send arbitrary IP packets" -N -- \
-		$(addprefix ./,$(PROTOS)) $(addprefix ./mec/,$(MEC_PROTOS)) > "$$tmpdir/$@" && \
+		$(addprefix ./,$(PROTOS) $(MEC_PROTOCOL_MODULES)) > "$$tmpdir/$@" && \
 	test -s "$$tmpdir/$@" && mv -f "$$tmpdir/$@" "$@"
 
 # This requires man2html, a relatively recent (post-2003?) one, at that
@@ -126,16 +126,26 @@ sendip.spec:	sendip.spec.in VERSION
 	  cat "$<"; } > "$$tmpdir/$@" && \
 	mv -f "$$tmpdir/$@" "$@"
 
+define build_module
+$(CC) $(CPPFLAGS) -I. $(SENDIP_CPPFLAGS) $(MODULE_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) \
+	$(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
+endef
+
 %.so: %.c $(LIBS)
-			$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
+	$(build_module)
 
-.PHONY:	all subdirs man clean veryclean install FORCE_LIBDIR
+mec/hop.so: private MODULE_CPPFLAGS = -DHOP_OPT
+mec/dest.so: private MODULE_CPPFLAGS = -DDEST_OPT
+mec/dest.so: mec/hop.c $(LIBS)
+	$(build_module)
 
-clean:
-			rm -f $(DEP_TARGETS) $(addsuffix .d,$(DEP_TARGETS)) $(PROGS) $(LIBS) $(LIBDIR_STAMP) core gmon.out
-			for subdir in $(SUBDIRS) ; do \
-				$(MAKE) -C "$$subdir" clean || exit $$?;\
-				done
+.PHONY:	all subdirs man clean clean-mec veryclean install install-mec FORCE_LIBDIR
+
+clean: clean-mec
+			rm -f $(BASE_TARGETS) $(addsuffix .d,$(BASE_TARGETS)) $(PROGS) $(LIBS) $(LIBDIR_STAMP) core gmon.out
+
+clean-mec:
+			rm -f $(MEC_MODULES) $(addsuffix .d,$(MEC_MODULES)) mec/core mec/gmon.out
 
 veryclean:
 			$(MAKE) clean
@@ -146,13 +156,13 @@ install:		all
 			mkdir -p "$(DESTDIR)$(BINDIR)" "$(DESTDIR)$(MANDIR)" "$(DESTDIR)$(LIBDIR)"
 			$(INSTALL) -m 755 $(PROGS) "$(DESTDIR)$(BINDIR)/"
 			$(INSTALL) -m 644 sendip.1 "$(DESTDIR)$(MANDIR)/"
-			$(INSTALL) -m 755 $(PROTOS) "$(DESTDIR)$(LIBDIR)/"
-			for subdir in $(SUBDIRS) ; do \
-				$(MAKE) -C "$$subdir" LIBDIR="$(LIBDIR)" DESTDIR="$(DESTDIR)" install || exit $$?;\
-				done
+			$(INSTALL) -m 755 $(PROTOS) $(MEC_MODULES) "$(DESTDIR)$(LIBDIR)/"
+
+install-mec: subdirs
+			mkdir -p "$(DESTDIR)$(LIBDIR)"
+			$(INSTALL) -m 755 $(MEC_MODULES) "$(DESTDIR)$(LIBDIR)/"
 
 # Missing dependency files force a one-time rebuild of older cached outputs.
-DEP_TARGETS = $(LIBOBJS) sendip.o gnugetopt.o gnugetopt1.o $(PROTOS)
 $(DEP_TARGETS): %: %.d
 %.o.d: ;
 %.so.d: ;

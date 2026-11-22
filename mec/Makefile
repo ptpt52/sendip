@@ -1,58 +1,17 @@
-#configureable stuff
-PREFIX ?= /usr
-LIBDIR ?= $(PREFIX)/lib/sendip
-DESTDIR ?=
-#For most systems, this works
-INSTALL ?= install
-#For Solaris, you may need
-#INSTALL=/usr/ucb/install
-
-CFLAGS +=	-pipe -Wall -Wpointer-arith -Wwrite-strings \
-	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O3 -Wcast-align
-# Required flags remain present when callers supply CFLAGS/CPPFLAGS.
-SENDIP_CPPFLAGS = -I.. "-DSENDIP_LIBS=\"$(LIBDIR)\""
-SENDIP_CFLAGS = -fPIC -fsigned-char
-#-Wcast-align causes problems on solaris, but not serious ones
-LDFLAGS ?=
-LDLIBS ?=
-LIBCFLAGS= -shared
-CC ?=	gcc
-AR ?=	ar
-DEPFLAGS = -MMD -MP -MF $@.d -MT $@
-
-
+# Forward standalone MEC builds to the shared dependency graph.
 include modules.mk
-PROTOS= $(MEC_PROTOS)
-CRYPTOS= $(MEC_CRYPTOS)
-MODULES= $(PROTOS) $(CRYPTOS)
+PROTOS = $(MEC_PROTOS)
+CRYPTOS = $(MEC_CRYPTOS)
 
-LIBS= ../libsendipaux.a
+mec_goal_all = subdirs
+mec_goal_install = install-mec
+mec_goal_clean = clean-mec
+mec_goal_veryclean = clean-mec
 
-all:	$(MODULES)
+.DEFAULT_GOAL := all
+.PHONY: all install clean veryclean $(PROTOS) $(CRYPTOS) forward
+all install clean veryclean $(PROTOS) $(CRYPTOS): forward
 
-%.so: %.c $(LIBS)
-			$(CC) $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
-
-hop.so: hop.c $(LIBS)
-			$(CC) -DHOP_OPT $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
-
-dest.so: hop.c $(LIBS)
-			$(CC) -DDEST_OPT $(CPPFLAGS) $(SENDIP_CPPFLAGS) $(CFLAGS) $(SENDIP_CFLAGS) $(DEPFLAGS) $(LIBCFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LDLIBS)
-
-.PHONY:	all clean veryclean install
-
-clean:
-			rm -f $(MODULES) $(addsuffix .d,$(MODULES)) core gmon.out
-
-veryclean:
-			$(MAKE) clean
-			rm -f sendip.spec sendip.1
-
-install:		all
-			mkdir -p "$(DESTDIR)$(LIBDIR)"
-			$(INSTALL) -m 755 $(MODULES) "$(DESTDIR)$(LIBDIR)/"
-
-$(MODULES): %: %.d
-%.so.d: ;
-
--include $(wildcard $(addsuffix .d,$(MODULES)))
+forward:
+	$(MAKE) -C .. $(foreach goal,$(or $(MAKECMDGOALS),all),$(or $(mec_goal_$(goal)),mec/$(goal))) \
+		MEC_PROTOS="$(PROTOS)" MEC_CRYPTOS="$(CRYPTOS)"
