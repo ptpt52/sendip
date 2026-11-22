@@ -75,6 +75,36 @@ class PacketOptions(unittest.TestCase):
         self.assertIn(b"More than one hostname specified", result.stderr)
         self.assertEqual(result.stdout, b"")
 
+    def test_packet_sizes_can_grow_and_shrink_between_iterations(self):
+        payloads = [b"short", b"Y" * 100, b"last"]
+        with tempfile.TemporaryDirectory() as directory:
+            values = Path(directory) / "payloads.txt"
+            values.write_bytes(b"\n".join(payloads) + b"\n")
+            packets = self.dump(
+                "-l", "3", "-p", "ipv4", "-ii", "1", "-p", "udp",
+                "-ud", "5000", "-d", "f" + str(values), "127.0.0.1",
+            )
+        offset = 0
+        for payload in payloads:
+            length = 28 + len(payload)
+            self.assertEqual(struct.unpack_from("!H", packets, offset + 2), (length,))
+            self.assertEqual(packets[offset + 28:offset + length], payload)
+            offset += length
+        self.assertEqual(len(packets), offset)
+
+    def test_later_option_failure_keeps_completed_packets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            values = Path(directory) / "ports.txt"
+            values.write_text("5000\ninvalid\n", encoding="ascii")
+            result = run_sendip(
+                "-l", "2", "-p", "ipv4", "-ii", "1", "-p", "udp",
+                "-ud", "f" + str(values), "127.0.0.1",
+            )
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn(b"Invalid integer argument", result.stderr)
+        self.assertEqual(len(result.stdout), 28)
+        self.assertEqual(struct.unpack_from("!H", result.stdout, 22), (5000,))
+
     @unittest.skipUnless(Path("/dev/stdin").exists(), "/dev/stdin is unavailable")
     def test_raw_stream_is_cached_for_each_packet(self):
         payload = bytes(range(256)) * 64

@@ -89,6 +89,7 @@ typedef struct _s_m {
 	bool (*finalize)(char *hdrs, sendip_data *headers[], int index,
 	                 sendip_data *data, sendip_data *pack);
 	sendip_data *pack;
+	int packet_offset;
 	void *handle;
 	sendip_option *opts;
 	int num_opts;
@@ -108,6 +109,12 @@ typedef struct {
 	char *writable_argument;
 	bool random_argument;
 } packet_option;
+
+typedef struct {
+	sendip_data bytes;
+	size_t capacity;
+	bool assembled; /* Module headers currently borrow slices of bytes.data. */
+} packet_buffer;
 
 static sendip_module *first;
 static sendip_module *last;
@@ -313,11 +320,16 @@ static void release_module_packet(sendip_module *mod, bool owns_data) {
 	mod->pack=NULL;
 }
 
-static void unload_modules(bool owns_data, int verbosity) {
+static void release_packet(packet_buffer *buffer) {
+	for (sendip_module *mod=first; mod; mod=mod->next)
+		release_module_packet(mod, !buffer->assembled);
+	buffer->assembled=false;
+}
+
+static void unload_modules(int verbosity) {
 	for (sendip_module *mod=first; mod;) {
 		sendip_module *next=mod->next;
 		if(verbosity) fprintf(stderr, "Freeing module %s\n",mod->name);
-		release_module_packet(mod, owns_data);
 		(void)dlclose(mod->handle);
 		free(mod->name);
 		free(mod);
@@ -603,8 +615,94 @@ static bool pad_modules(void) {
 	return TRUE;
 }
 
+static bool assemble_packet(packet_buffer *buffer, const char *data, int datalen,
+                            char *hdrs, sendip_data *headers[]) {
+	int length=0;
+	for (sendip_module *mod=first; mod; mod=mod->next) {
+		const sendip_data *pack=mod->pack;
+		if (pack->alloc_len<0 || (pack->alloc_len && !pack->data)) {
+			fprintf(stderr, "Module %s returned invalid header storage\n", mod->name);
+			return false;
+		}
+		if (pack->alloc_len>INT_MAX-length) {
+			fprintf(stderr, "Packet headers are too large\n");
+			return false;
+		}
+		mod->packet_offset=length;
+		length+=pack->alloc_len;
+	}
+	if (datalen>INT_MAX-length) {
+		fprintf(stderr, "Packet data is too large\n");
+		return false;
+	}
+	int total=length+datalen;
+	size_t needed=total ? (size_t)total : 1;
+	if (needed>buffer->capacity) {
+		void *replacement=realloc(buffer->bytes.data, needed);
+		if (!replacement) {
+			perror("Allocating packet");
+			return false;
+		}
+		buffer->bytes.data=replacement;
+		buffer->capacity=needed;
+	}
+
+	char *bytes=buffer->bytes.data;
+	int index=0;
+	for (sendip_module *mod=first; mod; mod=mod->next, ++index) {
+		sendip_data *pack=mod->pack;
+		char *destination=bytes+mod->packet_offset;
+		if (pack->alloc_len) memcpy(destination, pack->data, pack->alloc_len);
+		free(pack->data);
+		pack->data=destination;
+		hdrs[index]=mod->optchar;
+		headers[index]=pack;
+	}
+	hdrs[index]='\0';
+	headers[index]=NULL;
+	if (datalen) memcpy(bytes+length, data, datalen);
+	buffer->bytes.alloc_len=total;
+	buffer->assembled=true;
+	return true;
+}
+
+static bool finalize_packet(sendip_data *packet, int datalen, char *hdrs,
+                             sendip_data *headers[], int count, bool verbose) {
+	char *bytes=packet->data;
+	int header_end=packet->alloc_len-datalen;
+	sendip_data tail={.data=bytes+header_end, .alloc_len=datalen};
+	for (sendip_module *mod=last; mod; mod=mod->prev) {
+		sendip_data *pack=mod->pack;
+		char *start=bytes+mod->packet_offset;
+		int length=header_end-mod->packet_offset;
+		if (pack->data!=start || pack->alloc_len!=length) {
+			fprintf(stderr, "Module %s has an invalid header layout before finalization\n", mod->name);
+			return false;
+		}
+		int capacity=length+tail.alloc_len;
+		if (verbose) fprintf(stderr, "Finalizing module %s\n", mod->name);
+		if (!mod->finalize(hdrs, headers, --count, &tail, pack)) {
+			fprintf(stderr, "Finalizing module %s failed\n", mod->name);
+			return false;
+		}
+		/* A finalizer may shrink its combined header and payload, keeping
+		 * both contiguous and anchored at the assembled header offset.
+		 */
+		if (pack->data!=start || tail.alloc_len<0 || tail.alloc_len>capacity ||
+		    pack->alloc_len<0 || pack->alloc_len>capacity-tail.alloc_len ||
+		    tail.data!=start+pack->alloc_len) {
+			fprintf(stderr, "Module %s returned an invalid finalized packet layout\n", mod->name);
+			return false;
+		}
+		tail.data=start;
+		tail.alloc_len+=pack->alloc_len;
+		header_end=mod->packet_offset;
+	}
+	packet->alloc_len=tail.alloc_len;
+	return true;
+}
+
 int main(int argc, char *const argv[]) {
-	int i;
 	int status=0;
 
 	const struct option empty_options[]={{0}};
@@ -629,7 +727,7 @@ int main(int argc, char *const argv[]) {
 
 	int num_modules=0;
 
-	sendip_data packet = {0};
+	packet_buffer buffer={0};
 
 	/*@@*/
 	int loopcount=1;
@@ -862,125 +960,27 @@ int main(int argc, char *const argv[]) {
 			goto cleanup;
 		}
 
-		if (!pad_modules()) {
+		if (!pad_modules() ||
+		    !assemble_packet(&buffer, data, datalen, hdrs, headers) ||
+		    !finalize_packet(&buffer.bytes, datalen, hdrs, headers, num_modules, verbosity)) {
 			status=1;
 			goto cleanup;
 		}
 
-		/* EVIL EVIL EVIL! */
-		/* Stick all the bits together.  This means that finalize better not
-			change the size or location of any packet's data... */
-		/* @@ New addition - we allow finalize to shrink, but not expand,
-		 * the packet size. Of course, any finalize which does so is
-		 * responsible for pulling back all the later packet data into
-		 * the area that will be sent.
-		 *
-		 * All of this is to accommodate esp, which needs to put its
-		 * trailer after the packet data, with some padding for alignment.
-		 * Since esp can't know how much padding will be needed until
-		 * the rest of the packet is filled out, it preallocates an
-		 * excess of padding first, and then trims in finalize to the
-		 * amount actually needed.
-		 */
-		packet.alloc_len = 0;
-		for(mod=first; mod!=NULL; mod=mod->next) {
-			if (mod->pack->alloc_len<0 || (mod->pack->alloc_len && !mod->pack->data)) {
-				fprintf(stderr, "Module %s returned invalid header storage\n", mod->name);
+		sendip_data *packet=&buffer.bytes;
+		int af_type=first && first->optchar=='6' ? AF_INET6 : AF_INET;
+		if (dump) {
+			if (fwrite(packet->data, 1, packet->alloc_len, stdout)!=(size_t)packet->alloc_len ||
+			    fflush(stdout)==EOF) {
+				perror("Writing packet data");
 				status=1;
-				goto cleanup;
 			}
-			if (mod->pack->alloc_len>INT_MAX-packet.alloc_len) {
-				fprintf(stderr, "Packet headers are too large\n");
-				status=1;
-				goto cleanup;
-			}
-			packet.alloc_len+=mod->pack->alloc_len;
-		}
-		if (datalen>INT_MAX-packet.alloc_len) {
-			fprintf(stderr, "Packet data is too large\n");
+		} else if (sendpacket(packet,packet_hostname,af_type,verbosity)!=packet->alloc_len) {
 			status=1;
-			goto cleanup;
 		}
-		packet.alloc_len+=datalen;
-		packet.data = malloc(packet.alloc_len ? (size_t)packet.alloc_len : 1);
-		if (!packet.data) {
-			perror("Allocating packet");
-			status=1;
-			goto cleanup;
-		}
-		for(i=0, mod=first; mod!=NULL; mod=mod->next) {
-			if (mod->pack->alloc_len)
-				memcpy((char *)packet.data+i,mod->pack->data,mod->pack->alloc_len);
-			free(mod->pack->data);
-			mod->pack->data = (char *)packet.data+i;
-			i+=mod->pack->alloc_len;
-		}
+		if (status) goto cleanup;
 
-		/* Add any data */
-		if(data != NULL) memcpy((char *)packet.data+i,data,datalen);
-
-		/* Finalize from inside out */
-		{
-			sendip_data d = {
-				.data = (char *)packet.data+packet.alloc_len-datalen,
-				.alloc_len = datalen,
-			};
-
-			for(i=0,mod=first; mod!=NULL; mod=mod->next,i++) {
-				hdrs[i]=mod->optchar;
-				headers[i]=mod->pack;
-			}
-			hdrs[num_modules] = '\0';
-			headers[num_modules] = NULL;
-
-			for(i=num_modules-1,mod=last; mod!=NULL; mod=mod->prev,i--) {
-				char *start=mod->pack->data;
-				int capacity=mod->pack->alloc_len+d.alloc_len;
-				if(verbosity) fprintf(stderr, "Finalizing module %s\n",mod->name);
-				if (!mod->finalize(hdrs, headers, i, &d, mod->pack)) {
-					fprintf(stderr, "Finalizing module %s failed\n", mod->name);
-					status=1;
-					goto cleanup;
-				}
-
-				/* The header and its following data must remain contiguous
-				 * within the space available to this finalizer.
-				 */
-				if (mod->pack->data!=start ||
-				    d.alloc_len<0 || d.alloc_len>capacity ||
-				    mod->pack->alloc_len<0 || mod->pack->alloc_len>capacity-d.alloc_len ||
-				    d.data!=start+mod->pack->alloc_len) {
-					fprintf(stderr, "Module %s returned an invalid finalized packet layout\n",
-					        mod->name);
-					status=1;
-					goto cleanup;
-				}
-				d.data=start;
-				d.alloc_len+=mod->pack->alloc_len;
-			}
-			/* @@ Trim back the packet length if need be */
-			if (d.alloc_len < packet.alloc_len)
-				packet.alloc_len = d.alloc_len;
-		}
-		/* And send the packet */
-		{
-			int af_type=first && first->optchar=='6' ? AF_INET6 : AF_INET;
-			if (dump) {
-				if (fwrite(packet.data, 1, packet.alloc_len, stdout)!=(size_t)packet.alloc_len ||
-				    fflush(stdout)==EOF) {
-					perror("Writing packet data");
-					status=1;
-				}
-			} else if (sendpacket(&packet,packet_hostname,af_type,verbosity)!=packet.alloc_len) {
-				status=1;
-			}
-			if (status) goto cleanup;
-		}
-
-		for (mod=first; mod; mod=mod->next)
-			release_module_packet(mod, false);
-		free(packet.data);
-		packet.data=NULL;
+		release_packet(&buffer);
 
 		/*@@ looping */
 		if ((forever || loopcount) && delaytime)
@@ -988,11 +988,9 @@ int main(int argc, char *const argv[]) {
 	} /*@@ back to top of loop */
 
 cleanup:
-	/* Before assembly each module owns a separate header allocation. After
-	 * assembly the views borrow storage from the single packet buffer.
-	 */
-	unload_modules(!packet.data, verbosity);
-	free(packet.data);
+	release_packet(&buffer);
+	unload_modules(verbosity);
+	free(buffer.bytes.data);
 	free(headers);
 	free(hdrs);
 	for (size_t j=0; j<packet_option_count; ++j) {
