@@ -31,6 +31,7 @@ endif
 LIBCFLAGS= -shared
 CC ?=	gcc
 AR ?=	ar
+PYTHON ?= python3
 DEPFLAGS = -MMD -MP -MF $@.d -MT $@
 
 PROGS= sendip
@@ -46,10 +47,14 @@ LIBDIR_STAMP = .sendip-libdir
 include mec/modules.mk
 MEC_PROTOCOL_MODULES = $(addprefix mec/,$(MEC_PROTOS))
 MEC_MODULES = $(MEC_PROTOCOL_MODULES) $(addprefix mec/,$(MEC_CRYPTOS))
-BASE_TARGETS = $(LIBOBJS) sendip.o gnugetopt.o gnugetopt1.o $(PROTOS)
+CHECK_MODULE = test/loop_module.so
+BASE_TARGETS = $(LIBOBJS) sendip.o gnugetopt.o gnugetopt1.o $(PROTOS) $(CHECK_MODULE)
 DEP_TARGETS = $(BASE_TARGETS) $(MEC_MODULES)
 
 all:	$(LIBS) sendip $(PROTOS) $(MEC_MODULES)
+
+check: all $(CHECK_MODULE)
+	$(PYTHON) test/check.py
 
 man: sendip.1 sendip.spec sendipman.html
 
@@ -139,7 +144,7 @@ mec/dest.so: private MODULE_CPPFLAGS = -DDEST_OPT
 mec/dest.so: mec/hop.c $(LIBS)
 	$(build_module)
 
-.PHONY:	all subdirs man clean clean-mec veryclean install install-mec FORCE_LIBDIR
+.PHONY:	all check subdirs man clean clean-mec veryclean install install-mec FORCE_LIBDIR
 
 clean: clean-mec
 			rm -f $(BASE_TARGETS) $(addsuffix .d,$(BASE_TARGETS)) $(PROGS) $(LIBS) $(LIBDIR_STAMP) core gmon.out

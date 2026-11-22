@@ -5,6 +5,9 @@ sendip
 
 [Original README](README)
 
+Run `make check` with Python 3 to verify packet dumps and module callbacks
+locally without sending packets.
+
 ### Module compatibility
 
 SendIP and its modules use the standard C `bool` type from `<stdbool.h>`.
