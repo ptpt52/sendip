@@ -37,7 +37,7 @@ static void ipcsum(sendip_data *ip_hdr) {
 /* Output storage is separate: short numeric addresses can expand to four
  * binary bytes and must not overwrite the remaining source text.
  */
-static int buildroute(char *input, u_int8_t *output, sendip_data *pack) {
+static int buildroute(char *input, u_int8_t *output) {
 	if (strlen(input)<3 || !isxdigit((unsigned char)input[0]) ||
 	    !isxdigit((unsigned char)input[1]) || input[2]!=':') return 0;
 	char pointer[3]={input[0], input[1], 0};
@@ -50,14 +50,6 @@ static int buildroute(char *input, u_int8_t *output, sendip_data *pack) {
 		if (!ipv4argument_checked(address, strlen(address), &ip)) return 0;
 		memcpy(output+used, &ip, 4);
 		used+=4;
-	}
-	/* The pointer identifies the next hop to consume, not the final
-	 * destination required by the transport checksum pseudo-header.
-	 */
-	if (pack && !(pack->modified&IP_MOD_ROUTE_DADDR) && output[0]>=4 &&
-	    (output[0]-4)%4==0 && output[0]<=used+2) {
-		pack->modified |= IP_MOD_ROUTE_DADDR;
-		memcpy(&pack->route_daddr, output+used-4, 4);
 	}
 	return used;
 }
@@ -121,6 +113,24 @@ static bool addoption(u_int8_t copy, u_int8_t class, u_int8_t num,
 	if(len > 2)
 		memcpy((u_int8_t *)pack->data+pack->alloc_len+2,data,len-2);
 	pack->alloc_len += len;
+	return TRUE;
+}
+
+static bool addroute(sendip_data *pack, char *argument, bool source_route,
+                     u_int8_t number) {
+	u_int8_t data[253];
+	int length=buildroute(argument, data);
+	if (!length || !addoption(source_route, 0, number, length+2, data, pack))
+		return FALSE;
+
+	/* A pending source route uses its last hop in the transport
+	 * pseudo-header. Publish that destination after appending the option.
+	 */
+	if (source_route && !(pack->modified&IP_MOD_ROUTE_DADDR) &&
+	    data[0]>=4 && (data[0]-4)%4==0 && data[0]<=length+2) {
+		memcpy(&pack->route_daddr, data+length-4, sizeof(in_addr_t));
+		pack->modified |= IP_MOD_ROUTE_DADDR;
+	}
 	return TRUE;
 }
 
@@ -277,20 +287,14 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			/* NOP */
 			added=addoption(0,0,1,1,NULL,pack);
 		} else if(!strcmp(opt+2, "rr")) {
-			u_int8_t data[253];
-			int len=buildroute(arg, data, NULL);
-			if (!len) return FALSE;
-			added=addoption(0,0,7,len+2,data,pack);
+			added=addroute(pack,arg,false,7);
 		} else if(!strcmp(opt+2, "ts")) {
 			u_int8_t data[253];
 			int len=buildtimestamp(arg, data);
 			if (!len) return FALSE;
 			added=addoption(0,2,4,len+2,data,pack);
 		} else if(!strcmp(opt+2, "lsr")) {
-			u_int8_t data[253];
-			int len=buildroute(arg, data, pack);
-			if (!len) return FALSE;
-			added=addoption(1,0,3,len+2,data,pack);
+			added=addroute(pack,arg,true,3);
 		} else if(!strcmp(opt+2, "sid")) {
 			/* Stream ID (RFC791) */
 			/*@@u_int16_t sid = htons(atoi(arg));*/
@@ -298,10 +302,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			u_int16_t sid = parsed;
 			added=addoption(1,0,8,4,(u_int8_t *)&sid,pack);
 		} else if(!strcmp(opt+2, "ssr")) {
-			u_int8_t data[253];
-			int len=buildroute(arg, data, pack);
-			if (!len) return FALSE;
-			added=addoption(1,0,9,len+2,data,pack);
+			added=addroute(pack,arg,true,9);
 		} else {
 			fprintf(stderr, "unsupported IP option %s val %s\n", opt, arg);
 			return FALSE;
